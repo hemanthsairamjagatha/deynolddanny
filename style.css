@@ -1,0 +1,861 @@
+/* ==========================================================================
+   DEYNOLD DANNY &bull; LUXURY E-COMMERCE STYLESHEET
+   Design Direction: Minimal, Clean, Elegant, High-End Fashion Architecture
+   Two-Tier Header + 1520.8 x 855 Hero Banner with Direct Editorial Overlay
+   Typography: Heading 40px #FFFFFF, Description 14px #FFFFFF, Button 14px #001526
+   Pure HTML5 & CSS3 (Zero External JS / Zero Frameworks)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CSS VARIABLES (Design System Tokens)
+   -------------------------------------------------------------------------- */
+:root {
+  /* Strict Minimalist Color Palette */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-charcoal: #111111;
+  --color-slate: #222222;
+  --color-navy-dark: #001526;
+  --color-gray-dark: #3a3a3a;
+  --color-gray-medium: #666666;
+  --color-gray-muted: #8c8c8c;
+  --color-gray-light: #e5e5e5;
+  --color-gray-subtle: #f7f7f8;
+  --color-gray-surface: #fafafb;
+  --color-border: #ebebeb;
+  --color-border-subtle: #f0f0f0;
+  --color-studio-warm: #cfcac6;
+
+  /* Typography */
+  --font-primary: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Cormorant Garamond', 'Didot', 'Bodoni MT', Georgia, serif;
+
+  /* Spacing Scale */
+  --space-3xs: 0.125rem; /* 2px */
+  --space-2xs: 0.25rem;  /* 4px */
+  --space-xs: 0.5rem;    /* 8px */
+  --space-sm: 0.75rem;   /* 12px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+  --space-3xl: 4.5rem;   /* 72px */
+  --space-4xl: 6.5rem;   /* 104px */
+
+  /* Layout Containers */
+  --max-width-site: 1520.8px;
+  --topbar-height: 36px;
+  --header-tier-top-height: 92px;
+  --header-tier-nav-height: 52px;
+
+  /* Transitions */
+  --transition-fast: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Subtle elevations */
+  --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.03);
+  --shadow-card: 0 16px 36px rgba(0, 0, 0, 0.08);
+  --shadow-drawer: 16px 0 48px rgba(0, 0, 0, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   2. MODERN CSS RESET & GLOBAL BASICS
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  background-color: var(--color-white);
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--color-white);
+  color: var(--color-black);
+  line-height: 1.6;
+  font-weight: 400;
+  overflow-x: hidden;
+  position: relative;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast), opacity var(--transition-fast);
+}
+
+ul, ol {
+  list-style: none;
+}
+
+button, input {
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+  outline: none;
+}
+
+::selection {
+  background-color: var(--color-navy-dark);
+  color: var(--color-white);
+}
+
+/* Accessible hidden element for screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Base focus styles for accessibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+label:focus-visible {
+  outline: 2px solid var(--color-black);
+  outline-offset: 3px;
+}
+
+/* --------------------------------------------------------------------------
+   3. REUSABLE LAYOUT & ATOMS
+   -------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--max-width-site);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-2xl);
+  padding-right: var(--space-2xl);
+}
+
+/* --------------------------------------------------------------------------
+   4. TOP ANNOUNCEMENT BAR
+   -------------------------------------------------------------------------- */
+.top-bar {
+  background-color: var(--color-black);
+  color: var(--color-white);
+  height: var(--topbar-height);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-md);
+  text-align: center;
+}
+
+.top-bar-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-left: 0.4rem;
+  opacity: 0.9;
+}
+
+.top-bar-link:hover {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   5. TWO-TIER STICKY HEADER (Referenced Design)
+   -------------------------------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  background-color: var(--color-white);
+  z-index: 1000;
+  box-shadow: 0 1px 0 var(--color-border);
+}
+
+/* Header Top Tier (Menu, Logo, Icons) */
+.header-top-tier {
+  width: 100%;
+  height: var(--header-tier-top-height);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  background-color: var(--color-white);
+}
+
+.header-top-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+/* Top Tier Left: Menu Button */
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.header-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--color-black);
+  user-select: none;
+  padding: 8px 0;
+  transition: opacity var(--transition-fast);
+}
+
+.header-menu-btn:hover {
+  opacity: 0.75;
+}
+
+.menu-icon-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 20px;
+}
+
+.menu-line {
+  display: block;
+  height: 1.5px;
+  background-color: var(--color-black);
+  transition: transform var(--transition-base), opacity var(--transition-base);
+  width: 18px;
+}
+
+.menu-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-black);
+}
+
+/* Top Tier Center: DEYNOLD DANNY Logo */
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+}
+
+.brand-logo-img {
+  height: 72px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  display: block;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.brand-logo:hover .brand-logo-img {
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+/* Top Tier Right: 4 Utility Icons */
+.header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-lg);
+}
+
+.header-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: var(--color-black);
+  border-radius: 50%;
+  position: relative;
+  transition: transform var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.header-icon-link:hover {
+  background-color: var(--color-gray-subtle);
+  transform: translateY(-1px);
+}
+
+.header-icon-link svg {
+  display: block;
+  stroke-width: 1.45;
+}
+
+.cart-icon-link {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: var(--color-black);
+  color: var(--color-white);
+  font-size: 0.625rem;
+  font-weight: 600;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   HEADER BOTTOM TIER: Centered Serif Navigation Links
+   -------------------------------------------------------------------------- */
+.header-nav-tier {
+  width: 100%;
+  height: var(--header-tier-nav-height);
+  background-color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-tier-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 3.2vw, 3.5rem);
+}
+
+.nav-tier-link {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  color: var(--color-black);
+  position: relative;
+  padding: 6px 0;
+  transition: color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.nav-tier-link::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background-color: var(--color-black);
+  transition: width var(--transition-base), left var(--transition-base);
+}
+
+.nav-tier-link:hover {
+  opacity: 0.75;
+}
+
+.nav-tier-link:hover::after,
+.nav-tier-link.active::after {
+  width: 100%;
+  left: 0;
+}
+
+/* --------------------------------------------------------------------------
+   PURE CSS SIDE-DRAWER NAVIGATION
+   -------------------------------------------------------------------------- */
+.nav-toggle-checkbox {
+  display: none;
+}
+
+.nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 1010;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+
+.side-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 88%;
+  max-width: 440px;
+  height: 100vh;
+  background-color: var(--color-white);
+  z-index: 1020;
+  transform: translateX(-100%);
+  transition: transform var(--transition-base);
+  box-shadow: var(--shadow-drawer);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-xl) var(--space-2xl) var(--space-2xl);
+}
+
+/* Side Drawer Header */
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-xl);
+}
+
+.drawer-brand-img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+}
+
+.drawer-close-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-black);
+  border-radius: 50%;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.drawer-close-btn:hover {
+  background-color: var(--color-gray-subtle);
+  transform: rotate(90deg);
+}
+
+/* Drawer Navigation Lists */
+.drawer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  flex: 1;
+}
+
+.drawer-section-title {
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-gray-muted);
+  margin-bottom: var(--space-md);
+}
+
+.drawer-links-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.drawer-link-serif {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--color-black);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.drawer-link-serif:hover {
+  transform: translateX(4px);
+  opacity: 0.75;
+}
+
+.drawer-link-serif svg {
+  opacity: 0.4;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.drawer-link-serif:hover svg {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+.drawer-links-sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.drawer-link-sans {
+  font-size: 0.875rem;
+  color: var(--color-gray-medium);
+  letter-spacing: 0.05em;
+  transition: color var(--transition-fast);
+}
+
+.drawer-link-sans:hover {
+  color: var(--color-black);
+}
+
+/* Drawer Footer */
+.drawer-footer {
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+  color: var(--color-gray-muted);
+}
+
+/* Checkbox Toggle Interaction */
+.nav-toggle-checkbox:checked ~ .site-header .nav-backdrop,
+.nav-toggle-checkbox:checked ~ .nav-backdrop {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-toggle-checkbox:checked ~ .site-header .side-drawer,
+.nav-toggle-checkbox:checked ~ .side-drawer {
+  transform: translateX(0);
+}
+
+/* Animate the 2 Menu lines into an X when opened */
+.nav-toggle-checkbox:checked ~ .site-header .menu-line:nth-child(1),
+.nav-toggle-checkbox:checked ~ * .menu-line:nth-child(1) {
+  transform: translateY(3.25px) rotate(45deg);
+}
+
+.nav-toggle-checkbox:checked ~ .site-header .menu-line:nth-child(2),
+.nav-toggle-checkbox:checked ~ * .menu-line:nth-child(2) {
+  transform: translateY(-3.25px) rotate(-45deg);
+}
+
+/* --------------------------------------------------------------------------
+   6. HERO SECTION (1520.8 x 855 Referenced Design)
+   -------------------------------------------------------------------------- */
+.hero-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--color-white);
+  padding: 0 0 var(--space-3xl) 0;
+}
+
+/* Centered Search Strip above the 1520.8x855 Hero Banner */
+.hero-search-strip {
+  width: 100%;
+  max-width: 1520.8px;
+  padding: 1.4rem var(--space-xl);
+  display: flex;
+  justify-content: center;
+  background-color: var(--color-white);
+}
+
+.hero-search-box {
+  width: 100%;
+  max-width: 540px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1.5px solid var(--color-black);
+  padding-bottom: 0.5rem;
+  gap: var(--space-sm);
+}
+
+.hero-search-box .search-icon {
+  color: var(--color-black);
+  flex-shrink: 0;
+}
+
+.hero-search-input {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: var(--color-black);
+  background: transparent;
+  padding: 0 4px;
+}
+
+.hero-search-input::placeholder {
+  color: var(--color-gray-dark);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+.hero-search-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-black);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  transition: transform var(--transition-fast);
+}
+
+.hero-search-arrow:hover {
+  transform: translateX(4px);
+}
+
+/* Exact 1520.8 x 855 Hero Banner Container */
+.hero-banner-container {
+  width: 100%;
+  max-width: 1520.8px;
+  height: 855px;
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  background-color: var(--color-studio-warm);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.04);
+}
+
+/* Subtle gradient overlay to guarantee perfect contrast for #FFFFFF text */
+.hero-banner-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.35) 28%,
+    rgba(0, 0, 0, 0.08) 55%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   HERO EDITORIAL CONTENT (Referenced OVS Layout & Exact User Specs)
+   - Heading: 40px, #FFFFFF
+   - Description: 14px, #FFFFFF
+   - Buttons: 14px, #001526, pure white rounded container
+   -------------------------------------------------------------------------- */
+.hero-overlay-content {
+  position: absolute;
+  bottom: clamp(2.5rem, 5vw, 4rem);
+  left: clamp(2.5rem, 5vw, 4.5rem);
+  z-index: 10;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* Exact Requirement: Heading font size 40px, colour #FFFFFF */
+.hero-headline {
+  font-family: var(--font-primary);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: #FFFFFF;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* Exact Requirement: Description font size 14px, colour #FFFFFF */
+.hero-description {
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: #FFFFFF;
+  max-width: 480px;
+  margin-bottom: 24px;
+  opacity: 0.96;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+/* Button Container side-by-side */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Exact Requirement: Button font size 14px, colour #001526 */
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF;
+  color: #001526;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 4px;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+  transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.hero-btn:hover {
+  background-color: #f2f2f2;
+  color: #001526;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+/* --------------------------------------------------------------------------
+   7. RESPONSIVE MEDIA QUERIES
+   -------------------------------------------------------------------------- */
+
+/* Large screens scaling down gracefully */
+@media (max-width: 1540px) {
+  .hero-banner-container {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1520.8 / 855.45;
+  }
+}
+
+/* Medium / Tablet View (<= 1024px) */
+@media (max-width: 1024px) {
+  .header-nav-tier {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .header-nav-tier::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-tier-list {
+    white-space: nowrap;
+    padding: 0 var(--space-md);
+  }
+}
+
+/* Mobile & Tablet Portrait (<= 768px) */
+@media (max-width: 768px) {
+  :root {
+    --header-tier-top-height: 80px;
+    --header-tier-nav-height: 46px;
+  }
+
+  .container {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+
+  .header-right {
+    gap: var(--space-xs);
+  }
+
+  .brand-logo-img {
+    height: 56px;
+    max-width: 120px;
+  }
+
+  .nav-tier-link {
+    font-size: 1rem;
+  }
+
+  /* Hero Section Mobile Presentation */
+  .hero-banner-container {
+    height: auto;
+    aspect-ratio: 16 / 9;
+    min-height: 380px;
+  }
+
+  .hero-overlay-content {
+    bottom: var(--space-lg);
+    left: var(--space-md);
+    right: var(--space-md);
+    max-width: 100%;
+  }
+
+  .hero-headline {
+    font-size: clamp(26px, 6.5vw, 36px);
+  }
+
+  .hero-description {
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+
+  .hero-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .hero-btn {
+    padding: 9px 20px;
+    font-size: 13px;
+  }
+}
+
+/* Small Smart Phones (<= 480px) */
+@media (max-width: 480px) {
+  .menu-text {
+    display: none;
+  }
+
+  .header-icon-link {
+    width: 32px;
+    height: 32px;
+  }
+
+  .hero-search-strip {
+    padding: 1rem var(--space-md);
+  }
+
+  .hero-search-box {
+    max-width: 100%;
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
+  .hero-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
