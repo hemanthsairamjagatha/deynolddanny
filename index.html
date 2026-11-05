@@ -984,17 +984,17 @@
         </button>
       </div>
 
-      <!-- Main Title -->
+      <!-- Main Title (Always "My Cart" matching reference) -->
       <div class="cart-drawer-title-wrap">
         <h2 class="cart-drawer-title" id="cart-drawer-heading">My Cart</h2>
       </div>
 
-      <!-- Divider -->
-      <div class="cart-drawer-divider"></div>
+      <!-- Empty State Divider (Only visible when empty) -->
+      <div class="cart-drawer-divider" id="cart-drawer-divider"></div>
 
       <!-- Dynamic Cart Content -->
       <div class="cart-drawer-content" id="cart-drawer-content">
-        <!-- Empty State (Exact Match to Reference Screenshot) -->
+        <!-- Empty State (Matches Reference Design) -->
         <div class="cart-empty-state" id="cart-empty-state">
           <p class="cart-empty-text">Your Cart Is Empty</p>
           <button type="button" class="cart-continue-btn" id="cart-continue-btn">
@@ -1002,7 +1002,7 @@
           </button>
         </div>
 
-        <!-- Populated State (When items are added) -->
+        <!-- Populated State (Exact Match to Reference Screenshot) -->
         <div class="cart-items-wrap" id="cart-items-wrap" style="display: none;">
           <ul class="cart-items-list" id="cart-items-list">
             <!-- Dynamically populated items -->
@@ -1010,19 +1010,19 @@
         </div>
       </div>
 
-      <!-- Footer for populated state -->
+      <!-- Footer for populated state (Exact Match to Nanà Reference) -->
       <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
+        <p class="cart-shipping-banner">Congrats! You're qualified for free shipping!</p>
+        <div class="cart-shipping-bar"></div>
         <div class="cart-subtotal-row">
-          <span class="cart-subtotal-label">Subtotal</span>
-          <span class="cart-subtotal-val" id="cart-subtotal-val">&#8377; 0.00</span>
+          <span class="cart-subtotal-label">Subtotal:</span>
+          <span class="cart-subtotal-val" id="cart-subtotal-val">&#8377; 0.00 INR</span>
         </div>
-        <p class="cart-tax-note">Shipping, taxes, and duties calculated at checkout.</p>
-        <button type="button" class="cart-checkout-btn">
-          PROCEED TO CHECKOUT
-        </button>
-        <button type="button" class="cart-continue-link" id="cart-continue-populated">
-          continue shopping
-        </button>
+        <div class="cart-actions-row">
+          <button type="button" class="cart-checkout-btn" id="cart-checkout-btn">checkout</button>
+          <button type="button" class="cart-view-cart-btn" id="cart-view-cart-btn">view cart</button>
+        </div>
+        <p class="cart-tax-note">Tax included</p>
       </div>
 
     </div>
@@ -1070,14 +1070,16 @@
       const cartTrigger = document.getElementById('cart-drawer-trigger');
       const cartCloseBtn = document.getElementById('cart-drawer-close');
       const cartContinueBtn = document.getElementById('cart-continue-btn');
-      const cartContinuePopulated = document.getElementById('cart-continue-populated');
       const cartBadge = document.getElementById('cart-badge-count');
       const cartEmptyState = document.getElementById('cart-empty-state');
       const cartItemsWrap = document.getElementById('cart-items-wrap');
       const cartItemsList = document.getElementById('cart-items-list');
       const cartFooter = document.getElementById('cart-drawer-footer');
       const cartHeading = document.getElementById('cart-drawer-heading');
+      const cartDivider = document.getElementById('cart-drawer-divider');
       const cartSubtotalVal = document.getElementById('cart-subtotal-val');
+      const cartCheckoutBtn = document.getElementById('cart-checkout-btn');
+      const cartViewCartBtn = document.getElementById('cart-view-cart-btn');
 
       // In-memory cart items array: [{ id, title, price, priceNum, size, img, qty }]
       let cartItems = [];
@@ -1122,10 +1124,17 @@
         });
       }
 
-      if (cartContinuePopulated) {
-        cartContinuePopulated.addEventListener('click', function (e) {
+      if (cartViewCartBtn) {
+        cartViewCartBtn.addEventListener('click', function (e) {
           e.preventDefault();
           closeCart();
+        });
+      }
+
+      if (cartCheckoutBtn) {
+        cartCheckoutBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('Proceeding to secure checkout...');
         });
       }
 
@@ -1154,19 +1163,21 @@
         const totalQty = cartItems.reduce((sum, item) => sum + item.qty, 0);
         const subtotal = cartItems.reduce((sum, item) => sum + (item.priceNum * item.qty), 0);
 
+        if (cartHeading) cartHeading.textContent = 'My Cart';
+
         if (cartItems.length === 0) {
           if (cartEmptyState) cartEmptyState.style.display = 'flex';
           if (cartItemsWrap) cartItemsWrap.style.display = 'none';
           if (cartFooter) cartFooter.style.display = 'none';
-          if (cartHeading) cartHeading.textContent = 'My Cart';
+          if (cartDivider) cartDivider.style.display = 'block';
         } else {
           if (cartEmptyState) cartEmptyState.style.display = 'none';
           if (cartItemsWrap) cartItemsWrap.style.display = 'block';
           if (cartFooter) cartFooter.style.display = 'flex';
-          if (cartHeading) cartHeading.textContent = `My Cart ( ${totalQty} )`;
+          if (cartDivider) cartDivider.style.display = 'none';
 
           if (cartSubtotalVal) {
-            cartSubtotalVal.textContent = '₹ ' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            cartSubtotalVal.textContent = '₹ ' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' INR';
           }
 
           if (cartItemsList) {
@@ -1177,16 +1188,16 @@
               li.innerHTML = `
                 <img src="${item.img}" alt="${item.title}" class="cart-item-img">
                 <div class="cart-item-details">
-                  <h4 class="cart-item-title">${item.title}</h4>
-                  <div class="cart-item-size">Size: ${item.size}</div>
+                  <h3 class="cart-item-title">${item.title}</h3>
+                  <div class="cart-item-size">SIZE: ${item.size}</div>
                   <div class="cart-item-price">${item.price}</div>
-                  <div class="cart-item-qty-row">
+                  <div class="cart-qty-box">
                     <button type="button" class="cart-qty-btn cart-qty-minus" data-index="${index}" aria-label="Decrease quantity">&minus;</button>
                     <span class="cart-qty-val">${item.qty}</span>
                     <button type="button" class="cart-qty-btn cart-qty-plus" data-index="${index}" aria-label="Increase quantity">&plus;</button>
                   </div>
+                  <button type="button" class="cart-item-remove" data-index="${index}" aria-label="Remove item">Remove</button>
                 </div>
-                <button type="button" class="cart-item-remove" data-index="${index}" aria-label="Remove item">&times;</button>
               `;
               cartItemsList.appendChild(li);
             });
@@ -1271,7 +1282,6 @@
       });
     });
   </script>
-
 </body>
 
 </html>
