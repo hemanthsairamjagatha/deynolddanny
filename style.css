@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    DEYNOLD DANNY &bull; LUXURY E-COMMERCE STYLESHEET
    Design Direction: Minimal, Clean, Elegant, High-End Fashion Architecture
    Two-Tier Header + 1520.8 x 855 Hero Banner with Direct Editorial Overlay
@@ -1459,7 +1459,7 @@ label:focus-visible {
   max-width: 90vw;
   height: 100vh;
   height: 100dvh;
-  background-color: #F3EEE8;
+  background-color: #FFFFFF;
   z-index: 9999;
   box-shadow: -15px 0 45px rgba(0, 0, 0, 0.16);
   transform: translateX(100%);
@@ -1535,7 +1535,7 @@ body.cart-drawer-open {
 .cart-drawer-divider {
   width: 100%;
   height: 1px;
-  background-color: #E2DBD2;
+  background-color: #EAEAEA;
   margin-bottom: 38px;
 }
 
@@ -1619,7 +1619,7 @@ body.cart-drawer-open {
   gap: 16px;
   align-items: center;
   padding-bottom: 18px;
-  border-bottom: 1px solid #E2DBD2;
+  border-bottom: 1px solid #EAEAEA;
 }
 
 .cart-item-img {
@@ -1716,7 +1716,7 @@ body.cart-drawer-open {
 .cart-drawer-footer {
   margin-top: auto;
   padding-top: 20px;
-  border-top: 1px solid #E2DBD2;
+  border-top: 1px solid #EAEAEA;
   display: flex;
   flex-direction: column;
   gap: 12px;
