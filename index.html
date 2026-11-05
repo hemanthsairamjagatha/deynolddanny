@@ -1196,10 +1196,12 @@
                     <dd>${item.size}</dd>
                   </dl>
                   <div class="cart-item-price">${item.price}</div>
-                  <div class="cart-qty-box">
-                    <button type="button" class="cart-qty-btn cart-qty-minus" data-index="${index}" aria-label="Decrease quantity">&minus;</button>
-                    <span class="cart-qty-val">${item.qty}</span>
-                    <button type="button" class="cart-qty-btn cart-qty-plus" data-index="${index}" aria-label="Increase quantity">&plus;</button>
+                  <div class="cart-item__quantity">
+                    <div class="quantity cart-qty-box">
+                      <button type="button" class="quantity__button cart-qty-btn cart-qty-minus" name="minus" data-index="${index}" aria-label="Decrease">&minus;</button>
+                      <input type="number" class="quantity__input" id="ProductQuantity-${index + 1}-" name="updates[]" value="${item.qty}" min="0" aria-label="Quantity:" data-index="${index}">
+                      <button type="button" class="quantity__button cart-qty-btn cart-qty-plus" name="plus" data-index="${index}" aria-label="Increase">&plus;</button>
+                    </div>
                   </div>
                   <button type="button" class="cart-item-remove" data-index="${index}" aria-label="Remove item">Remove</button>
                 </div>
@@ -1225,6 +1227,20 @@
               btn.addEventListener('click', function () {
                 const idx = parseInt(this.getAttribute('data-index'), 10);
                 cartItems[idx].qty += 1;
+                updateBadge();
+                renderCart();
+              });
+            });
+
+            cartItemsList.querySelectorAll('.quantity__input').forEach(input => {
+              input.addEventListener('change', function () {
+                const idx = parseInt(this.getAttribute('data-index'), 10);
+                const val = parseInt(this.value, 10);
+                if (val > 0) {
+                  cartItems[idx].qty = val;
+                } else {
+                  cartItems.splice(idx, 1);
+                }
                 updateBadge();
                 renderCart();
               });
