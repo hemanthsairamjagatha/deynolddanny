@@ -1191,7 +1191,10 @@
                 <img src="${item.img}" alt="${item.title}" class="cart-item-img">
                 <div class="cart-item__details cart-item-details">
                   <h3 class="cart-item-title">${item.title}</h3>
-                  <div class="cart-item-size">SIZE: ${item.size}</div>
+                  <dl class="cart-item-size">
+                    <dt>SIZE:</dt>
+                    <dd>${item.size}</dd>
+                  </dl>
                   <div class="cart-item-price">${item.price}</div>
                   <div class="cart-qty-box">
                     <button type="button" class="cart-qty-btn cart-qty-minus" data-index="${index}" aria-label="Decrease quantity">&minus;</button>
