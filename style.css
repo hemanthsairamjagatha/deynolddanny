@@ -1721,7 +1721,7 @@ body.cart-drawer-open {
   font-weight: 400;
   line-height: 1.35;
   color: #5D3F29;
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 
 .cart-item-remove-x {
