@@ -1717,10 +1717,10 @@ body.cart-drawer-open {
 
 .cart-item-title {
   font-family: 'Trirong', var(--font-serif);
-  font-size: 16px;
+  font-size: 16.24px;
   font-weight: 400;
   line-height: 1.35;
-  color: #2c241e;
+  color: #5D3F29;
   margin: 0 0 8px 0;
 }
 
