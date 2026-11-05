@@ -1536,12 +1536,14 @@ body.cart-drawer-open {
   color: #3b3028;
   display: inline-flex;
   align-items: center;
-  transition: transform 0.25s ease, color 0.25s ease;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  transform: none;
 }
 
 .cart-drawer-close:hover {
   color: #000000;
-  transform: translateX(6px);
+  opacity: 0.85;
+  transform: none;
 }
 
 .cart-drawer-close svg {
