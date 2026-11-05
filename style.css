@@ -1771,10 +1771,10 @@ body.cart-drawer-open {
 
 .cart-item-price {
   font-family: 'Trirong', var(--font-serif);
-  font-size: 16px;
+  font-size: 13.92px;
   font-weight: 400;
   color: #2c241e;
-  margin-bottom: 14px;
+  margin: 0 0 9.28px 0;
 }
 
 /* Quantity Box: [- 1 +] in a crisp rectangular outline */
