@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1163,7 +1163,9 @@
         const totalQty = cartItems.reduce((sum, item) => sum + item.qty, 0);
         const subtotal = cartItems.reduce((sum, item) => sum + (item.priceNum * item.qty), 0);
 
-        if (cartHeading) cartHeading.textContent = 'My Cart';
+        if (cartHeading) {
+          cartHeading.textContent = totalQty > 0 ? ('My Cart ( ' + totalQty + ' )') : 'My Cart';
+        }
 
         if (cartItems.length === 0) {
           if (cartEmptyState) cartEmptyState.style.display = 'flex';
@@ -1188,7 +1190,10 @@
               li.innerHTML = `
                 <img src="${item.img}" alt="${item.title}" class="cart-item-img">
                 <div class="cart-item-details">
-                  <h3 class="cart-item-title">${item.title}</h3>
+                  <div class="cart-item-title-row">
+                    <h3 class="cart-item-title">${item.title}</h3>
+                    <button type="button" class="cart-item-remove-x cart-item-remove" data-index="${index}" aria-label="Remove item">&times;</button>
+                  </div>
                   <div class="cart-item-size">SIZE: ${item.size}</div>
                   <div class="cart-item-price">${item.price}</div>
                   <div class="cart-qty-box">
