@@ -1203,7 +1203,9 @@
                       <button type="button" class="quantity__button cart-qty-btn cart-qty-plus" name="plus" data-index="${index}" aria-label="Increase">&plus;</button>
                     </div>
                   </div>
-                  <button type="button" class="cart-item-remove" data-index="${index}" aria-label="Remove item">Remove</button>
+                  <cart-remove-button id="Remove-${index + 1}" class="cart-remove-button" data-index="${index}">
+                    <a href="#" class="button button--tertiary cart-item-remove" role="link" aria-label="Remove" data-index="${index}">Remove</a>
+                  </cart-remove-button>
                 </div>
               `;
               cartItemsList.appendChild(li);
@@ -1247,7 +1249,8 @@
             });
 
             cartItemsList.querySelectorAll('.cart-item-remove').forEach(btn => {
-              btn.addEventListener('click', function () {
+              btn.addEventListener('click', function (e) {
+                e.preventDefault();
                 const idx = parseInt(this.getAttribute('data-index'), 10);
                 cartItems.splice(idx, 1);
                 updateBadge();
