@@ -95,14 +95,14 @@
           </a>
 
           <!-- 4. Shopping Bag Icon with Count Badge -->
-          <a href="#cart" class="header-icon-link cart-icon-link" aria-label="Shopping Bag with 2 items">
+          <a href="#cart" class="header-icon-link cart-icon-link" id="cart-drawer-trigger" aria-label="Open Shopping Bag">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"
               stroke-linejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <path d="M16 10a4 4 0 0 1-8 0"></path>
             </svg>
-            <span class="cart-badge">2</span>
+            <span class="cart-badge" id="cart-badge-count">0</span>
           </a>
         </div>
 
@@ -967,13 +967,75 @@
 
 
   <!-- =========================================================================
+       CART DRAWER & BACKDROP (Referenced Nanà Luxury Style)
+       ========================================================================= -->
+  <div class="cart-backdrop" id="cart-backdrop" aria-hidden="true"></div>
+
+  <aside class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping Cart" aria-hidden="true">
+    <div class="cart-drawer-inner">
+
+      <!-- Top Row: Dismiss / Close Long Arrow -->
+      <div class="cart-drawer-header">
+        <button type="button" class="cart-drawer-close" id="cart-drawer-close" aria-label="Close cart drawer">
+          <svg width="52" height="18" viewBox="0 0 52 18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="1" y1="9" x2="48" y2="9" />
+            <path d="M40 3c2.2 2.6 5 5 8 6-3 1-5.8 3.4-8 6" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Main Title -->
+      <div class="cart-drawer-title-wrap">
+        <h2 class="cart-drawer-title" id="cart-drawer-heading">My Cart</h2>
+      </div>
+
+      <!-- Divider -->
+      <div class="cart-drawer-divider"></div>
+
+      <!-- Dynamic Cart Content -->
+      <div class="cart-drawer-content" id="cart-drawer-content">
+        <!-- Empty State (Exact Match to Reference Screenshot) -->
+        <div class="cart-empty-state" id="cart-empty-state">
+          <p class="cart-empty-text">Your Cart Is Empty</p>
+          <button type="button" class="cart-continue-btn" id="cart-continue-btn">
+            continue shopping
+          </button>
+        </div>
+
+        <!-- Populated State (When items are added) -->
+        <div class="cart-items-wrap" id="cart-items-wrap" style="display: none;">
+          <ul class="cart-items-list" id="cart-items-list">
+            <!-- Dynamically populated items -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer for populated state -->
+      <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
+        <div class="cart-subtotal-row">
+          <span class="cart-subtotal-label">Subtotal</span>
+          <span class="cart-subtotal-val" id="cart-subtotal-val">&#8377; 0.00</span>
+        </div>
+        <p class="cart-tax-note">Shipping, taxes, and duties calculated at checkout.</p>
+        <button type="button" class="cart-checkout-btn">
+          PROCEED TO CHECKOUT
+        </button>
+        <button type="button" class="cart-continue-link" id="cart-continue-populated">
+          continue shopping
+        </button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- =========================================================================
        INTERACTIVE COMPONENT SCRIPTS
-       - Smooth Carousel Scrolling & Arrow Controls for Thread of Mastery
-       - Interactive Sizing Selector
+       - Smooth Carousel Scrolling & Arrow Controls for Carousels
+       - Sizing Selector & Dynamic Cart Drawer State Engine
        ========================================================================= -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      // 1. Carousel Navigation for Thread of Mastery & Latest News
+      // 1. Carousel Navigation for Product Carousels
       function bindCarouselControls(trackId, prevId, nextId) {
         const track = document.getElementById(trackId);
         const prev = document.getElementById(prevId);
@@ -1002,7 +1064,169 @@
       bindCarouselControls('style-space-carousel-track', 'style-space-nav-prev', 'style-space-nav-next');
       bindCarouselControls('news-carousel-track', 'news-nav-prev', 'news-nav-next');
 
-      // 2. Thread of Mastery Size Selection & Card Interactions
+      // 2. Cart Drawer State & Dynamic Engine
+      const cartDrawer = document.getElementById('cart-drawer');
+      const cartBackdrop = document.getElementById('cart-backdrop');
+      const cartTrigger = document.getElementById('cart-drawer-trigger');
+      const cartCloseBtn = document.getElementById('cart-drawer-close');
+      const cartContinueBtn = document.getElementById('cart-continue-btn');
+      const cartContinuePopulated = document.getElementById('cart-continue-populated');
+      const cartBadge = document.getElementById('cart-badge-count');
+      const cartEmptyState = document.getElementById('cart-empty-state');
+      const cartItemsWrap = document.getElementById('cart-items-wrap');
+      const cartItemsList = document.getElementById('cart-items-list');
+      const cartFooter = document.getElementById('cart-drawer-footer');
+      const cartHeading = document.getElementById('cart-drawer-heading');
+      const cartSubtotalVal = document.getElementById('cart-subtotal-val');
+
+      // In-memory cart items array: [{ id, title, price, priceNum, size, img, qty }]
+      let cartItems = [];
+
+      function openCart() {
+        if (!cartDrawer || !cartBackdrop) return;
+        renderCart();
+        cartDrawer.classList.add('is-open');
+        cartBackdrop.classList.add('is-open');
+        cartDrawer.setAttribute('aria-hidden', 'false');
+        cartBackdrop.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('cart-drawer-open');
+      }
+
+      function closeCart() {
+        if (!cartDrawer || !cartBackdrop) return;
+        cartDrawer.classList.remove('is-open');
+        cartBackdrop.classList.remove('is-open');
+        cartDrawer.setAttribute('aria-hidden', 'true');
+        cartBackdrop.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('cart-drawer-open');
+      }
+
+      if (cartTrigger) {
+        cartTrigger.addEventListener('click', function (e) {
+          e.preventDefault();
+          openCart();
+        });
+      }
+
+      if (cartCloseBtn) {
+        cartCloseBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeCart();
+        });
+      }
+
+      if (cartContinueBtn) {
+        cartContinueBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeCart();
+        });
+      }
+
+      if (cartContinuePopulated) {
+        cartContinuePopulated.addEventListener('click', function (e) {
+          e.preventDefault();
+          closeCart();
+        });
+      }
+
+      if (cartBackdrop) {
+        cartBackdrop.addEventListener('click', function () {
+          closeCart();
+        });
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && cartDrawer && cartDrawer.classList.contains('is-open')) {
+          closeCart();
+        }
+      });
+
+      function updateBadge() {
+        const totalQty = cartItems.reduce((sum, item) => sum + item.qty, 0);
+        if (cartBadge) {
+          cartBadge.textContent = totalQty;
+          cartBadge.classList.add('bounce');
+          setTimeout(() => cartBadge.classList.remove('bounce'), 450);
+        }
+      }
+
+      function renderCart() {
+        const totalQty = cartItems.reduce((sum, item) => sum + item.qty, 0);
+        const subtotal = cartItems.reduce((sum, item) => sum + (item.priceNum * item.qty), 0);
+
+        if (cartItems.length === 0) {
+          if (cartEmptyState) cartEmptyState.style.display = 'flex';
+          if (cartItemsWrap) cartItemsWrap.style.display = 'none';
+          if (cartFooter) cartFooter.style.display = 'none';
+          if (cartHeading) cartHeading.textContent = 'My Cart';
+        } else {
+          if (cartEmptyState) cartEmptyState.style.display = 'none';
+          if (cartItemsWrap) cartItemsWrap.style.display = 'block';
+          if (cartFooter) cartFooter.style.display = 'flex';
+          if (cartHeading) cartHeading.textContent = `My Cart ( ${totalQty} )`;
+
+          if (cartSubtotalVal) {
+            cartSubtotalVal.textContent = '₹ ' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
+
+          if (cartItemsList) {
+            cartItemsList.innerHTML = '';
+            cartItems.forEach(function (item, index) {
+              const li = document.createElement('li');
+              li.className = 'cart-item';
+              li.innerHTML = `
+                <img src="${item.img}" alt="${item.title}" class="cart-item-img">
+                <div class="cart-item-details">
+                  <h4 class="cart-item-title">${item.title}</h4>
+                  <div class="cart-item-size">Size: ${item.size}</div>
+                  <div class="cart-item-price">${item.price}</div>
+                  <div class="cart-item-qty-row">
+                    <button type="button" class="cart-qty-btn cart-qty-minus" data-index="${index}" aria-label="Decrease quantity">&minus;</button>
+                    <span class="cart-qty-val">${item.qty}</span>
+                    <button type="button" class="cart-qty-btn cart-qty-plus" data-index="${index}" aria-label="Increase quantity">&plus;</button>
+                  </div>
+                </div>
+                <button type="button" class="cart-item-remove" data-index="${index}" aria-label="Remove item">&times;</button>
+              `;
+              cartItemsList.appendChild(li);
+            });
+
+            // Bind quantity and remove buttons
+            cartItemsList.querySelectorAll('.cart-qty-minus').forEach(btn => {
+              btn.addEventListener('click', function () {
+                const idx = parseInt(this.getAttribute('data-index'), 10);
+                if (cartItems[idx].qty > 1) {
+                  cartItems[idx].qty -= 1;
+                } else {
+                  cartItems.splice(idx, 1);
+                }
+                updateBadge();
+                renderCart();
+              });
+            });
+
+            cartItemsList.querySelectorAll('.cart-qty-plus').forEach(btn => {
+              btn.addEventListener('click', function () {
+                const idx = parseInt(this.getAttribute('data-index'), 10);
+                cartItems[idx].qty += 1;
+                updateBadge();
+                renderCart();
+              });
+            });
+
+            cartItemsList.querySelectorAll('.cart-item-remove').forEach(btn => {
+              btn.addEventListener('click', function () {
+                const idx = parseInt(this.getAttribute('data-index'), 10);
+                cartItems.splice(idx, 1);
+                updateBadge();
+                renderCart();
+              });
+            });
+          }
+        }
+      }
+
+      // 3. Card Size Selection & Cart Addition
       const masteryCards = document.querySelectorAll('.mastery-product-card');
       masteryCards.forEach(function (card) {
         const sizeBtns = card.querySelectorAll('.mastery-size-btn');
@@ -1012,17 +1236,36 @@
             e.stopPropagation();
             sizeBtns.forEach(b => b.classList.remove('is-selected'));
             this.classList.add('is-selected');
-            card.setAttribute('data-selected-size', this.getAttribute('data-size'));
+            const chosenSize = this.getAttribute('data-size');
+            card.setAttribute('data-selected-size', chosenSize);
 
-            // Visual bounce feedback on cart badge
-            const cartBadge = document.querySelector('.cart-badge');
-            if (cartBadge) {
-              let count = parseInt(cartBadge.textContent, 10) || 0;
-              count += 1;
-              cartBadge.textContent = count;
-              cartBadge.classList.add('bounce');
-              setTimeout(() => cartBadge.classList.remove('bounce'), 500);
+            // Extract item details
+            const titleEl = card.querySelector('.mastery-item-title a') || card.querySelector('.mastery-item-title');
+            const title = titleEl ? titleEl.textContent.trim() : 'Tailored Luxury Item';
+            const priceValEl = card.querySelector('.price-val');
+            const priceStr = priceValEl ? priceValEl.textContent.trim() : '0';
+            const priceNum = parseFloat(priceStr.replace(/,/g, '')) || 0;
+            const imgEl = card.querySelector('.mastery-product-img');
+            const img = imgEl ? imgEl.getAttribute('src') : '';
+            const prodId = card.getAttribute('data-product-id') || title;
+
+            // Check if already in cart
+            const existing = cartItems.find(it => it.id === prodId && it.size === chosenSize);
+            if (existing) {
+              existing.qty += 1;
+            } else {
+              cartItems.push({
+                id: prodId,
+                title: title,
+                price: '₹ ' + priceStr,
+                priceNum: priceNum,
+                size: chosenSize,
+                img: img,
+                qty: 1
+              });
             }
+
+            updateBadge();
           });
         });
       });
