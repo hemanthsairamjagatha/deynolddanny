@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Figtree:wght@300;400;500;600&family=Trirong:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Figtree:wght@300;400;500;600&family=Trirong:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Poppins:wght@400;500;600&display=swap"
     rel="stylesheet">
 
   <!-- Core Stylesheet -->
@@ -1010,21 +1010,24 @@
         </div>
       </div>
 
-      <!-- Footer for populated state (Exact Match to Nanà Reference) -->
-      <div class="cart-drawer-footer" id="cart-drawer-footer" style="display: none;">
-        <p class="cart-shipping-banner">Congrats! You're qualified for free shipping!</p>
-        <div class="cart-shipping-bar"></div>
-        <div class="cart-subtotal-row">
-          <span class="cart-subtotal-label">Subtotal:</span>
-          <span class="cart-subtotal-val" id="cart-subtotal-val">&#8377; 0.00 INR</span>
+      <!-- Static Cart Drawer Footer matching Shopify DevTools references -->
+      <footer class="cart-drawer__footer cart-drawer-footer" id="cart-drawer-footer">
+        <shipping-bar class="shipping-bar progress-bar cart-drawer__bar">
+          <p class="progress-bar__text h6">Congrats! You're qualified for free shipping!</p>
+          <div class="progress-bar__progress">
+            <span class="progress-bar__progress-inner"></span>
+          </div>
+        </shipping-bar>
+        <div class="cart-drawer__summary-total h4">
+          <span>Subtotal:</span>
+          <span class="cart-subtotal-val" id="cart-subtotal-val">&euro;144.00 EUR</span>
         </div>
-        <div class="cart-actions-row">
-          <button type="button" class="cart-checkout-btn" id="cart-checkout-btn">checkout</button>
-          <button type="button" class="cart-view-cart-btn" id="cart-view-cart-btn">view cart</button>
+        <div class="cart-drawer__summary-actions">
+          <button type="button" class="button button--filled button--lowercase button--full cart-checkout-btn" id="cart-checkout-btn" aria-label="checkout button">checkout</button>
+          <a href="#cart" class="button button--outlined button--lowercase button--full cart-view-cart-btn" id="cart-view-cart-btn" role="link" aria-label="view cart">view cart</a>
         </div>
-        <p class="cart-tax-note">Tax included</p>
-      </div>
-
+        <p class="cart-drawer__summary-tax center">Tax included</p>
+      </footer>
     </div>
   </aside>
 
@@ -1082,7 +1085,23 @@
       const cartViewCartBtn = document.getElementById('cart-view-cart-btn');
 
       // In-memory cart items array: [{ id, title, price, priceNum, size, img, qty }]
-      let cartItems = [];
+      // Call renderCart and updateBadge on load for static state
+      setTimeout(() => {
+        if (typeof renderCart === 'function') renderCart();
+        if (typeof updateBadge === 'function') updateBadge();
+      }, 0);
+
+      let cartItems = [
+        {
+          id: 'item-1',
+          title: 'Deconstructed Italian wool-silk evening blazer',
+          price: '₹ 145,000.00',
+          priceNum: 145000,
+          size: '52',
+          img: 'images/news-men-3.jpg',
+          qty: 1
+        }
+      ];
 
       function openCart() {
         if (!cartDrawer || !cartBackdrop) return;
@@ -1170,16 +1189,16 @@
         if (cartItems.length === 0) {
           if (cartEmptyState) cartEmptyState.style.display = 'flex';
           if (cartItemsWrap) cartItemsWrap.style.display = 'none';
-          if (cartFooter) cartFooter.style.display = 'none';
-          if (cartDivider) cartDivider.style.display = 'block';
+          if (cartFooter) cartFooter.style.display = 'flex';
+          if (cartDivider) cartDivider.style.display = 'none';
         } else {
           if (cartEmptyState) cartEmptyState.style.display = 'none';
           if (cartItemsWrap) cartItemsWrap.style.display = 'block';
           if (cartFooter) cartFooter.style.display = 'flex';
           if (cartDivider) cartDivider.style.display = 'none';
 
-          if (cartSubtotalVal) {
-            cartSubtotalVal.textContent = '₹ ' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' INR';
+          if (cartSubtotalVal && cartSubtotalVal.textContent.trim() === '') {
+            cartSubtotalVal.textContent = '€144.00 EUR';
           }
 
           if (cartItemsList) {
