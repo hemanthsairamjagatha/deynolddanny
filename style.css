@@ -1507,7 +1507,7 @@ body.cart-drawer-open {
 }
 
 .cart-drawer-inner {
-  padding: 38px 64.11px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -1523,7 +1523,8 @@ body.cart-drawer-open {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 34px;
+  padding: 38px 55.68px 0;
+  margin-bottom: 0;
 }
 
 .cart-drawer-close {
@@ -1550,9 +1551,20 @@ body.cart-drawer-open {
   overflow: visible;
 }
 
-/* Title "My Cart" */
+/* Title Container div.cart-drawer__head (Exact 679.11 x 131.75 with 46.4px 55.68px 37.12px padding) */
+.cart-drawer__head,
 .cart-drawer-title-wrap {
-  margin-bottom: 24px;
+  width: 679.11px;
+  max-width: 100%;
+  height: 131.75px;
+  padding: 46.4px 55.68px 37.12px;
+  box-sizing: border-box;
+  color: #503724;
+  font-family: 'Figtree', sans-serif;
+  font-size: 18.56px;
+  display: flex;
+  align-items: center;
+  margin: 0;
 }
 
 .cart-drawer-title,
@@ -1562,7 +1574,7 @@ body.cart-drawer-open {
   font-weight: 400;
   line-height: 48.25px;
   height: 48.25px;
-  width: 567.78px;
+  width: 567.75px;
   max-width: 100%;
   color: #000000;
   letter-spacing: 0.01em;
@@ -1574,10 +1586,11 @@ body.cart-drawer-open {
 
 /* Subtle Horizontal Divider Line */
 .cart-drawer-divider {
-  width: 100%;
+  width: 567.75px;
+  max-width: calc(100% - 111.36px);
   height: 1px;
   background-color: #EAEAEA;
-  margin-bottom: 38px;
+  margin: 0 55.68px 38px;
 }
 
 /* Dynamic Content Area */
@@ -1585,6 +1598,7 @@ body.cart-drawer-open {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  padding: 0 55.68px 38px;
 }
 
 /* Empty State (Exact Match to Reference Screenshot) */
@@ -1894,8 +1908,17 @@ body.cart-drawer-open {
     min-height: 100vh;
   }
   .cart-drawer-inner {
-    padding: 28px 20px;
+    padding: 0;
     min-height: 100%;
+  }
+  .cart-drawer-header {
+    padding: 24px 20px 0;
+  }
+  .cart-drawer__head,
+  .cart-drawer-title-wrap {
+    width: 100%;
+    height: auto;
+    padding: 24px 20px 16px;
   }
   .cart-drawer-title,
   .cart-drawer__title {
@@ -1903,6 +1926,13 @@ body.cart-drawer-open {
     font-size: 30px;
     line-height: 40px;
     height: auto;
+  }
+  .cart-drawer-divider {
+    width: calc(100% - 40px);
+    margin: 0 20px 24px;
+  }
+  .cart-drawer-content {
+    padding: 0 20px 24px;
   }
   .cart-item {
     gap: 14px;
