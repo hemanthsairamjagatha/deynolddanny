@@ -1094,11 +1094,11 @@
       let cartItems = [
         {
           id: 'item-1',
-          title: 'Deconstructed Italian wool-silk evening blazer',
-          price: '₹ 145,000.00',
-          priceNum: 145000,
-          size: '52',
-          img: 'images/news-men-3.jpg',
+          title: 'Ribbed cashmere crewneck knit sweater',
+          price: '₹ 48,000.00',
+          priceNum: 48000,
+          size: '50',
+          img: 'images/category-maglieria.jpg',
           qty: 1
         }
       ];
@@ -1127,6 +1127,10 @@
           e.preventDefault();
           openCart();
         });
+      }
+
+      if (window.location.hash === '#cart') {
+        setTimeout(openCart, 100);
       }
 
       if (cartCloseBtn) {
@@ -1217,9 +1221,9 @@
                   <div class="cart-item-price">${item.price}</div>
                   <div class="cart-item__quantity">
                     <div class="quantity cart-qty-box">
-                      <button type="button" class="quantity__button cart-qty-btn cart-qty-minus" name="minus" data-index="${index}" aria-label="Decrease">&minus;</button>
+                      <button type="button" class="quantity__button cart-qty-btn cart-qty-minus" name="minus" data-index="${index}" aria-label="Decrease button">&minus;</button>
                       <input type="number" class="quantity__input" id="ProductQuantity-${index + 1}-" name="updates[]" value="${item.qty}" min="0" aria-label="Quantity:" data-index="${index}">
-                      <button type="button" class="quantity__button cart-qty-btn cart-qty-plus" name="plus" data-index="${index}" aria-label="Increase">&plus;</button>
+                      <button type="button" class="quantity__button cart-qty-btn cart-qty-plus" name="plus" data-index="${index}" aria-label="Increase button">&plus;</button>
                     </div>
                   </div>
                   <cart-remove-button id="Remove-${index + 1}" class="cart-remove-button" data-index="${index}">
