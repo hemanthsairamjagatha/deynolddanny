@@ -1595,12 +1595,23 @@ body.cart-drawer-open {
   margin: 0 55.68px 38px;
 }
 
-/* Dynamic Content Area */
+/* Main Cart Drawer Body Container div#CartDrawer-Body.cart-drawer__body.cart-drawer_body--pb-none (Exact 679.11 x 838.18 with 0px 55.68px padding) */
+#CartDrawer-Body,
+.cart-drawer__body,
+.cart-drawer_body--pb-none,
+.cart-drawer__body--pb-none,
 .cart-drawer-content {
+  width: 679.11px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 55.68px;
+  color: #503724;
+  font-family: 'Figtree', sans-serif;
+  font-size: 18.56px;
   flex: 1 1 auto;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 0 55.68px 38px;
 }
 
 /* Empty State (Exact Match to Reference Screenshot) */
@@ -1914,16 +1925,59 @@ cart-remove-button a:hover,
   color: #2c241e;
 }
 
-/* Footer: Static Shipping Qualification, Subtotal, Action Buttons, Tax Note (Exact DevTools Specs) */
+/* Sticky Summary Container div.cart-drawer__summary.cart-drawer__summary--sticky (Exact 675.65 x 291.78 with Background #F3EEE8) */
+.cart-drawer__summary,
+.cart-drawer__summary--sticky,
 .cart-drawer__footer,
 .cart-drawer-footer {
+  position: sticky;
+  bottom: 0;
+  width: 675.65px;
+  max-width: 100%;
+  height: 291.78px;
+  box-sizing: border-box;
+  padding: 32.48px 53.94px;
+  background-color: #F3EEE8;
   margin-top: auto;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.cart-drawer__summary.cart-drawer__summary--sticky::before,
+.cart-drawer__summary::before,
+.cart-drawer__footer::before,
+.cart-drawer-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #F3EEE8;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Inner Cart Summary Container div#cart-summary (Exact 567.78 x 226.83, Figtree 18.56px, #503724) */
+#cart-summary,
+.cart-summary {
   width: 567.78px;
   max-width: 100%;
-  padding-top: 10px;
+  height: 226.83px;
   box-sizing: border-box;
+  color: #503724;
+  font-family: 'Figtree', sans-serif;
+  font-size: 18.56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
 }
 
 shipping-bar,

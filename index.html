@@ -992,8 +992,8 @@
       <!-- Empty State Divider (Only visible when empty) -->
       <div class="cart-drawer-divider" id="cart-drawer-divider"></div>
 
-      <!-- Dynamic Cart Content -->
-      <div class="cart-drawer-content" id="cart-drawer-content">
+      <!-- Main Drawer Body Container: div#CartDrawer-Body.cart-drawer__body.cart-drawer_body--pb-none -->
+      <div id="CartDrawer-Body" class="cart-drawer__body cart-drawer_body--pb-none cart-drawer-content">
         <!-- Empty State (Matches Reference Design) -->
         <div class="cart-empty-state" id="cart-empty-state">
           <p class="cart-empty-text">Your Cart Is Empty</p>
@@ -1010,24 +1010,26 @@
         </div>
       </div>
 
-      <!-- Static Cart Drawer Footer matching Shopify DevTools references -->
-      <footer class="cart-drawer__footer cart-drawer-footer" id="cart-drawer-footer">
-        <shipping-bar class="shipping-bar progress-bar cart-drawer__bar">
-          <p class="progress-bar__text h6">Congrats! You're qualified for free shipping!</p>
-          <div class="progress-bar__progress">
-            <span class="progress-bar__progress-inner"></span>
+      <!-- Sticky Summary Wrapper: div.cart-drawer__summary.cart-drawer__summary--sticky -->
+      <div class="cart-drawer__summary cart-drawer__summary--sticky cart-drawer__footer cart-drawer-footer" id="cart-drawer-footer">
+        <div id="cart-summary" class="cart-summary">
+          <shipping-bar class="shipping-bar progress-bar cart-drawer__bar">
+            <p class="progress-bar__text h6">Congrats! You're qualified for free shipping!</p>
+            <div class="progress-bar__progress">
+              <span class="progress-bar__progress-inner"></span>
+            </div>
+          </shipping-bar>
+          <div class="cart-drawer__summary-total h4">
+            <span>Subtotal:</span>
+            <span class="cart-subtotal-val" id="cart-subtotal-val">&euro;144.00 EUR</span>
           </div>
-        </shipping-bar>
-        <div class="cart-drawer__summary-total h4">
-          <span>Subtotal:</span>
-          <span class="cart-subtotal-val" id="cart-subtotal-val">&euro;144.00 EUR</span>
+          <div class="cart-drawer__summary-actions">
+            <button type="button" class="button button--filled button--lowercase button--full cart-checkout-btn" id="cart-checkout-btn" aria-label="checkout button">checkout</button>
+            <a href="#cart" class="button button--outlined button--lowercase button--full cart-view-cart-btn" id="cart-view-cart-btn" role="link" aria-label="view cart">view cart</a>
+          </div>
+          <p class="cart-drawer__summary-tax center">Tax included</p>
         </div>
-        <div class="cart-drawer__summary-actions">
-          <button type="button" class="button button--filled button--lowercase button--full cart-checkout-btn" id="cart-checkout-btn" aria-label="checkout button">checkout</button>
-          <a href="#cart" class="button button--outlined button--lowercase button--full cart-view-cart-btn" id="cart-view-cart-btn" role="link" aria-label="view cart">view cart</a>
-        </div>
-        <p class="cart-drawer__summary-tax center">Tax included</p>
-      </footer>
+      </div>
     </div>
   </aside>
 
