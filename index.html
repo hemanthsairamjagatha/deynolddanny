@@ -1021,7 +1021,7 @@
           </shipping-bar>
           <div class="cart-drawer__summary-total h4">
             <span>Subtotal:</span>
-            <span class="cart-subtotal-val" id="cart-subtotal-val">&euro;144.00 EUR</span>
+            <span class="cart-subtotal-val" id="cart-subtotal-val">&#8377; 48,000.00 INR</span>
           </div>
           <div class="cart-drawer__summary-actions">
             <button type="button" class="button button--filled button--lowercase button--full cart-checkout-btn" id="cart-checkout-btn" aria-label="checkout button">checkout</button>
@@ -1197,14 +1197,21 @@
           if (cartItemsWrap) cartItemsWrap.style.display = 'none';
           if (cartFooter) cartFooter.style.display = 'flex';
           if (cartDivider) cartDivider.style.display = 'none';
+          if (cartSubtotalVal) {
+            cartSubtotalVal.textContent = '₹ 0.00 INR';
+          }
         } else {
           if (cartEmptyState) cartEmptyState.style.display = 'none';
           if (cartItemsWrap) cartItemsWrap.style.display = 'block';
           if (cartFooter) cartFooter.style.display = 'flex';
           if (cartDivider) cartDivider.style.display = 'none';
 
-          if (cartSubtotalVal && cartSubtotalVal.textContent.trim() === '') {
-            cartSubtotalVal.textContent = '€144.00 EUR';
+          if (cartSubtotalVal) {
+            const formatted = subtotal.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+            cartSubtotalVal.textContent = '₹ ' + formatted + ' INR';
           }
 
           if (cartItemsList) {

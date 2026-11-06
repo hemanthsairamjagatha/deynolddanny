@@ -2065,13 +2065,15 @@ shipping-bar,
 .cart-drawer__summary-total.h4 span:last-child,
 .cart-subtotal-val {
   display: inline-block;
-  width: 126.92px;
+  width: auto;
+  min-width: 126.92px;
   height: 33.39px;
   line-height: 33.39px;
   text-align: right;
   color: #503724;
   font-family: 'Trirong', serif;
   font-size: 20.88px;
+  white-space: nowrap;
 }
 
 .cart-drawer__summary-actions,
