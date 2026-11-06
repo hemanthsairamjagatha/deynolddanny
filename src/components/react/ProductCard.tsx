@@ -10,17 +10,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [isSizePickerOpen, setIsSizePickerOpen] = useState<boolean>(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const sizesRef = useRef<HTMLDivElement>(null);
 
-  // Close size picker on outside click
+  // Close size picker on outside click (clicking anywhere outside the sizes strip)
   useEffect(() => {
     if (!isSizePickerOpen) return;
     const handleOutsideClick = (e: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+      if (sizesRef.current && !sizesRef.current.contains(e.target as Node)) {
         setIsSizePickerOpen(false);
       }
     };
-    document.addEventListener('click', handleOutsideClick);
-    return () => document.removeEventListener('click', handleOutsideClick);
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleOutsideClick);
+    };
   }, [isSizePickerOpen]);
 
   const handleToggleSizePicker = (e: React.MouseEvent) => {
@@ -72,10 +78,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           />
         </a>
 
-        {/* Quick Form Container with 10px padding under and around the cart symbol */}
-        <div className="product-item__quick-form">
-          {/* Quick Sizes Strip (Revealed directly next to the bag button on click) */}
+        {/* Quick Form Container: Cart symbol has 10px padding; when sizes open, cart is invisible & sizes spread horizontally across entire image */}
+        <div className={`product-item__quick-form ${isSizePickerOpen ? 'is-expanded' : ''}`}>
+          {/* Quick Sizes Strip spreads across entire image horizontally */}
           <div
+            ref={sizesRef}
             className={`product-item__quick-sizes ${isSizePickerOpen ? 'is-open' : ''}`}
             role="group"
             aria-label="Available Sizes"
@@ -94,32 +101,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             ))}
           </div>
 
-          {/* Quick Buy / Add to Cart Tote Bag Button */}
-          <button
-            type="button"
-            className={`product-item__quick-buy-button ${isSizePickerOpen ? 'is-active' : ''}`}
-            aria-label={`Quick buy ${product.title} - Select size`}
-            aria-expanded={isSizePickerOpen}
-            title={isSizePickerOpen ? 'Close sizes' : 'Select size'}
-            onClick={handleToggleSizePicker}
-          >
-            <span className="loader-button__text">
-              <span className="visually-hidden">Quick view</span>
-              <svg
-                focusable="false"
-                width="24"
-                height="24"
-                className="icon icon--quick-buy-tote-bag"
-                fill="none"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="M14 20H4L5 9H19L19.4545 14" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M20 16V24M16 20H24" stroke="currentColor" strokeWidth="1.3" />
-                <path d="M15 6V6C15 4.34315 13.6569 3 12 3V3C10.3431 3 9 4.34315 9 6V6" stroke="currentColor" strokeWidth="1.3" />
-              </svg>
-            </span>
-          </button>
+          {/* Quick Buy / Add to Cart Tote Bag Button (Invisible when size picker is open) */}
+          {!isSizePickerOpen && (
+            <button
+              type="button"
+              className="product-item__quick-buy-button"
+              aria-label={`Quick buy ${product.title} - Select size`}
+              aria-expanded={isSizePickerOpen}
+              title="Select size"
+              onClick={handleToggleSizePicker}
+            >
+              <span className="loader-button__text">
+                <span className="visually-hidden">Quick view</span>
+                <svg
+                  focusable="false"
+                  width="24"
+                  height="24"
+                  className="icon icon--quick-buy-tote-bag"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M14 20H4L5 9H19L19.4545 14" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M20 16V24M16 20H24" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M15 6V6C15 4.34315 13.6569 3 12 3V3C10.3431 3 9 4.34315 9 6V6" stroke="currentColor" strokeWidth="1.3" />
+                </svg>
+              </span>
+            </button>
+          )}
         </div>
       </div>
 

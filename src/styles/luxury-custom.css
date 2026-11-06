@@ -1105,7 +1105,7 @@ label:focus-visible {
   user-select: none;
 }
 
-/* Quick Form Container with 10px padding under & around cart symbol */
+/* Quick Form Container: 10px padding under & around cart symbol when closed; flush 100% width when open */
 .product-item__quick-form {
   position: absolute;
   bottom: 0;
@@ -1119,6 +1119,13 @@ label:focus-visible {
   z-index: 6;
   box-sizing: border-box;
   color: #010202;
+  transition: padding 0.18s ease;
+}
+
+.product-item__quick-form.is-expanded,
+.mastery-product-card.is-size-picker-open .product-item__quick-form {
+  padding: 0 !important;
+  justify-content: stretch !important;
 }
 
 .product-item__quick-form > * {
@@ -1155,23 +1162,40 @@ label:focus-visible {
   transform: scale(0.94);
 }
 
-/* Quick Sizes Strip revealed next to the tote bag on click */
+/* Cart symbol is invisible when size picker is open */
+.mastery-product-card.is-size-picker-open .product-item__quick-buy-button,
+.product-item__quick-sizes.is-open ~ .product-item__quick-buy-button,
+.product-item__quick-form.is-expanded .product-item__quick-buy-button {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Suppress slider indicator line when size picker is open */
+.mastery-product-card.is-size-picker-open .mastery-image-box::after {
+  opacity: 0 !important;
+  display: none !important;
+}
+
+/* Quick Sizes Strip spreads across the entire image horizontally only */
 .product-item__quick-sizes {
-  height: 35.6px;
-  display: flex;
+  width: 100%;
+  height: 38px;
+  display: none;
   align-items: stretch;
   background-color: #ffffff;
-  border: 1px solid #e5e5e5;
-  border-right: none;
+  border: none;
+  border-top: 1px solid #e5e5e5;
   border-radius: 0;
   box-sizing: border-box;
   opacity: 0;
   visibility: hidden;
-  transform: translateX(10px);
+  transform: translateY(6px);
   pointer-events: none;
   transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s ease;
-  box-shadow: -2px 1px 4px rgba(0, 0, 0, 0.05);
-  max-width: calc(100% - 36px);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1181,29 +1205,33 @@ label:focus-visible {
 }
 
 .product-item__quick-sizes.is-open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(0);
-  pointer-events: auto;
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
 }
 
 .quick-size-btn {
-  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  color: #010202;
-  background: transparent;
-  border: none;
-  border-right: 1px solid #f0f0f0;
-  padding: 0 10px;
-  margin: 0;
+  flex: 1 1 0;
   min-width: 32px;
   height: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: #010202;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #e5e5e5;
+  padding: 0 4px;
+  margin: 0;
   cursor: pointer;
   white-space: nowrap;
+  box-sizing: border-box;
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
