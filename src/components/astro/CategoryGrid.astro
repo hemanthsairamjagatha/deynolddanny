@@ -1,0 +1,31 @@
+---
+import { mainCategories } from '../../data/products';
+---
+
+<section class="editorial-categories-section" id="categories" aria-label="Explore Menswear Categories">
+  <div class="editorial-categories-container">
+    <div class="editorial-categories-grid">
+      {mainCategories.map(cat => (
+        <article class="editorial-category-card">
+          <div class="category-image-wrap">
+            <img
+              src={`/${cat.image}`}
+              alt={cat.subtitle}
+              class="category-bg-img"
+              width="762"
+              height="762"
+              loading="lazy"
+            />
+            <div class="category-gradient-overlay" aria-hidden="true" />
+          </div>
+          <div class="category-content-overlay">
+            <h2 class="category-headline">{cat.title}</h2>
+            <a href={cat.link} class="category-cta-btn" aria-label={`Scopri la collezione ${cat.title}`}>
+              <span>{cat.tagline}</span>
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>

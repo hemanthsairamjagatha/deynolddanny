@@ -1,0 +1,68 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/astro/Header.astro';
+import HeroBanner from '../components/astro/HeroBanner.astro';
+import CategoryGrid from '../components/astro/CategoryGrid.astro';
+import EditorialDuo from '../components/astro/EditorialDuo.astro';
+import ProductCarousel from '../components/react/ProductCarousel';
+import CartDrawer from '../components/react/CartDrawer';
+
+import {
+  masteryProducts,
+  styleSpaceProducts,
+  newsProducts
+} from '../data/products';
+---
+
+<Layout>
+  <!-- Header with Two Tiers, Mobile Drawer & Cart Trigger -->
+  <Header />
+
+  <!-- Main Content Body -->
+  <main>
+    <!-- Hero Banner with Search Strip and Campaign Overlay -->
+    <HeroBanner />
+
+    <!-- 1. Thread of Mastery Carousel -->
+    <ProductCarousel
+      client:load
+      id="thread-of-mastery"
+      title="THREAD OF MASTERY"
+      count={47}
+      viewAllLink="#mastery"
+      products={masteryProducts}
+      sectionClass="mastery-section"
+    />
+
+    <!-- 2. 6 Editorial Categories (3x2 Grid) -->
+    <CategoryGrid />
+
+    <!-- 3. Style Space Carousel -->
+    <ProductCarousel
+      client:load
+      id="style-space"
+      title="STYLE SPACE"
+      count={32}
+      viewAllLink="#style-space"
+      products={styleSpaceProducts}
+      sectionClass="mastery-section"
+    />
+
+    <!-- 4. Editorial Duo (Scarpe & Accessori) -->
+    <EditorialDuo />
+
+    <!-- 5. Latest News Carousel -->
+    <ProductCarousel
+      client:load
+      id="latest-news"
+      title="LATEST NEWS"
+      count={47}
+      viewAllLink="#latest-news"
+      products={newsProducts}
+      sectionClass="mastery-section"
+    />
+  </main>
+
+  <!-- Interactive Slide-Over Cart Drawer (DevTools auto-detect, INR subtotal) -->
+  <CartDrawer client:load />
+</Layout>
