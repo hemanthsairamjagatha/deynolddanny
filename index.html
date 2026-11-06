@@ -971,7 +971,7 @@
        ========================================================================= -->
   <div class="cart-backdrop" id="cart-backdrop" aria-hidden="true"></div>
 
-  <aside class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping Cart" aria-hidden="true">
+  <aside class="cart-drawer text-colors-default background-colors-default" id="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping Cart" aria-hidden="true">
     <div class="cart-drawer-inner">
 
       <!-- Top Row: Dismiss / Close Long Arrow -->
@@ -1108,20 +1108,22 @@
       function openCart() {
         if (!cartDrawer || !cartBackdrop) return;
         renderCart();
-        cartDrawer.classList.add('is-open');
-        cartBackdrop.classList.add('is-open');
+        cartDrawer.classList.add('is-open', 'is-visible');
+        cartBackdrop.classList.add('is-open', 'is-visible');
         cartDrawer.setAttribute('aria-hidden', 'false');
         cartBackdrop.setAttribute('aria-hidden', 'false');
         document.body.classList.add('cart-drawer-open');
+        try { sessionStorage.setItem('cartDrawerOpen', 'true'); } catch (e) {}
       }
 
       function closeCart() {
         if (!cartDrawer || !cartBackdrop) return;
-        cartDrawer.classList.remove('is-open');
-        cartBackdrop.classList.remove('is-open');
+        cartDrawer.classList.remove('is-open', 'is-visible');
+        cartBackdrop.classList.remove('is-open', 'is-visible');
         cartDrawer.setAttribute('aria-hidden', 'true');
         cartBackdrop.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('cart-drawer-open');
+        try { sessionStorage.removeItem('cartDrawerOpen'); } catch (e) {}
       }
 
       if (cartTrigger) {
@@ -1129,10 +1131,6 @@
           e.preventDefault();
           openCart();
         });
-      }
-
-      if (window.location.hash === '#cart') {
-        setTimeout(openCart, 100);
       }
 
       if (cartCloseBtn) {
@@ -1169,11 +1167,57 @@
         });
       }
 
+      // DevTools & Inspect Engine:
+      // Ensures the cart drawer comes up whenever trying to inspect the page
+      function checkDevToolsOpen() {
+        if (!cartDrawer) return;
+        const threshold = 160;
+        const widthDiff = window.outerWidth - window.innerWidth > threshold;
+        const heightDiff = window.outerHeight - window.innerHeight > threshold;
+        if (widthDiff || heightDiff) {
+          if (!cartDrawer.classList.contains('is-open')) {
+            openCart();
+          }
+        }
+      }
+
+      window.addEventListener('resize', checkDevToolsOpen);
+
+      // DevTools / Inspect Keyboard Shortcuts (F12, Ctrl+Shift+I/C/J, Cmd+Option+I/C/J)
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && cartDrawer && cartDrawer.classList.contains('is-open')) {
           closeCart();
+          return;
+        }
+
+        const isInspectKey =
+          e.key === 'F12' ||
+          ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'C' || e.key === 'c' || e.key === 'J' || e.key === 'j'));
+
+        if (isInspectKey) {
+          openCart();
         }
       });
+
+      // Right click / Context Menu (User right-clicks to inspect)
+      window.addEventListener('contextmenu', function () {
+        if (cartDrawer && !cartDrawer.classList.contains('is-open')) {
+          openCart();
+        }
+      });
+
+      // Auto-open on initial load if hash is #cart, query has inspect/cart, or sessionStorage was open, or DevTools already open
+      const hasCartHash = window.location.hash === '#cart';
+      const hasInspectParam = window.location.search.includes('inspect') || window.location.search.includes('cart');
+      const wasOpen = (() => {
+        try { return sessionStorage.getItem('cartDrawerOpen') === 'true'; } catch (e) { return false; }
+      })();
+
+      if (hasCartHash || hasInspectParam || wasOpen) {
+        setTimeout(openCart, 50);
+      }
+      setTimeout(checkDevToolsOpen, 150);
+      setInterval(checkDevToolsOpen, 800);
 
       function updateBadge() {
         const totalQty = cartItems.reduce((sum, item) => sum + item.qty, 0);

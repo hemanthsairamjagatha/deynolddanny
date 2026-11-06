@@ -1471,7 +1471,8 @@ label:focus-visible {
   pointer-events: none;
 }
 
-.cart-backdrop.is-open {
+.cart-backdrop.is-open,
+.cart-backdrop.is-visible {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -1484,10 +1485,10 @@ label:focus-visible {
   bottom: 0;
   width: 696px;
   max-width: 100vw;
+  height: 100%;
   height: 100vh;
   height: 100dvh;
-  min-height: 731px;
-  background-color: #FFFFFF;
+  background-color: #F3EEE8;
   z-index: 9999;
   box-shadow: -15px 0 45px rgba(0, 0, 0, 0.16);
   transform: translateX(100%);
@@ -1497,7 +1498,8 @@ label:focus-visible {
   flex-direction: column;
 }
 
-.cart-drawer.is-open {
+.cart-drawer.is-open,
+.cart-drawer.is-visible {
   transform: translateX(0);
   visibility: visible;
 }
@@ -1512,10 +1514,11 @@ body.cart-drawer-open {
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 731px;
+  max-height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+  background-color: #F3EEE8;
 }
 
 /* Close Arrow Button (Long thin minimal arrow pointing right) */
@@ -1525,6 +1528,7 @@ body.cart-drawer-open {
   justify-content: flex-start;
   padding: 38px 55.68px 0;
   margin-bottom: 0;
+  background-color: #F3EEE8;
 }
 
 .cart-drawer-close {
@@ -1567,6 +1571,7 @@ body.cart-drawer-open {
   display: flex;
   align-items: center;
   margin: 0;
+  background-color: #F3EEE8;
 }
 
 .cart-drawer-title,
@@ -1612,6 +1617,7 @@ body.cart-drawer-open {
   overflow: visible;
   display: flex;
   flex-direction: column;
+  background-color: #F3EEE8;
 }
 
 /* Empty State (Exact Match to Reference Screenshot) */
@@ -1698,6 +1704,7 @@ body.cart-drawer-open {
   height: 270.8px;
   box-sizing: border-box;
   flex-shrink: 0;
+  background-color: #F3EEE8;
 }
 
 .cart-item-img {
