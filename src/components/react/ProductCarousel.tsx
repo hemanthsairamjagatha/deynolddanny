@@ -5,7 +5,7 @@ import ProductCard from './ProductCard';
 interface ProductCarouselProps {
   id: string;
   title: string;
-  count: number;
+  count?: number;
   viewAllLink?: string;
   products: ProductCardData[];
   sectionClass?: string;
@@ -69,7 +69,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
               </svg>
             </button>
             <h2 className="mastery-heading">
-              {title} <span className="mastery-count">( {count} )</span>
+              {title}
             </h2>
           </div>
 
