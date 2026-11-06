@@ -9,7 +9,7 @@ const initialCart: CartItem[] = [
     price: '₹ 48,000.00',
     priceNum: 48000,
     size: '50',
-    img: 'images/category-maglieria.jpg',
+    img: '/images/category-maglieria.jpg',
     qty: 1
   }
 ];
