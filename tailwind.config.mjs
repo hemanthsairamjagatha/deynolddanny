@@ -12,6 +12,7 @@ export default {
         'luxury-tan': '#CD9B77'
       },
       fontFamily: {
+        manrope: ['"Manrope"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         bodoni: ['"Bodoni Moda"', 'Didot', 'Bodoni MT', 'Georgia', 'serif'],
         serif: ['Trirong', 'Georgia', 'serif'],
         sans: ['Figtree', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
