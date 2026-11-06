@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { ProductCardData } from '../../types/ecommerce';
 import { addToCart, openCart } from '../../stores/cartStore';
 
@@ -8,11 +8,32 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [isSizePickerOpen, setIsSizePickerOpen] = useState<boolean>(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  const handleSizeClick = (e: React.MouseEvent, size: string) => {
+  // Close size picker on outside click
+  useEffect(() => {
+    if (!isSizePickerOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+        setIsSizePickerOpen(false);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [isSizePickerOpen]);
+
+  const handleToggleSizePicker = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsSizePickerOpen(prev => !prev);
+  };
+
+  const handleSizeSelect = (e: React.MouseEvent, size: string) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedSize(size);
+    setIsSizePickerOpen(false);
 
     addToCart({
       id: product.id,
@@ -25,25 +46,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     openCart();
   };
 
-  const handleQuickBuy = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const sizeToUse = selectedSize || (product.sizes.length > 0 ? product.sizes[0] : '50');
-
-    addToCart({
-      id: product.id,
-      title: product.title,
-      price: product.price,
-      priceNum: product.priceNum,
-      size: sizeToUse,
-      img: product.defaultImg
-    });
-    openCart();
-  };
-
   return (
     <div
-      className="mastery-product-card"
+      ref={cardRef}
+      className={`mastery-product-card ${isSizePickerOpen ? 'is-size-picker-open' : ''}`}
       data-product-id={product.id}
       data-selected-size={selectedSize || ''}
     >
@@ -66,13 +72,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           />
         </a>
 
+        {/* Quick Sizes Strip (Revealed directly next to the bag button on click) */}
+        <div
+          className={`product-item__quick-sizes ${isSizePickerOpen ? 'is-open' : ''}`}
+          role="group"
+          aria-label="Available Sizes"
+        >
+          {product.sizes.map(size => (
+            <button
+              key={size}
+              type="button"
+              className={`quick-size-btn ${selectedSize === size ? 'is-selected' : ''}`}
+              data-size={size}
+              aria-label={`Select Size ${size}`}
+              onClick={e => handleSizeSelect(e, size)}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+
         {/* Quick Buy / Add to Cart Tote Bag Button */}
         <button
           type="button"
-          className="product-item__quick-buy-button"
-          aria-label={`Add ${product.title} to cart`}
-          title="Quick view"
-          onClick={handleQuickBuy}
+          className={`product-item__quick-buy-button ${isSizePickerOpen ? 'is-active' : ''}`}
+          aria-label={`Quick buy ${product.title} - Select size`}
+          aria-expanded={isSizePickerOpen}
+          title={isSizePickerOpen ? 'Close sizes' : 'Select size'}
+          onClick={handleToggleSizePicker}
         >
           <span className="loader-button__text">
             <span className="visually-hidden">Quick view</span>
@@ -94,27 +121,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
 
       <div className="mastery-info-box mastery-card-details">
-        <div className="mastery-meta-row">
-          <h3 className="mastery-item-title">
-            <a href={product.link || '#'}>{product.title}</a>
-          </h3>
-
-          {/* Quick Size Selector Pills on Hover */}
-          <div className="mastery-size-row mastery-size-selector" role="group" aria-label="Available Sizes">
-            {product.sizes.map(size => (
-              <button
-                key={size}
-                type="button"
-                className={`mastery-size-btn ${selectedSize === size ? 'is-selected' : ''}`}
-                data-size={size}
-                aria-label={`Select Size ${size}`}
-                onClick={e => handleSizeClick(e, size)}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-        </div>
+        <h3 className="mastery-item-title">
+          <a href={product.link || '#'}>{product.title}</a>
+        </h3>
 
         <p className="mastery-item-price">
           <span className="currency-symbol price-currency">₹</span>
