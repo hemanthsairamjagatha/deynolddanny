@@ -119,7 +119,8 @@ button, input {
 }
 
 /* Accessible hidden element for screen readers */
-.sr-only {
+.sr-only,
+.visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1100,6 +1101,53 @@ label:focus-visible {
   z-index: 3;
   pointer-events: none;
   user-select: none;
+}
+
+/* Quick Buy / Add to Cart Tote Bag Button */
+.product-item__quick-buy-button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 35.6px;
+  height: 35.6px;
+  padding: 5px;
+  background-color: #ffffff;
+  color: #010202;
+  border: 1px solid #e5e5e5;
+  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.product-item__quick-buy-button:hover {
+  background-color: #010202;
+  color: #ffffff;
+  border-color: #010202;
+}
+
+.product-item__quick-buy-button:active {
+  transform: scale(0.94);
+}
+
+.loader-button__text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: inherit;
+  line-height: 1;
+}
+
+.icon--quick-buy-tote-bag {
+  display: block;
+  width: 24px;
+  height: 24px;
 }
 
 /* Info Box: Title + Price */
