@@ -1686,9 +1686,9 @@ body.cart-drawer-open {
   display: flex;
   align-items: center;
   gap: 0;
-  padding-bottom: 24px;
+  padding: 0;
   border-bottom: 1px solid #EAEAEA;
-  margin-bottom: 24px;
+  margin: 0 0 46.4px 0;
   position: relative;
   width: 567.75px;
   max-width: 100%;
