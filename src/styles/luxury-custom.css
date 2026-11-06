@@ -1105,13 +1105,31 @@ label:focus-visible {
   user-select: none;
 }
 
+/* Quick Form Container with 10px padding under & around cart symbol */
+.product-item__quick-form {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 6;
+  box-sizing: border-box;
+  color: #010202;
+}
+
+.product-item__quick-form > * {
+  pointer-events: auto;
+}
+
 /* Quick Buy / Add to Cart Tote Bag Button */
 .product-item__quick-buy-button {
-  position: absolute;
-  right: 0;
-  bottom: 0;
   width: 35.6px;
   height: 35.6px;
+  min-width: 35.6px;
   padding: 5px;
   background-color: #ffffff;
   color: #010202;
@@ -1121,7 +1139,7 @@ label:focus-visible {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 6;
+  box-sizing: border-box;
   transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
@@ -1139,9 +1157,6 @@ label:focus-visible {
 
 /* Quick Sizes Strip revealed next to the tote bag on click */
 .product-item__quick-sizes {
-  position: absolute;
-  right: 35.6px;
-  bottom: 0;
   height: 35.6px;
   display: flex;
   align-items: stretch;
@@ -1149,7 +1164,7 @@ label:focus-visible {
   border: 1px solid #e5e5e5;
   border-right: none;
   border-radius: 0;
-  z-index: 5;
+  box-sizing: border-box;
   opacity: 0;
   visibility: hidden;
   transform: translateX(10px);
