@@ -900,12 +900,14 @@ label:focus-visible {
   padding: 0 4px;
 }
 
+.mastery-title-wrap,
 .mastery-title-group {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
+.mastery-arrow-btn,
 .mastery-nav-arrow {
   background: transparent;
   border: none;
@@ -918,17 +920,20 @@ label:focus-visible {
   transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
+.mastery-arrow-btn:hover,
 .mastery-nav-arrow:hover {
   opacity: 0.65;
   transform: scale(1.15);
 }
 
+.mastery-heading,
 .mastery-section-title {
-  font-family: var(--font-primary);
-  font-size: clamp(0.85rem, 1.1vw, 0.98rem);
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: #111111;
+  font-family: 'Bodoni Moda', Didot, 'Bodoni MT', Georgia, serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #000000;
   text-transform: uppercase;
   margin: 0;
   display: flex;
@@ -937,6 +942,7 @@ label:focus-visible {
 }
 
 .mastery-count {
+  font-family: 'Bodoni Moda', Didot, 'Bodoni MT', Georgia, serif;
   font-weight: 400;
   color: #999999;
   font-size: 0.88em;
