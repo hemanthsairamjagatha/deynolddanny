@@ -2063,13 +2063,13 @@ shipping-bar,
   font-size: 16.24px;
   font-weight: 400;
   text-transform: lowercase;
-  padding: 18.72px 46.4px 17.56px;
+  padding: 19.72px 46.4px 18.56px;
   text-decoration: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 19.72px;
+  line-height: 17.72px;
   transition: all 0.2s ease;
 }
 
