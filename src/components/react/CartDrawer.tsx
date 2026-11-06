@@ -157,7 +157,7 @@ export const CartDrawer: React.FC = () => {
                               aria-label="Increase button"
                               onClick={() => incrementQuantity(index)}
                             >
-                              &plus;
+                              +
                             </button>
                           </div>
                         </div>
