@@ -38,9 +38,6 @@ export function openCart() {
   if (typeof document !== 'undefined') {
     document.body.classList.add('cart-drawer-open');
   }
-  try {
-    sessionStorage.setItem('cartDrawerOpen', 'true');
-  } catch (e) {}
 }
 
 export function closeCart() {
@@ -48,9 +45,9 @@ export function closeCart() {
   if (typeof document !== 'undefined') {
     document.body.classList.remove('cart-drawer-open');
   }
-  try {
-    sessionStorage.removeItem('cartDrawerOpen');
-  } catch (e) {}
+  if (typeof window !== 'undefined' && window.location.hash === '#cart') {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
 }
 
 export function toggleCart() {
@@ -118,68 +115,22 @@ export function removeFromCart(index: number) {
   $cartItems.set(current.filter((_, i) => i !== index));
 }
 
-// DevTools & Inspect Engine initializer
+// Drawer keyboard & URL hash initializer
 export function initInspectListeners() {
   if (typeof window === 'undefined') return;
 
-  function checkDevToolsOpen() {
-    const threshold = 160;
-    const widthDiff = window.outerWidth - window.innerWidth > threshold;
-    const heightDiff = window.outerHeight - window.innerHeight > threshold;
-    if (widthDiff || heightDiff) {
-      if (!$isCartOpen.get()) {
-        openCart();
-      }
-    }
-  }
-
-  window.addEventListener('resize', checkDevToolsOpen);
-
+  // Listen for Escape key to close cart
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape' && $isCartOpen.get()) {
       closeCart();
-      return;
-    }
-
-    const isInspectKey =
-      e.key === 'F12' ||
-      ((e.ctrlKey || e.metaKey) &&
-        e.shiftKey &&
-        (e.key === 'I' ||
-          e.key === 'i' ||
-          e.key === 'C' ||
-          e.key === 'c' ||
-          e.key === 'J' ||
-          e.key === 'j'));
-
-    if (isInspectKey) {
-      openCart();
     }
   });
 
-  window.addEventListener('contextmenu', () => {
-    if (!$isCartOpen.get()) {
-      openCart();
-    }
-  });
-
-  // URL hash / params check
+  // URL hash / params check on initial load only
   const hasCartHash = window.location.hash === '#cart';
-  const hasInspectParam =
-    window.location.search.includes('inspect') ||
-    window.location.search.includes('cart') ||
-    window.location.search.includes('devtools');
-  const wasOpen = (() => {
-    try {
-      return sessionStorage.getItem('cartDrawerOpen') === 'true';
-    } catch (e) {
-      return false;
-    }
-  })();
+  const hasCartParam = window.location.search.includes('cart=1');
 
-  if (hasCartHash || hasInspectParam || wasOpen) {
+  if (hasCartHash || hasCartParam) {
     setTimeout(openCart, 50);
   }
-  setTimeout(checkDevToolsOpen, 150);
-  setInterval(checkDevToolsOpen, 800);
 }
