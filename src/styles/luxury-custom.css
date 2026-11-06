@@ -571,7 +571,7 @@ label:focus-visible {
   flex-direction: column;
   align-items: center;
   background-color: var(--color-white);
-  padding: 0 0 clamp(1.5rem, 3vw, 2.5rem) 0;
+  padding: 0;
 }
 
 /* Centered Search Strip above the 1520.8x855 Hero Banner */
@@ -870,9 +870,21 @@ label:focus-visible {
    ========================================================================== */
 .mastery-section {
   width: 100%;
+  max-width: 1520.8px;
+  margin: 0 auto;
   background-color: var(--color-white);
   padding: clamp(2rem, 3.8vw, 3.2rem) 0 clamp(3.5rem, 6vw, 5.5rem);
   position: relative;
+  box-sizing: border-box;
+}
+
+#thread-of-mastery,
+.mastery-section#thread-of-mastery {
+  width: 100%;
+  max-width: 1520.8px;
+  margin: 30px auto 0px;
+  padding: 0px 0px 80px;
+  box-sizing: border-box;
 }
 
 .mastery-container {
