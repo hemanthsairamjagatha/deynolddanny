@@ -1964,6 +1964,7 @@ a.product-item-meta__title:hover {
   object-fit: cover;
   object-position: center;
   display: block;
+  transform: none;
 }
 
 /* Vignette Gradient Overlay for Editorial Contrast */
@@ -1981,7 +1982,7 @@ a.product-item-meta__title:hover {
   z-index: 1;
 }
 
-/* Content Overlay: Headline + Button */
+/* Content Overlay: Headline */
 .category-content-overlay,
 .image-text,
 .image-text-left {
@@ -2011,17 +2012,17 @@ a.product-item-meta__title:hover {
   color: #FDFDFD;
   margin: 0 !important;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+  transform: none;
 }
 
-/* Zero motion on mouse hover across category cards */
-.editorial-category-card:hover,
+/* No hover zoom in/out or shifts on category cards */
 .editorial-category-card:hover .category-bg-img,
 .editorial-category-card:hover .category-gradient-overlay,
-.editorial-category-card:hover .category-content-overlay,
 .editorial-category-card:hover .category-headline,
-.editorial-category-card:hover .image-text-title {
+.editorial-category-card:hover .image-text-title,
+.editorial-category-card:hover .category-content-overlay {
   transform: none !important;
-  transition: none !important;
+  filter: none !important;
 }
 
 /* Pure White Rectangular Button */
