@@ -940,6 +940,10 @@ label:focus-visible {
 #thread-of-mastery .mastery-info-box,
 #thread-of-mastery .product-item-meta {
   padding: 12px 0 4px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 #thread-of-mastery .mastery-item-title,
@@ -950,18 +954,39 @@ label:focus-visible {
   line-height: 1.5;
   color: #010202;
   margin: 0;
+  text-align: center;
 }
 
 #thread-of-mastery .mastery-item-price,
-#thread-of-mastery .mastery-item-price .currency-symbol,
-#thread-of-mastery .mastery-item-price .price-currency,
-#thread-of-mastery .mastery-item-price .price-val,
 #thread-of-mastery .product-item-meta__price-list-container,
-#thread-of-mastery .product-item-meta__price,
 #thread-of-mastery .price-list {
   font-size: 15px;
   line-height: 1.5;
   color: #010202;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+#thread-of-mastery .product-item-meta__price,
+#thread-of-mastery .price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: auto;
+}
+
+#thread-of-mastery .mastery-item-price .currency-symbol,
+#thread-of-mastery .mastery-item-price .price-currency,
+#thread-of-mastery .mastery-item-price .price-val {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #010202;
+  display: inline;
+  width: auto;
 }
 
 .mastery-container,
@@ -1363,6 +1388,8 @@ label:focus-visible {
   padding: 12px 0 4px 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 /* Meta Row: Houses Title and Hover Size Selector with identical bounding box */
@@ -1386,6 +1413,7 @@ label:focus-visible {
   margin: 0;
   width: 100%;
   display: block;
+  text-align: center;
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -1400,6 +1428,7 @@ a.product-item-meta__title {
   line-height: 1.5;
   color: #010202;
   margin: 0;
+  text-align: center;
   text-decoration: none;
   transition: color var(--transition-fast);
 }
@@ -1484,7 +1513,6 @@ a.product-item-meta__title:hover {
 /* Price with Indian Rupee Symbol (₹) */
 .mastery-item-price,
 .product-item-meta__price-list-container,
-.product-item-meta__price,
 .price-list {
   font-family: var(--font-primary);
   font-size: 15px;
@@ -1493,8 +1521,20 @@ a.product-item-meta__title:hover {
   color: #010202;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 4px;
   margin: 0;
+  width: 100%;
+}
+
+.product-item-meta__price,
+.price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: auto;
 }
 
 .mastery-item-price .currency-symbol,
@@ -1506,6 +1546,8 @@ a.product-item-meta__title:hover {
   font-weight: 500;
   line-height: 1.5;
   color: #010202;
+  display: inline;
+  width: auto;
 }
 
 .mastery-item-price .price-val,
@@ -1516,6 +1558,8 @@ a.product-item-meta__title:hover {
   font-weight: 500;
   line-height: 1.5;
   color: #010202;
+  display: inline;
+  width: auto;
 }
 
 /* Micro-interaction bounce animation for cart counter */
