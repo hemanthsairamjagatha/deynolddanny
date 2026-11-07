@@ -940,6 +940,7 @@ label:focus-visible {
 #thread-of-mastery .mastery-info-box,
 #thread-of-mastery .mastery-card-details,
 #thread-of-mastery .product-item-meta {
+  margin: 24.06px 0px 0px 0px;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -1437,6 +1438,7 @@ label:focus-visible {
 .mastery-info-box,
 .mastery-card-details,
 .product-item-meta {
+  margin: 24.06px 0px 0px 0px;
   padding: 0;
   display: flex;
   flex-direction: column;
