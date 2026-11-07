@@ -2025,7 +2025,7 @@ a.product-item-meta__title:hover {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #FDFDFD;
-  margin: 0;
+  margin: 0 !important;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
   transition: transform var(--transition-base);
 }
