@@ -262,11 +262,11 @@ export const mainCategories: CategoryCardData[] = [
   },
   {
     id: 'cat-camicie',
-    title: 'CAMICIE',
-    subtitle: 'Collezione Camicie Uomo - DEYNOLD DANNY',
+    title: 'Hoodies',
+    subtitle: 'Collezione Hoodies Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
-    image: '/images/category-camicie.jpg',
-    link: '#camicie'
+    image: '/images/category-hoodies.jpg',
+    link: '#hoodies'
   },
   {
     id: 'cat-cappotti',
