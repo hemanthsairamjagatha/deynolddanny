@@ -88,18 +88,6 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
 
           <a href={viewAllLink} className="mastery-view-all">
             Shop {title}
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M5 2L10 7L5 12" />
-            </svg>
           </a>
         </div>
 
