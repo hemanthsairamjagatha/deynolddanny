@@ -96,7 +96,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
         {/* Model View Row directly below Section Heading */}
         {showModelView && (
           <div className="model-view-row">
-            <label className="MuiFormControlLabel-root css-1jaw3da model-view-form-control">
+            <label className="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd e12z7ls0 css-1jaw3da model-view-form-control">
               <span className={`MuiSwitch-root MuiSwitch-sizeMedium css-1ewr2m8 ${isModelView ? 'Mui-checked' : ''}`}>
                 <span className={`MuiButtonBase-root MuiSwitch-switchBase MuiSwitch-colorPrimary ${isModelView ? 'Mui-checked' : ''} css-by15t2`}>
                   <input

@@ -1142,18 +1142,19 @@ label:focus-visible {
   align-items: center;
   width: 100%;
   padding: 0;
-  margin: 0 0 16px 0;
+  margin: 0;
   box-sizing: border-box;
 }
 
 .MuiFormControlLabel-root,
+.MuiFormControlLabel-labelPlacementEnd,
 .model-view-form-control {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
   vertical-align: middle;
   user-select: none;
-  margin: 0;
+  margin: 9px 0px;
 }
 
 /* Switch Root Container */
