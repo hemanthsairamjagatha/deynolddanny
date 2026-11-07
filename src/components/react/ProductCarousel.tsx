@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { ProductCardData } from '../../types/ecommerce';
 import ProductCard from './ProductCard';
 
@@ -22,7 +22,31 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   showModelView = true
 }) => {
   const [isModelView, setIsModelView] = useState<boolean>(true);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [canScrollPrev, setCanScrollPrev] = useState<boolean>(false);
+  const [canScrollNext, setCanScrollNext] = useState<boolean>(true);
   const trackRef = useRef<HTMLDivElement>(null);
+
+  const updateScrollState = () => {
+    if (trackRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = trackRef.current;
+      setCanScrollPrev(scrollLeft > 10);
+      setCanScrollNext(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (track) {
+      updateScrollState();
+      track.addEventListener('scroll', updateScrollState, { passive: true });
+      window.addEventListener('resize', updateScrollState);
+      return () => {
+        track.removeEventListener('scroll', updateScrollState);
+        window.removeEventListener('resize', updateScrollState);
+      };
+    }
+  }, [products]);
 
   const getScrollStep = () => {
     if (!trackRef.current) return 280;
@@ -46,7 +70,13 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   };
 
   return (
-    <section className={sectionClass} id={id} aria-label={`${title} Collection`}>
+    <section
+      className={`${sectionClass} ${isHovered ? 'is-hovered' : ''}`}
+      id={id}
+      aria-label={`${title} Collection`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="container mastery-container">
         {/* Header Row */}
         <div className="mastery-header-row">
@@ -119,6 +149,29 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
 
         {/* Carousel Track */}
         <div className="mastery-carousel-wrap product-list">
+          <button
+            type="button"
+            className={`product-list__arrow prev-next-button prev-next-button--prev ${isHovered && canScrollPrev ? 'is-visible' : ''}`}
+            aria-label="Previous"
+            onClick={handlePrev}
+            disabled={!canScrollPrev}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+
           <div
             className="mastery-carousel-track product-list__inner product-list__inner--scroller hide-scrollbar"
             id={`${id}-carousel-track`}
@@ -128,6 +181,29 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
               <ProductCard key={prod.id} product={prod} isModelView={isModelView} />
             ))}
           </div>
+
+          <button
+            type="button"
+            className={`product-list__arrow prev-next-button prev-next-button--next ${isHovered && canScrollNext ? 'is-visible' : ''}`}
+            aria-label="Next"
+            onClick={handleNext}
+            disabled={!canScrollNext}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
         </div>
       </div>
     </section>
