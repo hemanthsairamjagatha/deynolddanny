@@ -1222,11 +1222,11 @@ label:focus-visible {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Switch Label Text (Image 3: span.MuiTypography-root.MuiTypography-body1.MuiFormControlLabel-label.css-uitf9v 100.66 x 24, Color #141616, Font 12px Manrope, Margin 0px 16px 0px 0px, Padding 0px 0px 0px 16px) */
+/* Switch Label Text (Image: span.MuiTypography-root.MuiTypography-body1.MuiFormControlLabel-label.css-uitf9v, Color #141616, Font 12px Montserrat, Margin 0px 16px 0px 0px, Padding 0px 0px 0px 16px) */
 .MuiFormControlLabel-label,
 .css-uitf9v,
 .MuiTypography-root.MuiTypography-body1.MuiFormControlLabel-label {
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12px;
   line-height: 24px;
   font-weight: 700;
