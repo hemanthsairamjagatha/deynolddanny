@@ -1281,11 +1281,11 @@ label:focus-visible {
 }
 
 .product-list__arrow.prev-next-button--prev {
-  left: 20px;
+  left: 0;
 }
 
 .product-list__arrow.prev-next-button--next {
-  right: 20px;
+  right: 0;
 }
 
 /* Visible when cursor hovers in that section */
