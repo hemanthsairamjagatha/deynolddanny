@@ -77,7 +77,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
           </div>
 
           <a href={viewAllLink} className="mastery-view-all" onClick={handleNext}>
-            VIEW ALL
+            Shop {title}
             <svg
               width="11"
               height="11"

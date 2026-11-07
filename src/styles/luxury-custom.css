@@ -1125,7 +1125,7 @@ label:focus-visible {
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
+  text-transform: none;
   color: #111111;
   text-decoration: none;
   transition: opacity var(--transition-fast);
