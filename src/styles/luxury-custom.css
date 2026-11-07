@@ -1845,7 +1845,7 @@ a.product-item-meta__title:hover {
 
 .editorial-categories-container {
   width: 100%;
-  max-width: 1532px; /* 2 * 762px + 8px gap */
+  max-width: 1527px; /* 2 * 762px + 3px gap */
   margin: 0 auto;
   padding: 0;
 }
@@ -1854,7 +1854,7 @@ a.product-item-meta__title:hover {
   display: grid;
   grid-template-columns: repeat(2, 762px);
   justify-content: center;
-  gap: 8px;
+  gap: 3px;
   width: 100%;
 }
 
