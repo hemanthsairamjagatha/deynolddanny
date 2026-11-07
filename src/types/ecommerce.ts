@@ -8,6 +8,12 @@ export interface CartItem {
   qty: number;
 }
 
+export interface ProductColor {
+  name: string;
+  hex: string;
+  img?: string;
+}
+
 export interface ProductCardData {
   id: string;
   badge?: string;
@@ -18,6 +24,7 @@ export interface ProductCardData {
   hoverImg: string;
   sizes: string[];
   link?: string;
+  colors?: ProductColor[];
 }
 
 export interface CategoryCardData {

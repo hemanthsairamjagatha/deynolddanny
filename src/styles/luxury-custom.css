@@ -989,6 +989,56 @@ label:focus-visible {
   width: auto;
 }
 
+#thread-of-mastery .product-item-meta__swatch-list,
+#thread-of-mastery .color-swatch-list,
+#thread-of-mastery .color-swatch-list--mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0px 2px 0px;
+  padding: 0;
+  width: 100%;
+  height: 14px;
+  box-sizing: border-box;
+}
+
+#thread-of-mastery .color-swatch-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+#thread-of-mastery .color-swatch__item {
+  display: block;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
+  border-radius: 0;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+  color: #010202;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#thread-of-mastery .color-swatch__item:hover {
+  transform: scale(1.08);
+}
+
+#thread-of-mastery .color-swatch__item.is-selected,
+#thread-of-mastery .color-swatch__radio:checked + .color-swatch__item {
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 2px #000000;
+}
+
 .mastery-container,
 .mastery-section .container,
 #thread-of-mastery .container {
@@ -1560,6 +1610,57 @@ a.product-item-meta__title:hover {
   color: #010202;
   display: inline;
   width: auto;
+}
+
+/* Color Swatch List Under Price */
+.product-item-meta__swatch-list,
+.color-swatch-list,
+.color-swatch-list--mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0px 2px 0px;
+  padding: 0;
+  width: 100%;
+  height: 14px;
+  box-sizing: border-box;
+}
+
+.color-swatch-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.color-swatch__item {
+  display: block;
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
+  border-radius: 0;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+  color: #010202;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.color-swatch__item:hover {
+  transform: scale(1.08);
+}
+
+.color-swatch__item.is-selected,
+.color-swatch__radio:checked + .color-swatch__item {
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 2px #000000;
 }
 
 /* Micro-interaction bounce animation for cart counter */

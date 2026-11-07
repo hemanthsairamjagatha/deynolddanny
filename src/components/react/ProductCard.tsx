@@ -9,8 +9,16 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [isSizePickerOpen, setIsSizePickerOpen] = useState<boolean>(false);
+  const [selectedColorIndex, setSelectedColorIndex] = useState<number>(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const sizesRef = useRef<HTMLDivElement>(null);
+
+  const colors = product.colors && product.colors.length > 0
+    ? product.colors
+    : [
+        { name: 'Slate Blue', hex: '#4e6d82' },
+        { name: 'Cognac', hex: '#93532b' }
+      ];
 
   // Close size picker on outside click (clicking anywhere outside the sizes strip)
   useEffect(() => {
@@ -148,6 +156,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </span>
           </span>
         </p>
+
+        {/* Color Swatch List Under Price */}
+        <div className="product-item-meta__swatch-list color-swatch-list color-swatch-list--mini">
+          {colors.map((color, idx) => (
+            <div key={idx} className="color-swatch-list__item">
+              <input
+                type="radio"
+                className="color-swatch__radio visually-hidden"
+                name={`swatch-${product.id}`}
+                id={`swatch-${product.id}-${idx}`}
+                checked={selectedColorIndex === idx}
+                onChange={() => setSelectedColorIndex(idx)}
+              />
+              <label
+                className={`color-swatch__item ${selectedColorIndex === idx ? 'is-selected' : ''}`}
+                htmlFor={`swatch-${product.id}-${idx}`}
+                style={{ backgroundColor: color.hex }}
+                title={color.name}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedColorIndex(idx);
+                }}
+              >
+                <span className="visually-hidden">{color.name}</span>
+              </label>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
