@@ -44,7 +44,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
 
   return (
     <section className={sectionClass} id={id} aria-label={`${title} Collection`}>
-      <div className="mastery-container">
+      <div className="container mastery-container">
         {/* Header Row */}
         <div className="mastery-header-row">
           <div className="mastery-title-wrap">
