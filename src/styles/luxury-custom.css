@@ -938,8 +938,9 @@ label:focus-visible {
 }
 
 #thread-of-mastery .mastery-info-box,
+#thread-of-mastery .mastery-card-details,
 #thread-of-mastery .product-item-meta {
-  padding: 12px 0 4px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1434,8 +1435,9 @@ label:focus-visible {
 
 /* Info Box: Title + Price */
 .mastery-info-box,
+.mastery-card-details,
 .product-item-meta {
-  padding: 12px 0 4px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
