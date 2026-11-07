@@ -1964,11 +1964,6 @@ a.product-item-meta__title:hover {
   object-fit: cover;
   object-position: center;
   display: block;
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.editorial-category-card:hover .category-bg-img {
-  transform: scale(1.04);
 }
 
 /* Vignette Gradient Overlay for Editorial Contrast */
@@ -1984,17 +1979,6 @@ a.product-item-meta__title:hover {
   );
   pointer-events: none;
   z-index: 1;
-  transition: background 0.4s ease;
-}
-
-.editorial-category-card:hover .category-gradient-overlay {
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.78) 0%,
-    rgba(0, 0, 0, 0.42) 32%,
-    rgba(0, 0, 0, 0.12) 60%,
-    rgba(0, 0, 0, 0) 100%
-  );
 }
 
 /* Content Overlay: Headline + Button */
@@ -2027,12 +2011,17 @@ a.product-item-meta__title:hover {
   color: #FDFDFD;
   margin: 0 !important;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
-  transition: transform var(--transition-base);
 }
 
+/* Zero motion on mouse hover across category cards */
+.editorial-category-card:hover,
+.editorial-category-card:hover .category-bg-img,
+.editorial-category-card:hover .category-gradient-overlay,
+.editorial-category-card:hover .category-content-overlay,
 .editorial-category-card:hover .category-headline,
 .editorial-category-card:hover .image-text-title {
-  transform: translateY(-2px);
+  transform: none !important;
+  transition: none !important;
 }
 
 /* Pure White Rectangular Button */
