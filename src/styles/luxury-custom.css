@@ -949,7 +949,7 @@ label:focus-visible {
   font-size: 15px;
   line-height: 1.5;
   color: #010202;
-  margin: 0px 0px 4px 0px;
+  margin: 0;
 }
 
 #thread-of-mastery .mastery-item-price,
@@ -1399,7 +1399,7 @@ a.product-item-meta__title {
   font-size: 15px;
   line-height: 1.5;
   color: #010202;
-  margin: 0px 0px 4px 0px;
+  margin: 0;
   text-decoration: none;
   transition: color var(--transition-fast);
 }
