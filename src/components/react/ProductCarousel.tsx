@@ -91,9 +91,9 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
         </div>
 
         {/* Carousel Track */}
-        <div className="mastery-carousel-wrap">
+        <div className="mastery-carousel-wrap product-list">
           <div
-            className="mastery-carousel-track"
+            className="mastery-carousel-track product-list__inner product-list__inner--scroller hide-scrollbar"
             id={`${id}-carousel-track`}
             ref={trackRef}
           >

@@ -1026,12 +1026,16 @@ label:focus-visible {
 }
 
 /* Carousel Track & Cards */
-.mastery-carousel-wrapper {
+.mastery-carousel-wrapper,
+.mastery-carousel-wrap,
+.product-list {
   position: relative;
   width: 100%;
 }
 
-.mastery-carousel-track {
+.mastery-carousel-track,
+.product-list__inner,
+.product-list__inner--scroller {
   display: flex;
   gap: 16px;
   overflow-x: auto;
@@ -1040,10 +1044,13 @@ label:focus-visible {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  margin: 0px 20px;
   padding: 4px 0 14px 0;
 }
 
-.mastery-carousel-track::-webkit-scrollbar {
+.mastery-carousel-track::-webkit-scrollbar,
+.product-list__inner::-webkit-scrollbar,
+.product-list__inner--scroller::-webkit-scrollbar {
   display: none;
 }
 
