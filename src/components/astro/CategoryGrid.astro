@@ -9,7 +9,7 @@ import { mainCategories } from '../../data/products';
         <a href={cat.link} class="editorial-category-card" aria-label={`Scopri la collezione ${cat.title}`}>
           <div class="category-image-wrap">
             <img
-              src={`/${cat.image}`}
+              src={cat.image.startsWith('/') ? cat.image : `/${cat.image}`}
               alt={cat.subtitle}
               class="category-bg-img"
               width="762"

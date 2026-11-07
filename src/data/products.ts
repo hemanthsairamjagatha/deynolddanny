@@ -238,11 +238,11 @@ export const newsProducts: ProductCardData[] = [
 export const mainCategories: CategoryCardData[] = [
   {
     id: 'cat-giubbini',
-    title: 'GIUBBINI',
-    subtitle: 'Collezione Giubbini Uomo - DEYNOLD DANNY',
+    title: 'Denim Sweat Shirts',
+    subtitle: 'Collezione Denim Sweat Shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
-    image: '/images/category-giubbini.jpg',
-    link: '#giubbini'
+    image: '/images/category-denim-sweatshirts.jpg',
+    link: '#denim-sweat-shirts'
   },
   {
     id: 'cat-pantaloni',
