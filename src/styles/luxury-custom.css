@@ -895,38 +895,40 @@ label:focus-visible {
   box-sizing: border-box;
 }
 
-/* Image dimensions strictly 445.59 × 556.98 px exclusively for the section immediately below the hero section */
+/* Product cards in #thread-of-mastery: 3 cards visible across the container, last card aligned with right margin */
 #thread-of-mastery .mastery-product-card {
-  flex: 0 0 445.59px;
-  width: 445.59px;
-  min-width: 445.59px;
-  max-width: 445.59px;
+  flex: 0 0 calc((100% - (2 * 16px)) / 3);
+  width: calc((100% - (2 * 16px)) / 3);
+  min-width: 280px;
+  max-width: none;
 }
 
 #thread-of-mastery .mastery-image-box {
-  width: 445.59px;
-  height: 556.98px;
-  min-width: 445.59px;
-  min-height: 556.98px;
-  max-width: 445.59px;
-  max-height: 556.98px;
+  width: 100%;
+  height: auto;
   aspect-ratio: 445.59 / 556.98;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  max-height: none;
 }
 
 #thread-of-mastery .mastery-image-link {
-  width: 445.59px;
-  height: 556.98px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 445.59 / 556.98;
 }
 
 #thread-of-mastery .mastery-product-img,
 #thread-of-mastery .product-item__primary-image,
 #thread-of-mastery .product-item__secondary-image {
-  width: 445.59px;
-  height: 556.98px;
-  min-width: 445.59px;
-  min-height: 556.98px;
-  max-width: 445.59px;
-  max-height: 556.98px;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 445.59 / 556.98;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  max-height: none;
   object-fit: cover;
   object-position: center;
 }
