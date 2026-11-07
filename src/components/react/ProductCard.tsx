@@ -4,9 +4,10 @@ import { addToCart, openCart } from '../../stores/cartStore';
 
 interface ProductCardProps {
   product: ProductCardData;
+  isModelView?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView = true }) => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [isSizePickerOpen, setIsSizePickerOpen] = useState<boolean>(false);
   const [selectedColorIndex, setSelectedColorIndex] = useState<number>(0);
@@ -73,13 +74,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         )}
         <a href={product.link || '#'} className="mastery-image-link mastery-img-link" tabIndex={-1}>
           <img
-            src={product.defaultImg}
+            src={isModelView ? product.defaultImg : product.hoverImg}
             alt={product.title}
             className="mastery-product-img mastery-img-primary default-img product-item__primary-image"
             loading="lazy"
           />
           <img
-            src={product.hoverImg}
+            src={isModelView ? product.hoverImg : product.defaultImg}
             alt={`${product.title} - Alternate View`}
             className="mastery-product-img mastery-img-hover hover-img product-item__secondary-image"
             loading="lazy"

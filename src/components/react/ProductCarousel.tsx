@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import type { ProductCardData } from '../../types/ecommerce';
 import ProductCard from './ProductCard';
 
@@ -9,6 +9,7 @@ interface ProductCarouselProps {
   viewAllLink?: string;
   products: ProductCardData[];
   sectionClass?: string;
+  showModelView?: boolean;
 }
 
 export const ProductCarousel: React.FC<ProductCarouselProps> = ({
@@ -17,8 +18,10 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   count,
   viewAllLink = '#',
   products,
-  sectionClass = 'mastery-section'
+  sectionClass = 'mastery-section',
+  showModelView = true
 }) => {
+  const [isModelView, setIsModelView] = useState<boolean>(true);
   const trackRef = useRef<HTMLDivElement>(null);
 
   const getScrollStep = () => {
@@ -90,6 +93,30 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
           </a>
         </div>
 
+        {/* Model View Row directly below Section Heading */}
+        {showModelView && (
+          <div className="model-view-row">
+            <label className="MuiFormControlLabel-root css-1jaw3da model-view-form-control">
+              <span className={`MuiSwitch-root MuiSwitch-sizeMedium css-1ewr2m8 ${isModelView ? 'Mui-checked' : ''}`}>
+                <span className={`MuiButtonBase-root MuiSwitch-switchBase MuiSwitch-colorPrimary ${isModelView ? 'Mui-checked' : ''} css-by15t2`}>
+                  <input
+                    type="checkbox"
+                    className="MuiSwitch-input css-1m9pwf3 visually-hidden"
+                    checked={isModelView}
+                    onChange={(e) => setIsModelView(e.target.checked)}
+                    aria-label="Toggle Model View"
+                  />
+                  <span className="MuiSwitch-thumb css-1tuil5z" />
+                </span>
+                <span className="MuiSwitch-track css-9og5xt" />
+              </span>
+              <span className="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-uitf9v">
+                MODEL VIEW
+              </span>
+            </label>
+          </div>
+        )}
+
         {/* Carousel Track */}
         <div className="mastery-carousel-wrap product-list">
           <div
@@ -98,7 +125,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
             ref={trackRef}
           >
             {products.map(prod => (
-              <ProductCard key={prod.id} product={prod} />
+              <ProductCard key={prod.id} product={prod} isModelView={isModelView} />
             ))}
           </div>
         </div>
