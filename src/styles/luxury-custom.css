@@ -931,6 +931,33 @@ label:focus-visible {
   object-position: center;
 }
 
+#thread-of-mastery .mastery-info-box,
+#thread-of-mastery .product-item-meta {
+  padding: 12px 0 4px 0;
+}
+
+#thread-of-mastery .mastery-item-title,
+#thread-of-mastery .product-item-meta__title,
+#thread-of-mastery .mastery-item-title a,
+#thread-of-mastery a.product-item-meta__title {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #010202;
+  margin: 0px 0px 4px 0px;
+}
+
+#thread-of-mastery .mastery-item-price,
+#thread-of-mastery .mastery-item-price .currency-symbol,
+#thread-of-mastery .mastery-item-price .price-currency,
+#thread-of-mastery .mastery-item-price .price-val,
+#thread-of-mastery .product-item-meta__price-list-container,
+#thread-of-mastery .product-item-meta__price,
+#thread-of-mastery .price-list {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #010202;
+}
+
 .mastery-container,
 .mastery-section .container,
 #thread-of-mastery .container {
@@ -1325,8 +1352,9 @@ label:focus-visible {
 }
 
 /* Info Box: Title + Price */
-.mastery-info-box {
-  padding: 12px 2px 4px 2px;
+.mastery-info-box,
+.product-item-meta {
+  padding: 12px 0 4px 0;
   display: flex;
   flex-direction: column;
 }
@@ -1341,33 +1369,38 @@ label:focus-visible {
   align-items: flex-start;
 }
 
-/* Product Title (Visible by default, smoothly fades out on card hover) */
-.mastery-item-title {
+/* Product Title */
+.mastery-item-title,
+.product-item-meta__title {
   font-family: var(--font-primary);
-  font-size: 0.8125rem;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.35;
-  color: #1a1a1a;
+  line-height: 1.5;
+  color: #010202;
   margin: 0;
   width: 100%;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
   transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
 }
 
-.mastery-item-title a {
-  color: inherit;
+.mastery-item-title a,
+a.product-item-meta__title {
+  display: block;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #010202;
+  margin: 0px 0px 4px 0px;
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
-.mastery-item-title a:hover {
-  color: #000000;
+.mastery-item-title a:hover,
+a.product-item-meta__title:hover {
+  color: #010202;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -1443,24 +1476,40 @@ label:focus-visible {
 }
 
 /* Price with Indian Rupee Symbol (₹) */
-.mastery-item-price {
+.mastery-item-price,
+.product-item-meta__price-list-container,
+.product-item-meta__price,
+.price-list {
   font-family: var(--font-primary);
-  font-size: 0.8125rem;
+  font-size: 15px;
   font-weight: 500;
-  color: #222222;
+  line-height: 1.5;
+  color: #010202;
   display: flex;
   align-items: center;
   gap: 4px;
+  margin: 0;
 }
 
-.mastery-item-price .currency-symbol {
+.mastery-item-price .currency-symbol,
+.mastery-item-price .price-currency,
+.product-item-meta__price-list-container .currency-symbol,
+.product-item-meta__price .currency-symbol {
   font-family: var(--font-primary);
-  font-size: 0.84rem;
+  font-size: 15px;
   font-weight: 500;
+  line-height: 1.5;
+  color: #010202;
 }
 
-.mastery-item-price .price-val {
+.mastery-item-price .price-val,
+.product-item-meta__price-list-container .price-val,
+.product-item-meta__price .price-val {
+  font-family: var(--font-primary);
+  font-size: 15px;
   font-weight: 500;
+  line-height: 1.5;
+  color: #010202;
 }
 
 /* Micro-interaction bounce animation for cart counter */

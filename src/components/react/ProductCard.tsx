@@ -132,18 +132,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
       </div>
 
-      <div className="mastery-info-box mastery-card-details">
+      <div className="mastery-info-box mastery-card-details product-item-meta">
         <h3 className="mastery-item-title">
-          <a href={product.link || '#'}>{product.title}</a>
+          <a href={product.link || '#'} className="product-item-meta__title">{product.title}</a>
         </h3>
 
-        <p className="mastery-item-price">
-          <span className="currency-symbol price-currency">₹</span>
-          <span className="price-val">
-            {product.priceNum.toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })}
+        <p className="mastery-item-price product-item-meta__price-list-container price-list">
+          <span className="price product-item-meta__price">
+            <span className="currency-symbol price-currency">₹</span>
+            <span className="price-val">
+              {product.priceNum.toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })}
+            </span>
           </span>
         </p>
       </div>
