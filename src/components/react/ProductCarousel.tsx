@@ -81,32 +81,12 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
         {/* Header Row */}
         <div className="mastery-header-row">
           <div className="mastery-title-wrap">
-            <button
-              type="button"
-              className="mastery-arrow-btn mastery-arrow-prev"
-              id={`${id}-nav-prev`}
-              aria-label="Previous Slide"
-              onClick={handlePrev}
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 14 14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 2L4 7L9 12" />
-              </svg>
-            </button>
             <h2 className="mastery-heading">
               {title}
             </h2>
           </div>
 
-          <a href={viewAllLink} className="mastery-view-all" onClick={handleNext}>
+          <a href={viewAllLink} className="mastery-view-all">
             Shop {title}
             <svg
               width="11"
