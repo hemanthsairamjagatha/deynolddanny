@@ -931,6 +931,12 @@ label:focus-visible {
   object-position: center;
 }
 
+#thread-of-mastery .mastery-carousel-track,
+#thread-of-mastery .product-list__inner,
+#thread-of-mastery .product-list__inner--scroller {
+  padding: 0;
+}
+
 #thread-of-mastery .mastery-info-box,
 #thread-of-mastery .product-item-meta {
   padding: 12px 0 4px 0;
@@ -1072,7 +1078,7 @@ label:focus-visible {
   scrollbar-width: none;
   -ms-overflow-style: none;
   margin: 0px 20px;
-  padding: 4px 0 14px 0;
+  padding: 0;
 }
 
 .mastery-carousel-track::-webkit-scrollbar,
@@ -1533,8 +1539,10 @@ a.product-item-meta__title:hover {
   .mastery-header-row {
     padding: 24px 0 12px;
   }
-  .mastery-carousel-track {
-    padding: 4px 0 14px 0;
+  .mastery-carousel-track,
+  .product-list__inner,
+  .product-list__inner--scroller {
+    padding: 0;
   }
   .mastery-product-card {
     flex: 0 0 calc((100% - 14px) / 2.15);
@@ -1553,8 +1561,10 @@ a.product-item-meta__title:hover {
   .mastery-header-row {
     padding: 20px 0 10px;
   }
-  .mastery-carousel-track {
-    padding: 4px 0 14px 0;
+  .mastery-carousel-track,
+  .product-list__inner,
+  .product-list__inner--scroller {
+    padding: 0;
   }
   .mastery-product-card {
     flex: 0 0 78%;
