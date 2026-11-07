@@ -254,11 +254,11 @@ export const mainCategories: CategoryCardData[] = [
   },
   {
     id: 'cat-maglieria',
-    title: 'MAGLIERIA',
-    subtitle: 'Collezione Maglieria Uomo - DEYNOLD DANNY',
+    title: 'Polo T-shirts',
+    subtitle: 'Collezione Polo T-shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
-    image: '/images/category-maglieria.jpg',
-    link: '#maglieria'
+    image: '/images/category-polo-t-shirts.jpg',
+    link: '#polo-t-shirts'
   },
   {
     id: 'cat-camicie',
