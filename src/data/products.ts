@@ -246,11 +246,11 @@ export const mainCategories: CategoryCardData[] = [
   },
   {
     id: 'cat-pantaloni',
-    title: 'PANTALONI',
-    subtitle: 'Collezione Pantaloni Uomo - DEYNOLD DANNY',
+    title: 'Shirts',
+    subtitle: 'Collezione Shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
-    image: '/images/category-pantaloni.jpg',
-    link: '#pantaloni'
+    image: '/images/category-shirts.jpg',
+    link: '#shirts'
   },
   {
     id: 'cat-maglieria',
