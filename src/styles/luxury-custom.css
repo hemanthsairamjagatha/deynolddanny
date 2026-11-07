@@ -931,8 +931,15 @@ label:focus-visible {
   object-position: center;
 }
 
-.mastery-container {
+.mastery-container,
+.mastery-section .container,
+#thread-of-mastery .container {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 48px;
+  box-sizing: border-box;
 }
 
 /* Header Row: THREAD OF MASTERY ... VIEW ALL */
