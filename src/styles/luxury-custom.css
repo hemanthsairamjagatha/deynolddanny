@@ -149,7 +149,7 @@ label:focus-visible {
   max-width: var(--max-width-site);
   margin-left: auto;
   margin-right: auto;
-  padding: 0 40px;
+  padding: 0 48px;
   box-sizing: border-box;
   color: #010202;
 }
@@ -205,7 +205,13 @@ label:focus-visible {
   background-color: var(--color-white);
 }
 
+.site-header .container,
 .header-top-inner {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 48px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
