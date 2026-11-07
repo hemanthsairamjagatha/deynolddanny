@@ -67,13 +67,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <img
             src={product.defaultImg}
             alt={product.title}
-            className="mastery-product-img mastery-img-primary default-img"
+            className="mastery-product-img mastery-img-primary default-img product-item__primary-image"
             loading="lazy"
           />
           <img
             src={product.hoverImg}
             alt={`${product.title} - Alternate View`}
-            className="mastery-product-img mastery-img-hover hover-img"
+            className="mastery-product-img mastery-img-hover hover-img product-item__secondary-image"
             loading="lazy"
           />
         </a>
