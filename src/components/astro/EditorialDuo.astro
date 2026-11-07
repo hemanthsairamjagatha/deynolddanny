@@ -6,7 +6,7 @@ import { bottomCategories } from '../../data/products';
   <div class="editorial-categories-container">
     <div class="editorial-categories-grid">
       {bottomCategories.map(cat => (
-        <article class="editorial-category-card">
+        <a href={cat.link} class="editorial-category-card" aria-label={`Scopri la collezione ${cat.title}`}>
           <div class="category-image-wrap">
             <img
               src={`/${cat.image}`}
@@ -20,11 +20,8 @@ import { bottomCategories } from '../../data/products';
           </div>
           <div class="category-content-overlay image-text image-text-left">
             <h2 class="category-headline image-text-title">{cat.title}</h2>
-            <a href={cat.link} class="category-cta-btn" aria-label={`Scopri la collezione ${cat.title}`}>
-              <span>{cat.tagline}</span>
-            </a>
           </div>
-        </article>
+        </a>
       ))}
     </div>
   </div>
