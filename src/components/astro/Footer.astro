@@ -7,7 +7,28 @@
   <div class="footer-container">
     <!-- Top 3-Column Navigation & Newsletter Section -->
     <div class="footer-top-grid">
-      <!-- Column 1: Newsletter -->
+      <!-- Column 1: GET TO KNOW US -->
+      <div class="footer-col footer-col-nav">
+        <h4 class="footer-col-title">GET TO KNOW US</h4>
+        <ul class="footer-link-list">
+          <li><a href="#search" class="footer-link">SEARCH</a></li>
+          <li><a href="#about-us" class="footer-link">ABOUT US</a></li>
+          <li><a href="#contact-us" class="footer-link">CONTACT US</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 2: CUSTOMER CARE -->
+      <div class="footer-col footer-col-nav">
+        <h4 class="footer-col-title">CUSTOMER CARE</h4>
+        <ul class="footer-link-list">
+          <li><a href="#return-exchange" class="footer-link">RETURN AND EXCHANGE POLICY</a></li>
+          <li><a href="#privacy-policy" class="footer-link">PRIVACY POLICY</a></li>
+          <li><a href="#shipping-delivery" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
+          <li><a href="#terms-condition" class="footer-link">TERMS AND CONDITION</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 3: Newsletter -->
       <div class="footer-col footer-col-newsletter">
         <h3 class="footer-heading-newsletter">Newsletter</h3>
         <p class="footer-text-newsletter">
@@ -31,27 +52,6 @@
             </button>
           </div>
         </form>
-      </div>
-
-      <!-- Column 2: GET TO KNOW US -->
-      <div class="footer-col footer-col-nav">
-        <h4 class="footer-col-title">GET TO KNOW US</h4>
-        <ul class="footer-link-list">
-          <li><a href="#search" class="footer-link">SEARCH</a></li>
-          <li><a href="#about-us" class="footer-link">ABOUT US</a></li>
-          <li><a href="#contact-us" class="footer-link">CONTACT US</a></li>
-        </ul>
-      </div>
-
-      <!-- Column 3: CUSTOMER CARE -->
-      <div class="footer-col footer-col-nav">
-        <h4 class="footer-col-title">CUSTOMER CARE</h4>
-        <ul class="footer-link-list">
-          <li><a href="#return-exchange" class="footer-link">RETURN AND EXCHANGE POLICY</a></li>
-          <li><a href="#privacy-policy" class="footer-link">PRIVACY POLICY</a></li>
-          <li><a href="#shipping-delivery" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
-          <li><a href="#terms-condition" class="footer-link">TERMS AND CONDITION</a></li>
-        </ul>
       </div>
     </div>
 
@@ -103,7 +103,7 @@
      -------------------------------------------------------------------------- */
   .footer-top-grid {
     display: grid;
-    grid-template-columns: 1.3fr 1fr 1fr;
+    grid-template-columns: 1fr 1.1fr 1.3fr;
     column-gap: clamp(2rem, 4vw, 5rem);
     row-gap: 2.5rem;
     align-items: start;
@@ -116,9 +116,17 @@
     }
   }
 
-  /* Column 1: Newsletter */
+  /* Column 3: Newsletter (Right-Aligned) */
   .footer-col-newsletter {
     max-width: 440px;
+    width: 100%;
+    justify-self: end;
+  }
+
+  @media (max-width: 900px) {
+    .footer-col-newsletter {
+      justify-self: start;
+    }
   }
 
   .footer-heading-newsletter {
