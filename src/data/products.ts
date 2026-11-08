@@ -270,11 +270,11 @@ export const mainCategories: CategoryCardData[] = [
   },
   {
     id: 'cat-cappotti',
-    title: 'CAPPOTTI',
-    subtitle: 'Collezione Cappotti Uomo - DEYNOLD DANNY',
+    title: 'Denim Shirts',
+    subtitle: 'Collezione Denim Shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
-    image: '/images/category-cappotti.jpg',
-    link: '#cappotti'
+    image: '/images/category-denim-shirts.jpg',
+    link: '#denim-shirts'
   },
   {
     id: 'cat-felpe',
