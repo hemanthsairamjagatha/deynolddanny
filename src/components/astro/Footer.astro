@@ -1,0 +1,356 @@
+---
+// src/components/astro/Footer.astro
+// Luxury Minimalist White Footer for DEYNOLD DANNY
+---
+
+<footer class="site-footer" id="footer">
+  <div class="footer-container">
+    <!-- Top 3-Column Navigation & Newsletter Section -->
+    <div class="footer-top-grid">
+      <!-- Column 1: Newsletter -->
+      <div class="footer-col footer-col-newsletter">
+        <h3 class="footer-heading-newsletter">Newsletter</h3>
+        <p class="footer-text-newsletter">
+          Never miss any news and be the first to know about sale and offers
+        </p>
+        <form class="footer-newsletter-form" action="#newsletter-signup" method="POST" onsubmit="event.preventDefault();">
+          <div class="footer-input-group">
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              required
+              class="footer-email-input"
+              aria-label="Email address for newsletter"
+            />
+            <button type="submit" class="footer-submit-btn" aria-label="Subscribe to newsletter">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Column 2: GET TO KNOW US -->
+      <div class="footer-col footer-col-nav">
+        <h4 class="footer-col-title">GET TO KNOW US</h4>
+        <ul class="footer-link-list">
+          <li><a href="#search" class="footer-link">SEARCH</a></li>
+          <li><a href="#about-us" class="footer-link">ABOUT US</a></li>
+          <li><a href="#contact-us" class="footer-link">CONTACT US</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 3: CUSTOMER CARE -->
+      <div class="footer-col footer-col-nav">
+        <h4 class="footer-col-title">CUSTOMER CARE</h4>
+        <ul class="footer-link-list">
+          <li><a href="#return-exchange" class="footer-link">RETURN AND EXCHANGE POLICY</a></li>
+          <li><a href="#privacy-policy" class="footer-link">PRIVACY POLICY</a></li>
+          <li><a href="#shipping-delivery" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
+          <li><a href="#terms-condition" class="footer-link">TERMS AND CONDITION</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Copyright, Attribution & Currency Selector -->
+    <div class="footer-bottom-row">
+      <div class="footer-copyright-wrap">
+        <p class="footer-copyright-text">
+          &copy; 2026 Deynold Danny, HANDCRAFTED BY <a href="https://www.pixenox.com" target="_blank" rel="noopener noreferrer" class="footer-pixenox-link">PIXENOX SOLUTIONS</a>
+        </p>
+      </div>
+
+      <div class="footer-currency-wrap">
+        <button type="button" class="footer-currency-btn" aria-label="Select currency and region">
+          <span class="footer-currency-label">IN (INR ₹)</span>
+          <svg class="footer-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WhatsApp Floating Widget (Bottom-Right) -->
+  <a
+    href="https://wa.me/"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="floating-whatsapp-btn"
+    aria-label="Chat on WhatsApp with DEYNOLD DANNY concierge"
+  >
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.031 2C6.516 2 2.031 6.484 2.031 12c0 2.203.719 4.234 1.938 5.891L2 22l4.25-1.922C7.828 21.188 9.875 22 12.031 22c5.516 0 10-4.484 10-10s-4.484-10-10-10zm5.828 14.281c-.25.703-1.453 1.344-2 1.375-.5.031-1.125.047-3.625-.984-2.859-1.188-4.703-4.094-4.844-4.281-.141-.188-1.156-1.547-1.156-2.953 0-1.406.734-2.094 1-2.375.25-.266.578-.344.781-.344.203 0 .406.016.594.016.203 0 .469-.078.734.563.266.641.922 2.25.984 2.406.078.156.125.344.031.547-.094.203-.141.328-.297.5-.156.188-.328.406-.469.547-.156.156-.328.328-.141.641.188.328.844 1.391 1.813 2.25 1.25 1.109 2.297 1.453 2.625 1.625.328.156.516.141.703-.078.203-.219.859-1 1.094-1.344.234-.344.469-.281.781-.172.328.109 2.078 1.016 2.438 1.188.359.188.594.281.688.438.094.156.094.906-.156 1.609z"/>
+    </svg>
+  </a>
+</footer>
+
+<style>
+  /* --------------------------------------------------------------------------
+     SITE FOOTER COMPONENT - PURE WHITE BACKGROUND
+     -------------------------------------------------------------------------- */
+  .site-footer {
+    width: 100%;
+    background-color: #ffffff !important;
+    color: #111111;
+    border-top: 1px solid #ebebeb;
+    padding: clamp(3rem, 5vw, 4.5rem) 0 2rem;
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .footer-container {
+    width: 100%;
+    max-width: 1520px;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 4vw, 3.5rem);
+    box-sizing: border-box;
+  }
+
+  /* --------------------------------------------------------------------------
+     TOP 3-COLUMN GRID
+     -------------------------------------------------------------------------- */
+  .footer-top-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    column-gap: clamp(2rem, 4vw, 5rem);
+    row-gap: 2.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .footer-top-grid {
+      grid-template-columns: 1fr;
+      row-gap: 2.5rem;
+    }
+  }
+
+  /* Column 1: Newsletter */
+  .footer-col-newsletter {
+    max-width: 440px;
+  }
+
+  .footer-heading-newsletter {
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.3;
+    color: #111111;
+    margin: 0 0 10px 0;
+    letter-spacing: 0.01em;
+  }
+
+  .footer-text-newsletter {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #555555;
+    margin: 0 0 20px 0;
+  }
+
+  .footer-newsletter-form {
+    width: 100%;
+  }
+
+  .footer-input-group {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .footer-email-input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding: 0 14px;
+    background-color: #ffffff;
+    border: 1px solid #111111;
+    border-right: none;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 13.5px;
+    color: #111111;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+  }
+
+  .footer-email-input::placeholder {
+    color: #888888;
+    opacity: 1;
+  }
+
+  .footer-email-input:focus {
+    border-color: #000000;
+  }
+
+  .footer-submit-btn {
+    width: 46px;
+    height: 42px;
+    flex-shrink: 0;
+    background-color: #e5e5e5;
+    border: 1px solid #111111;
+    border-radius: 0;
+    color: #111111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    padding: 0;
+  }
+
+  .footer-submit-btn:hover {
+    background-color: #111111;
+    color: #ffffff;
+    border-color: #111111;
+  }
+
+  /* Columns 2 & 3: Navigation Links */
+  .footer-col-nav {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .footer-col-title {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #111111;
+    margin: 0 0 18px 0;
+  }
+
+  .footer-link-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .footer-link {
+    font-size: 12.5px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #333333;
+    text-decoration: none;
+    display: inline-block;
+    transition: color 0.2s ease, transform 0.2s ease;
+  }
+
+  .footer-link:hover {
+    color: #000000;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* --------------------------------------------------------------------------
+     BOTTOM SUB-FOOTER ROW
+     -------------------------------------------------------------------------- */
+  .footer-bottom-row {
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+    padding-top: 1.75rem;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+
+  .footer-copyright-wrap {
+    flex: 1;
+    min-width: 280px;
+  }
+
+  .footer-copyright-text {
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.03em;
+    color: #555555;
+    margin: 0;
+  }
+
+  .footer-pixenox-link {
+    color: #111111;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.2s ease;
+  }
+
+  .footer-pixenox-link:hover {
+    color: #000000;
+  }
+
+  /* Currency / Region Selector */
+  .footer-currency-wrap {
+    display: flex;
+    align-items: center;
+  }
+
+  .footer-currency-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    padding: 6px 4px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: #111111;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+
+  .footer-currency-btn:hover {
+    opacity: 0.7;
+  }
+
+  .footer-chevron-icon {
+    display: block;
+    stroke-width: 2.5;
+  }
+
+  /* --------------------------------------------------------------------------
+     FLOATING WHATSAPP BUTTON (Bottom Right)
+     -------------------------------------------------------------------------- */
+  .floating-whatsapp-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #25D366;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);
+    z-index: 998;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  }
+
+  .floating-whatsapp-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.55);
+  }
+
+  .floating-whatsapp-btn svg {
+    display: block;
+  }
+</style>

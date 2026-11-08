@@ -6,6 +6,7 @@ import CategoryGrid from '../components/astro/CategoryGrid.astro';
 import EditorialDuo from '../components/astro/EditorialDuo.astro';
 import ProductCarousel from '../components/react/ProductCarousel';
 import CartDrawer from '../components/react/CartDrawer';
+import Footer from '../components/astro/Footer.astro';
 
 import {
   masteryProducts,
@@ -59,6 +60,9 @@ import {
       sectionClass="mastery-section"
     />
   </main>
+
+  <!-- Luxury Minimalist White Footer -->
+  <Footer />
 
   <!-- Interactive Slide-Over Cart Drawer (DevTools auto-detect, INR subtotal) -->
   <CartDrawer client:load />
