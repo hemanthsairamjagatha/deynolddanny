@@ -126,7 +126,6 @@ export const cadyTrousersProduct: ProductCardData = {
 };
 
 export const masteryProducts: ProductCardData[] = [
-  cadyTrousersProduct,
   {
     id: "mastery-1",
     slug: "artisanal-ribbed-cashmere-zip-sweater",
@@ -674,7 +673,7 @@ export const newsProducts: ProductCardData[] = [
 
 export const allProducts: ProductCardData[] = [
   cadyTrousersProduct,
-  ...masteryProducts.filter(p => p.id !== 'cady-trousers'),
+  ...masteryProducts,
   ...styleSpaceProducts,
   ...newsProducts
 ];

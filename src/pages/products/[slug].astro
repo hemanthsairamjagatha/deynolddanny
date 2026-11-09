@@ -4,8 +4,6 @@ import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
 import { allProducts, getProductBySlug } from '../../features/catalog/data/products';
 import { getProductSlug } from '../../features/catalog/utils/product.utils';
 import { ProductDetailExperience } from '../../features/catalog/components/ProductDetailExperience';
-import ProductDescription from '../../features/catalog/components/ProductDescription.astro';
-import ProductDetailsAccordion from '../../features/catalog/components/ProductDetailsAccordion.astro';
 import StyleItWith from '../../features/catalog/components/StyleItWith.astro';
 import RelatedProducts from '../../features/catalog/components/RelatedProducts.astro';
 import type { ProductCardData } from '../../features/catalog/types/product.types';
@@ -83,18 +81,12 @@ const jsonLd = {
     {/* Primary Interactive Island: Split-screen Gallery + Sticky Purchase Panel */}
     <ProductDetailExperience client:load product={product} />
 
-    {/* Section 1: Editorial Craft & Fabric Narrative */}
-    <ProductDescription product={product} />
-
-    {/* Section 2: Technical Specifications & Measurements */}
-    <ProductDetailsAccordion product={product} />
-
-    {/* Section 3: Style It With Merchandising */}
+    {/* Section 1: Style It With Merchandising */}
     {product.styleItWith && product.styleItWith.length > 0 && (
       <StyleItWith items={product.styleItWith} />
     )}
 
-    {/* Section 4: Related Products / Suggestions */}
+    {/* Section 2: Related Products / Suggestions */}
     {product.relatedProducts && product.relatedProducts.length > 0 && (
       <RelatedProducts items={product.relatedProducts} title="More Suggestions" />
     )}

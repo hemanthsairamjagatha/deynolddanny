@@ -1,0 +1,78 @@
+---
+// src/layouts/AuthLayout.astro
+import BaseLayout from './BaseLayout.astro';
+import { siteConfig } from '../config/site.config';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = `Client Access | ${siteConfig.name}`,
+  description = 'Sign in or create your DEYNOLD DANNY client profile.'
+} = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="min-h-screen flex flex-col bg-[#faf8f5] text-neutral-900 selection:bg-neutral-900 selection:text-white">
+    {/* Minimal Luxury Top Bar */}
+    <header class="w-full border-b border-neutral-200/70 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+        {/* Left: Return to store */}
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-neutral-600 hover:text-black transition-colors group font-medium"
+        >
+          <svg
+            class="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span class="hidden sm:inline">Return to Boutique</span>
+          <span class="sm:hidden">Store</span>
+        </a>
+
+        {/* Center: Brand Logo */}
+        <a href="/" class="flex items-center justify-center py-2" aria-label="DEYNOLD DANNY Home">
+          <img
+            src="/logo.png"
+            alt="DEYNOLD DANNY"
+            class="h-8 sm:h-10 w-auto object-contain"
+          />
+        </a>
+
+        {/* Right: Concierge Assistance */}
+        <a
+          href="#concierge"
+          class="text-xs uppercase tracking-wider text-neutral-500 hover:text-black transition-colors font-mono"
+        >
+          <span class="hidden sm:inline">Concierge</span>
+          <span class="sm:hidden">Help</span>
+        </a>
+      </div>
+    </header>
+
+    {/* Main Content Area */}
+    <main class="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 lg:py-16">
+      <slot />
+    </main>
+
+    {/* Minimal Luxury Footer */}
+    <footer class="w-full border-t border-neutral-200/70 bg-white py-6 text-center text-xs text-neutral-500 font-mono">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <span>&copy; {new Date().getFullYear()} DEYNOLD DANNY. All rights reserved.</span>
+        <div class="flex items-center gap-6 text-[11px] uppercase tracking-wider">
+          <a href="/legal/privacy-policy" class="hover:text-black transition-colors">Privacy Policy</a>
+          <span>•</span>
+          <a href="/legal/terms" class="hover:text-black transition-colors">Terms of Service</a>
+          <span>•</span>
+          <a href="/legal/shipping-returns" class="hover:text-black transition-colors">Client Care</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+</BaseLayout>

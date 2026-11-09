@@ -1,7 +1,10 @@
 export const routes = {
   home: '/',
   search: '#search',
-  account: '#account',
+  account: '/account/sign-in',
+  signIn: '/account/sign-in',
+  signUp: '/account/sign-up',
+  forgotPassword: '/account/forgot-password',
   wishlist: '#wishlist',
   cart: '#cart',
   women: '#women',

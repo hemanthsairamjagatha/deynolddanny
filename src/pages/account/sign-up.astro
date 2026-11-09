@@ -1,0 +1,13 @@
+---
+// src/pages/account/sign-up.astro
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import { SignUpForm } from '../../features/auth/components/SignUpForm';
+---
+
+<AuthLayout
+  title="Create Account | DEYNOLD DANNY"
+  description="Create your DEYNOLD DANNY client profile for bespoke luxury services."
+>
+  <SignUpForm client:load />
+</AuthLayout>
+

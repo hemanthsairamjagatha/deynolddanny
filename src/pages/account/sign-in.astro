@@ -1,0 +1,13 @@
+---
+// src/pages/account/sign-in.astro
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import { SignInForm } from '../../features/auth/components/SignInForm';
+---
+
+<AuthLayout
+  title="Sign In | DEYNOLD DANNY"
+  description="Sign in to your DEYNOLD DANNY private client account."
+>
+  <SignInForm client:load />
+</AuthLayout>
+

@@ -205,7 +205,10 @@ implementation record accurate, not to rewrite standing rules.
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3
 - **Active Routes:**
   - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, editorial duo, and 3 product carousels)
-  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Dedicated luxury split-screen Product Detail Page with image gallery, sticky purchase panel, fit finder, size guide, lightbox, editorial narrative, style-it-with, and related suggestions)
+  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Dedicated luxury split-screen Product Detail Page with image gallery, sticky purchase panel, fit finder, size guide, lightbox, style-it-with, and related suggestions)
+  - `/account/sign-in` (or `/login`) -> `src/pages/account/sign-in.astro` (Client identification & sign-in experience)
+  - `/account/sign-up` (or `/signup`) -> `src/pages/account/sign-up.astro` (Client profile creation & registration)
+  - `/account/forgot-password` -> `src/pages/account/forgot-password.astro` (Client credential recovery assistance)
 
 ```text
 deynold-danny-ecommerce/
@@ -261,8 +264,6 @@ deynold-danny-ecommerce/
 │   │   │   │   ├── ProductGallery.tsx
 │   │   │   │   ├── ProductLightbox.tsx
 │   │   │   │   ├── ProductDetailExperience.tsx
-│   │   │   │   ├── ProductDescription.astro
-│   │   │   │   ├── ProductDetailsAccordion.astro
 │   │   │   │   ├── StyleItWith.astro
 │   │   │   │   └── RelatedProducts.astro
 │   │   │   ├── fit-finder/
@@ -285,17 +286,31 @@ deynold-danny-ecommerce/
 │   │   │   │   └── cart.store.ts
 │   │   │   └── types/
 │   │   │       └── cart.types.ts
-│   │   └── wishlist/
-│   │       ├── store/
-│   │       │   └── wishlist.store.ts
+│   │   ├── wishlist/
+│   │   │   ├── store/
+│   │   │   │   └── wishlist.store.ts
+│   │   │   └── types/
+│   │   │       └── wishlist.types.ts
+│   │   └── auth/
+│   │       ├── components/
+│   │       │   ├── SignInForm.tsx
+│   │       │   ├── SignUpForm.tsx
+│   │       │   └── ForgotPasswordForm.tsx
 │   │       └── types/
-│   │           └── wishlist.types.ts
+│   │           └── auth.types.ts
 │   ├── layouts/
 │   │   ├── BaseLayout.astro
 │   │   ├── StorefrontLayout.astro
+│   │   ├── AuthLayout.astro
 │   │   └── Layout.astro
 │   ├── pages/
 │   │   ├── index.astro
+│   │   ├── login.astro
+│   │   ├── signup.astro
+│   │   ├── account/
+│   │   │   ├── sign-in.astro
+│   │   │   ├── sign-up.astro
+│   │   │   └── forgot-password.astro
 │   │   └── products/
 │   │       └── [slug].astro
 │   ├── styles/
@@ -349,6 +364,46 @@ deynold-danny-ecommerce/
   - **Summary:** Committed all architectural restructuring changes and the complete luxury Product Detail Page implementation, and pushed commit `dc2f1d3` to remote branch `main` at `https://github.com/hemanthsairamjagatha/deynolddanny.git`.
   - **Structural change summary:** No architecture or directory-structure change in this task.
   - **Validation:** `git push origin main` (PASS: exit code 0), `npx astro check` (PASS: 0 errors).
+  - **Blockers:** None.
+
+- **2026-11-09 — Removal of Cady Trousers Product Card from Carousel**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the Cady Trousers product card from the homepage carousel (`masteryProducts`) in `src/features/catalog/data/products.ts`, while maintaining the dedicated luxury Product Detail Page at `/products/cady-trousers` in `allProducts`.
+  - **Files Modified:** `src/features/catalog/data/products.ts`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 47 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 17 static pages generated).
+  - **Blockers:** None.
+
+- **2026-11-09 — Removal of Redundant Lower Editorial & Accordion Sections from Product Detail Page**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the redundant full-width editorial narrative (`ProductDescription.astro`) and duplicate technical specifications section (`ProductDetailsAccordion.astro`) from below the split-screen product experience in `src/pages/products/[slug].astro`. Product specifications and care guidelines remain cleanly accessible via the sticky purchase panel accordions (`Size & fit`, `Composition & care`, `Delivery & returns`).
+  - **Files Removed:** `src/features/catalog/components/ProductDescription.astro`, `src/features/catalog/components/ProductDetailsAccordion.astro`.
+  - **Files Modified:** `src/pages/products/[slug].astro`.
+  - **Structural change summary:** Removed 2 redundant Astro component files and unrendered them from `src/pages/products/[slug].astro`.
+  - **Validation:** `npx astro check` (PASS: 45 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 17 static pages generated).
+  - **Blockers:** None.
+
+- **2026-11-09 — Implementation of Login, Sign Up, and Forgot Password Pages**:
+  - **Status:** COMPLETE
+  - **Summary:** Implemented client authentication and security recovery pages following Section 3 of `AGENTS.md`. Created `src/layouts/AuthLayout.astro` for boutique access, `src/features/auth/` containing `SignInForm.tsx`, `SignUpForm.tsx`, `ForgotPasswordForm.tsx`, and `auth.types.ts`. Configured routes `/account/sign-in`, `/account/sign-up`, and `/account/forgot-password` with redirect aliases at `/login` and `/signup`. Updated `Header.astro` user icon and `routes.ts`.
+  - **Files Added:**
+    - `src/layouts/AuthLayout.astro`
+    - `src/features/auth/components/{SignInForm.tsx, SignUpForm.tsx, ForgotPasswordForm.tsx}`
+    - `src/features/auth/types/auth.types.ts`
+    - `src/pages/account/{sign-in.astro, sign-up.astro, forgot-password.astro}`
+    - `src/pages/{login.astro, signup.astro}`
+  - **Files Modified:**
+    - `src/components/layout/Header.astro`
+    - `src/config/routes.ts`
+  - **Structural change summary:** Added `src/features/auth/` module, `src/layouts/AuthLayout.astro`, and `src/pages/account/` routes.
+  - **Validation:** `npx astro check` (PASS: 55 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 22 static pages generated).
+  - **Blockers:** None.
+
+- **2026-11-09 — Remote Synchronization to GitHub**:
+  - **Status:** COMPLETE
+  - **Summary:** Committed and pushed authentication pages (`/account/sign-in`, `/account/sign-up`, `/account/forgot-password`, `/login`, `/signup`), `src/features/auth/`, and `AuthLayout.astro` along with the removal of redundant PDP editorial sections to remote branch `main`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `git push origin main` (PASS: exit code 0), `npx astro check` (PASS: 55 files, 0 errors, 0 warnings, 0 hints).
   - **Blockers:** None.
 
 ## 9. Required final response
