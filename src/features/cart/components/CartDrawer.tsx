@@ -11,7 +11,7 @@ import {
   updateQuantity,
   removeFromCart,
   initInspectListeners
-} from '../../stores/cartStore';
+} from '../store/cart.store';
 
 export const CartDrawer: React.FC = () => {
   const items = useStore($cartItems);
@@ -240,3 +240,4 @@ export const CartDrawer: React.FC = () => {
 };
 
 export default CartDrawer;
+

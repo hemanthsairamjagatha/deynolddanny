@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { ProductCardData } from '../../types/ecommerce';
+import type { ProductCardData } from '../types/product.types';
 import ProductCard from './ProductCard';
 
 interface ProductCarouselProps {
@@ -15,7 +15,7 @@ interface ProductCarouselProps {
 export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   id,
   title,
-  count,
+  count: _count,
   viewAllLink = '#',
   products,
   sectionClass = 'mastery-section',
@@ -168,8 +168,8 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
               strokeLinejoin="round"
               aria-hidden="true"
             >
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </button>
         </div>
@@ -179,3 +179,4 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
 };
 
 export default ProductCarousel;
+

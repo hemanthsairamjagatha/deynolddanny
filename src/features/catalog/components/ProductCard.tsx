@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { ProductCardData } from '../../types/ecommerce';
-import { addToCart, openCart } from '../../stores/cartStore';
+import type { ProductCardData } from '../types/product.types';
+import { addToCart, openCart } from '../../cart/store/cart.store';
 
 interface ProductCardProps {
   product: ProductCardData;
@@ -20,6 +20,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
         { name: 'Slate Blue', hex: '#4e6d82' },
         { name: 'Cognac', hex: '#93532b' }
       ];
+
+  const productHref = product.link || (product.slug ? `/products/${product.slug}` : `/products/${product.id}`);
 
   // Close size picker on outside click (clicking anywhere outside the sizes strip)
   useEffect(() => {
@@ -72,7 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
         {product.badge && (
           <span className="mastery-badge">{product.badge}</span>
         )}
-        <a href={product.link || '#'} className="mastery-image-link mastery-img-link" tabIndex={-1}>
+        <a href={productHref} className="mastery-image-link mastery-img-link" tabIndex={-1}>
           <img
             src={isModelView ? product.defaultImg : product.hoverImg}
             alt={product.title}
@@ -143,7 +145,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
 
       <div className="mastery-info-box mastery-card-details product-item-meta">
         <h3 className="mastery-item-title">
-          <a href={product.link || '#'} className="product-item-meta__title">{product.title}</a>
+          <a href={productHref} className="product-item-meta__title">{product.title}</a>
         </h3>
 
         <p className="mastery-item-price product-item-meta__price-list-container price-list">
@@ -191,3 +193,4 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
 };
 
 export default ProductCard;
+

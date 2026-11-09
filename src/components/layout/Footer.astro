@@ -1,5 +1,5 @@
 ---
-// src/components/astro/Footer.astro
+// src/components/layout/Footer.astro
 // Luxury Minimalist White Footer for DEYNOLD DANNY
 ---
 
@@ -34,7 +34,7 @@
         <p class="footer-text-newsletter">
           Never miss any news and be the first to know about sale and offers
         </p>
-        <form class="footer-newsletter-form" action="#newsletter-signup" method="POST" onsubmit="event.preventDefault();">
+        <form class="footer-newsletter-form" action="#newsletter-signup" method="POST" onsubmit="return false;">
           <div class="footer-input-group">
             <input
               type="email"
@@ -322,3 +322,4 @@
     stroke-width: 2.5;
   }
 </style>
+

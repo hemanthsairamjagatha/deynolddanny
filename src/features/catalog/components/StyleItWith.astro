@@ -1,0 +1,52 @@
+---
+import type { RelatedItem } from '../types/product.types';
+
+interface Props {
+  items?: RelatedItem[];
+}
+
+const { items = [] } = Astro.props;
+
+if (!items || items.length === 0) {
+  // Gracefully return nothing if no style-with items specified
+}
+---
+
+{items && items.length > 0 && (
+  <section class="border-t border-neutral-200/80 bg-white py-12 lg:py-16 text-neutral-900" aria-labelledby="style-it-with-title">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="mb-6 lg:mb-8">
+        <h2 id="style-it-with-title" class="text-sm uppercase tracking-widest font-normal text-neutral-900">
+          Style it with
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+        {items.map((item) => (
+          <div class="group relative flex flex-col">
+            <a href={item.link || '#'} class="block bg-[#f5f3ee] aspect-[3/4.4] overflow-hidden">
+              <img
+                src={item.image}
+                alt={item.title}
+                class="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                loading="lazy"
+              />
+            </a>
+
+            <div class="mt-3 space-y-1">
+              <h3 class="text-xs uppercase tracking-wide text-neutral-900 font-normal">
+                <a href={item.link || '#'} class="hover:underline">
+                  {item.title}
+                </a>
+              </h3>
+              <p class="text-xs font-mono text-neutral-700">
+                {item.price}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+)}
+

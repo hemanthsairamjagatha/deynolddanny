@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { $totalCount, openCart } from '../../stores/cartStore';
+import { $totalCount, openCart } from '../store/cart.store';
 
 export const CartTrigger: React.FC = () => {
   const count = useStore($totalCount);
@@ -51,3 +51,4 @@ export const CartTrigger: React.FC = () => {
 };
 
 export default CartTrigger;
+

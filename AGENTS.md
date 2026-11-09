@@ -1,0 +1,1342 @@
+# AGENTS.md — Deynold Danny Ecommerce Frontend Engineering Rules
+
+> **Status:** Project architecture contract  
+> **Applies to:** Every AI coding agent, developer assistant, and automated code-generation tool working in this repository  
+> **Project:** `deynold-danny-ecommerce`  
+> **Primary stack:** Astro + React + TypeScript + Tailwind CSS + Nano Stores  
+> **Backend:** Separate Hono API  
+> **Deployment direction:** Cloudflare Workers with the compatible Astro adapter, subject to the versions pinned in this repository
+
+---
+
+## 0. Read this before doing any work
+
+This file is the source of truth for frontend architecture and engineering conventions in this repository.
+
+Before changing code, the agent MUST:
+
+1. Read this entire `AGENTS.md` file.
+2. Read the complete root `GEMINI.md` file as well. Both instruction files are mandatory for every task, regardless of which coding agent is being used.
+3. Treat `AGENTS.md` as the canonical architecture and engineering contract. `GEMINI.md` contains the mandatory agent workflow and repository-update protocol; it must not weaken or contradict this file. If the two files appear to conflict, stop and report the exact conflict instead of choosing silently.
+4. Inspect the actual repository tree. Do not assume the documented tree already exists.
+5. Read `package.json`, the lockfile, `astro.config.mjs`, `tsconfig.json`, the Tailwind configuration (if present), `wrangler.jsonc` (if present), relevant environment declarations, and the files directly involved in the task.
+4. Search for existing components, stores, API functions, types, validators, utilities, and tests before creating new ones.
+5. Identify whether the task is a bug fix, a feature extension, a new feature, a refactor, or an architecture change.
+6. Make the smallest change that fully satisfies the request while preserving the architecture and existing behavior.
+
+**Do not start coding based only on a prompt summary, an assumed folder structure, or a previous agent's description. Verify the current repository first.**
+
+If the real repository differs from this document, do not silently choose one. Report the exact difference, determine whether it is an intentional approved change or accidental drift, and follow the change-control rules in Section 5.
+
+This document does not override system, platform, security, or user instructions. Within those limits, it is the controlling project-specific instruction.
+
+---
+
+## 1. Project mission and non-negotiable principles
+
+Build and maintain a premium fashion ecommerce storefront that is reliable, accessible, performant, secure, SEO-capable, and straightforward to extend.
+
+The following principles are mandatory:
+
+1. **Preserve the approved architecture.** Do not invent a new architecture for an individual task.
+2. **Feature ownership first.** Ecommerce behavior belongs to its owning feature. Shared primitives belong in shared layers only when they are genuinely shared.
+3. **Astro for page composition and server-rendered content; React for browser interaction.** Do not hydrate static content without a clear reason.
+4. **Backend is authoritative.** The Hono backend owns business rules, product/variant truth, inventory, prices, discounts, orders, payment verification, authorization, and persistent customer data.
+5. **No duplicate sources of truth.** Do not create a second cart store, second API client, duplicate product model, duplicate wishlist button, or parallel configuration without a demonstrated need.
+6. **Secure by default.** Never expose secrets or trust browser-supplied prices, stock, roles, payment state, or ownership.
+7. **Accessibility is part of implementation, not a later polish task.** Every interactive component must support keyboard and assistive-technology use.
+8. **Evidence before assumptions.** Inspect code and configuration; verify library APIs against installed versions; do not invent backend endpoints, provider SDK behavior, environment variables, or file contents.
+9. **Minimal, reversible changes.** Avoid broad restructures, mass renames, new dependencies, and abstractions unless needed and justified.
+10. **Do not create empty architecture.** A folder or file is added when a real responsibility exists, not merely to make the tree look complete.
+
+---
+
+## 2. Approved technology and responsibility boundaries
+
+| Area | Approved direction | Rules |
+|---|---|---|
+| Page framework | Astro | File-based routing, layouts, server rendering, static pages, SEO content. |
+| Interactive UI | React + TypeScript | Use for real client-side state and browser interactions. |
+| Styling | Existing Tailwind version + CSS design tokens | Do not migrate Tailwind versions without an explicit, tested task. |
+| Shared client state | Nano Stores | Use for state shared across Astro/React islands, notably cart and wishlist. |
+| Validation | Zod | Validate untrusted request/response data at boundaries. |
+| API backend | Separate Hono service | Backend remains the business-logic and data authority. |
+| Frontend server boundary | Astro API endpoints as BFF by default | Same-origin browser calls go through `src/pages/api/` unless an approved ADR chooses direct same-site Hono cookie ownership. |
+| Deployment | Cloudflare Workers direction | Follow the adapter and runtime actually pinned in the repository. Do not assume Pages/Workers compatibility. |
+| Unit tests | Vitest | Test logic, stores, mappers, validators, and components where applicable. |
+| Browser tests | Playwright | Test real journeys and responsive behavior. |
+| Quality | ESLint, Prettier, `astro check`, CI | Existing project scripts are authoritative; do not replace them without review. |
+
+### 2.1 Server, browser, and shared code
+
+- `src/lib/server/**` and server-only endpoint code must never enter a browser bundle.
+- Browser components must not import server modules, private environment variables, database credentials, backend secrets, or provider secrets.
+- Shared modules may be imported by both sides only if they are genuinely runtime-safe in both environments.
+- Use Astro's environment schema (`astro:env`) for typed environment declarations where supported by the installed Astro version.
+- Only intentionally public values may use the `PUBLIC_` prefix. Never prefix secrets with `PUBLIC_`.
+- Do not use browser storage for session tokens. `localStorage` is not an authentication/session store.
+
+---
+
+## 3. Canonical architecture baseline
+
+This is the approved target structure. It is a guide to ownership and placement, not an instruction to create every folder immediately. Create files only when the feature is implemented or the task requires them.
+
+```text
+deynold-danny-ecommerce/
+├── public/
+│   ├── favicon.svg
+│   ├── favicon.png
+│   ├── apple-touch-icon.png
+│   ├── logo.png
+│   ├── _headers                         # Generated for static Cloudflare responses
+│   ├── images/
+│   │   ├── brand/
+│   │   └── social/
+│   └── fonts/
+│       ├── brand-regular.woff2
+│       └── brand-medium.woff2
+│
+├── src/
+│   ├── assets/
+│   │   ├── images/
+│   │   │   ├── homepage/
+│   │   │   ├── editorial/
+│   │   │   └── categories/
+│   │   └── icons/
+│   │
+│   ├── config/
+│   │   ├── site.config.ts
+│   │   ├── routes.ts
+│   │   ├── navigation.config.ts
+│   │   └── ecommerce.config.ts
+│   │
+│   ├── middleware.ts
+│   │
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── Button.astro
+│   │   │   ├── Button.tsx
+│   │   │   ├── Input.astro
+│   │   │   ├── Input.tsx
+│   │   │   ├── FormField.tsx
+│   │   │   ├── Select.tsx
+│   │   │   ├── Dialog.tsx
+│   │   │   ├── Drawer.tsx
+│   │   │   ├── Skeleton.astro
+│   │   │   ├── Pagination.astro
+│   │   │   └── Price.astro
+│   │   ├── layout/
+│   │   │   ├── Header.astro
+│   │   │   ├── Footer.astro
+│   │   │   ├── AnnouncementBar.astro
+│   │   │   ├── MainNavigation.astro
+│   │   │   ├── MobileNavigation.tsx
+│   │   │   └── SkipLink.astro
+│   │   ├── navigation/
+│   │   │   └── Breadcrumbs.astro
+│   │   ├── seo/
+│   │   │   ├── SEOHead.astro
+│   │   │   ├── OrganizationJsonLd.astro
+│   │   │   ├── WebsiteJsonLd.astro
+│   │   │   └── BreadcrumbJsonLd.astro
+│   │   └── feedback/
+│   │       ├── ToastViewport.tsx
+│   │       ├── EmptyState.astro
+│   │       ├── ErrorState.astro
+│   │       └── LoadingState.astro
+│   │
+│   ├── features/
+│   │   ├── home/
+│   │   │   ├── components/
+│   │   │   │   ├── HeroBanner.astro
+│   │   │   │   ├── CategoryGrid.astro
+│   │   │   │   ├── EditorialDuo.astro
+│   │   │   │   ├── HomeProductSection.astro
+│   │   │   │   └── LatestNews.astro
+│   │   │   └── data/home-content.ts
+│   │   │
+│   │   ├── catalog/
+│   │   │   ├── components/
+│   │   │   │   ├── ProductCard.astro
+│   │   │   │   ├── ProductGrid.astro
+│   │   │   │   ├── ProductCarousel.astro
+│   │   │   │   ├── ProductCarouselControls.tsx
+│   │   │   │   ├── ProductFilters.tsx
+│   │   │   │   ├── ProductSort.tsx
+│   │   │   │   ├── ProductQuickAdd.tsx
+│   │   │   │   ├── ProductDetailExperience.tsx
+│   │   │   │   ├── ProductGallery.tsx
+│   │   │   │   ├── ProductLightbox.tsx
+│   │   │   │   ├── ProductPurchasePanel.tsx
+│   │   │   │   ├── ProductColorSelector.tsx
+│   │   │   │   ├── ProductSizeSelector.tsx
+│   │   │   │   ├── ProductSizingActions.tsx
+│   │   │   │   ├── ProductDescription.astro
+│   │   │   │   ├── ProductDetailsAccordion.astro
+│   │   │   │   ├── StyleItWith.astro
+│   │   │   │   └── RelatedProducts.astro
+│   │   │   ├── fit-finder/
+│   │   │   │   ├── FitFinderDialog.tsx
+│   │   │   │   ├── FitFinderForm.tsx
+│   │   │   │   ├── FitFinderFields.tsx
+│   │   │   │   └── FitFinderResult.tsx
+│   │   │   ├── size-guide/
+│   │   │   │   ├── SizeGuideDialog.tsx
+│   │   │   │   ├── SizeGuideHeader.tsx
+│   │   │   │   ├── SizeConversionTable.tsx
+│   │   │   │   └── GarmentMeasurementsTable.tsx
+│   │   │   ├── api/
+│   │   │   │   ├── catalog.api.ts
+│   │   │   │   └── fit-recommendation.api.ts
+│   │   │   ├── schemas/
+│   │   │   │   ├── catalog.schema.ts
+│   │   │   │   └── fit-recommendation.schema.ts
+│   │   │   ├── mappers/catalog.mapper.ts
+│   │   │   ├── types/
+│   │   │   │   ├── product.types.ts
+│   │   │   │   ├── size-guide.types.ts
+│   │   │   │   └── fit-recommendation.types.ts
+│   │   │   └── utils/
+│   │   │       ├── product.utils.ts
+│   │   │       └── listing-params.ts
+│   │   │
+│   │   ├── cart/
+│   │   │   ├── components/
+│   │   │   │   ├── CartDrawer.tsx
+│   │   │   │   ├── CartTrigger.tsx
+│   │   │   │   ├── CartItem.tsx
+│   │   │   │   ├── CartTotals.tsx
+│   │   │   │   └── QuantitySelector.tsx
+│   │   │   ├── store/cart.store.ts
+│   │   │   ├── api/cart.api.ts
+│   │   │   ├── schemas/cart.schema.ts
+│   │   │   ├── mappers/cart.mapper.ts
+│   │   │   └── types/cart.types.ts
+│   │   │
+│   │   ├── wishlist/
+│   │   │   ├── components/
+│   │   │   │   ├── WishlistButton.tsx
+│   │   │   │   └── WishlistExperience.tsx
+│   │   │   ├── store/wishlist.store.ts
+│   │   │   ├── api/wishlist.api.ts
+│   │   │   ├── types/wishlist.types.ts
+│   │   │   └── mappers/wishlist.mapper.ts
+│   │   │
+│   │   ├── search/
+│   │   │   ├── components/
+│   │   │   │   ├── SearchDialog.tsx
+│   │   │   │   ├── SearchCombobox.tsx
+│   │   │   │   └── SearchResults.tsx
+│   │   │   ├── api/search.api.ts
+│   │   │   ├── schemas/search.schema.ts
+│   │   │   ├── types/search.types.ts
+│   │   │   └── mappers/search.mapper.ts
+│   │   │
+│   │   ├── auth/
+│   │   │   ├── components/
+│   │   │   │   ├── SignInForm.tsx
+│   │   │   │   ├── SignUpForm.tsx
+│   │   │   │   ├── ForgotPasswordForm.tsx
+│   │   │   │   └── ResetPasswordForm.tsx
+│   │   │   ├── api/auth.api.ts
+│   │   │   ├── schemas/auth.schema.ts
+│   │   │   ├── types/auth.types.ts
+│   │   │   └── mappers/auth.mapper.ts
+│   │   │
+│   │   ├── checkout/
+│   │   │   ├── components/
+│   │   │   │   ├── CheckoutSteps.tsx
+│   │   │   │   ├── AddressForm.tsx
+│   │   │   │   ├── DeliveryOptions.tsx
+│   │   │   │   ├── CheckoutOrderSummary.tsx
+│   │   │   │   └── CheckoutForm.tsx
+│   │   │   ├── api/checkout.api.ts
+│   │   │   ├── schemas/checkout.schema.ts
+│   │   │   ├── types/checkout.types.ts
+│   │   │   └── mappers/checkout.mapper.ts
+│   │   │
+│   │   ├── payment/
+│   │   │   ├── components/
+│   │   │   │   ├── PaymentMethodSelector.tsx
+│   │   │   │   └── PaymentStatus.tsx
+│   │   │   ├── api/payment.api.ts
+│   │   │   └── types/payment.types.ts
+│   │   │
+│   │   ├── orders/
+│   │   │   ├── components/
+│   │   │   │   ├── OrderCard.astro
+│   │   │   │   ├── OrderStatus.astro
+│   │   │   │   └── OrderDetails.astro
+│   │   │   ├── api/orders.api.ts
+│   │   │   ├── types/orders.types.ts
+│   │   │   └── mappers/orders.mapper.ts
+│   │   │
+│   │   ├── account/
+│   │   │   ├── components/
+│   │   │   │   ├── ProfileForm.tsx
+│   │   │   │   ├── AddressBook.tsx
+│   │   │   │   └── AccountNavigation.astro
+│   │   │   ├── api/account.api.ts
+│   │   │   └── types/account.types.ts
+│   │   │
+│   │   └── consent/
+│   │       └── components/CookieConsentBanner.tsx
+│   │
+│   ├── layouts/
+│   │   ├── BaseLayout.astro
+│   │   ├── StorefrontLayout.astro
+│   │   ├── AuthLayout.astro
+│   │   ├── AccountLayout.astro
+│   │   └── CheckoutLayout.astro
+│   │
+│   ├── pages/
+│   │   ├── index.astro
+│   │   ├── products/[slug].astro
+│   │   ├── categories/index.astro
+│   │   ├── categories/[slug].astro
+│   │   ├── collections/index.astro
+│   │   ├── collections/[slug].astro
+│   │   ├── search.astro
+│   │   ├── cart.astro
+│   │   ├── wishlist.astro
+│   │   ├── account/sign-in.astro
+│   │   ├── account/sign-up.astro
+│   │   ├── account/forgot-password.astro
+│   │   ├── account/reset-password.astro
+│   │   ├── account/index.astro
+│   │   ├── account/profile.astro
+│   │   ├── account/addresses.astro
+│   │   ├── account/orders/index.astro
+│   │   ├── account/orders/[orderId].astro
+│   │   ├── checkout/index.astro
+│   │   ├── checkout/payment-failed.astro
+│   │   ├── checkout/confirmation/[orderId].astro
+│   │   ├── legal/privacy-policy.astro
+│   │   ├── legal/terms.astro
+│   │   ├── legal/shipping-returns.astro
+│   │   ├── legal/cookie-policy.astro
+│   │   ├── contact.astro
+│   │   ├── 404.astro
+│   │   ├── 500.astro
+│   │   ├── robots.txt.ts
+│   │   ├── sitemap.xml.ts
+│   │   └── api/
+│   │       ├── auth/sign-in.ts
+│   │       ├── auth/sign-up.ts
+│   │       ├── auth/logout.ts
+│   │       ├── auth/session.ts
+│   │       ├── auth/refresh.ts
+│   │       ├── auth/forgot-password.ts
+│   │       ├── auth/reset-password.ts
+│   │       ├── cart/index.ts
+│   │       ├── cart/merge.ts
+│   │       ├── cart/[itemId].ts
+│   │       ├── wishlist/index.ts
+│   │       ├── catalog/search.ts
+│   │       ├── fit-recommendation.ts
+│   │       └── checkout/submit.ts
+│   │
+│   ├── lib/
+│   │   ├── api/
+│   │   │   ├── client.ts
+│   │   │   ├── server.ts
+│   │   │   ├── errors.ts
+│   │   │   └── retry.ts
+│   │   ├── server/
+│   │   │   ├── backend.ts
+│   │   │   ├── auth.ts
+│   │   │   ├── csrf.ts
+│   │   │   ├── redirect.ts
+│   │   │   ├── sanitize.ts
+│   │   │   ├── request-context.ts
+│   │   │   ├── security-headers.ts
+│   │   │   └── security-policy.ts
+│   │   ├── consent/consent.store.ts
+│   │   ├── feedback/toast.store.ts
+│   │   ├── format/price.ts
+│   │   ├── format/date.ts
+│   │   ├── analytics/events.ts
+│   │   ├── analytics/tracker.ts
+│   │   ├── monitoring/error-reporter.ts
+│   │   ├── monitoring/web-vitals.ts
+│   │   ├── validation/api-response.ts
+│   │   ├── browser/storage.ts
+│   │   ├── ui/variants.ts
+│   │   └── state/async-state.ts
+│   │
+│   ├── hooks/
+│   │   ├── useFocusTrap.ts
+│   │   ├── useScrollLock.ts
+│   │   ├── useReducedMotion.ts
+│   │   ├── useIsHydrated.ts
+│   │   ├── useAbortableRequest.ts
+│   │   └── useDebounce.ts
+│   │
+│   ├── styles/
+│   │   ├── global.css
+│   │   ├── variables.css
+│   │   └── typography.css
+│   │
+│   └── env.d.ts
+│
+├── tests/
+│   ├── fixtures/{products,categories,size-guides}/
+│   ├── unit/{catalog,cart,wishlist,auth,search,checkout,money,retry,consent,analytics}/
+│   ├── integration/{api,authentication,cart}/
+│   └── e2e/
+│       ├── homepage.spec.ts
+│       ├── product-detail.spec.ts
+│       ├── fit-finder.spec.ts
+│       ├── size-guide.spec.ts
+│       ├── filters.spec.ts
+│       ├── cart.spec.ts
+│       ├── wishlist.spec.ts
+│       ├── search.spec.ts
+│       ├── auth.spec.ts
+│       ├── checkout.spec.ts
+│       ├── payment-failure.spec.ts
+│       ├── consent.spec.ts
+│       ├── seo.spec.ts
+│       ├── accessibility.spec.ts
+│       ├── error-pages.spec.ts
+│       └── mobile.spec.ts
+│
+├── scripts/generate-cloudflare-headers.ts
+├── docs/adr/
+│   ├── 001-frontend-architecture.md
+│   ├── 002-rendering-strategy.md
+│   ├── 003-state-management.md
+│   ├── 004-api-and-bff.md
+│   ├── 005-hydration-strategy.md
+│   ├── 006-security-and-authentication.md
+│   ├── 007-accessibility.md
+│   └── 008-analytics-and-consent.md
+│
+├── .github/
+│   ├── workflows/ci.yml
+│   ├── dependabot.yml
+│   └── PULL_REQUEST_TEMPLATE.md
+├── .husky/
+├── astro.config.mjs
+├── wrangler.jsonc
+├── tsconfig.json
+├── package.json
+├── package-lock.json
+├── eslint.config.js
+├── prettier.config.js
+├── vitest.config.ts
+├── playwright.config.ts
+├── lighthouserc.json
+├── .nvmrc
+├── .editorconfig
+├── .env.example
+├── README.md
+└── .gitignore
+```
+
+---
+
+## 4. File placement rules
+
+The agent MUST use these ownership rules when adding or changing files.
+
+### 4.1 `src/pages/`
+
+- Contains route entry points and route-specific server data loading.
+- Keep page files thin: resolve parameters, call the appropriate feature API/service, select a layout, and compose the page.
+- Do not put reusable business logic, large UI implementations, or feature state directly in page files.
+- Astro file-based routes determine URL paths. Do not create a second manual router.
+- API endpoints belong under `src/pages/api/` and are server-side endpoints, not React components.
+
+### 4.2 `src/features/<feature>/`
+
+Use one folder per business capability: `home`, `catalog`, `cart`, `wishlist`, `search`, `auth`, `checkout`, `payment`, `orders`, `account`, and `consent`.
+
+Inside a feature:
+
+- `components/`: UI owned by that feature.
+- `api/`: typed functions for that feature's API operations. Do not duplicate the shared HTTP transport here.
+- `schemas/`: Zod request/response validation schemas where needed.
+- `types/`: feature-owned domain and API types.
+- `mappers/`: convert backend DTOs into frontend domain/view models.
+- `store/`: only shared reactive feature state that is genuinely needed.
+- `utils/`: pure feature-specific functions.
+- `data/`: only non-production content or feature-owned local data that is intentionally shipped.
+
+Do not add all these subfolders automatically. Create only those that the feature needs.
+
+### 4.3 Shared `src/components/`
+
+- `ui/`: reusable primitives such as buttons, form fields, dialogs, drawers, inputs and pagination.
+- `layout/`: global site chrome and navigation.
+- `navigation/`: reusable navigation elements such as breadcrumbs.
+- `seo/`: reusable metadata and structured-data components.
+- `feedback/`: empty, error, loading and toast presentation.
+
+A component belongs here only when at least two independent features need it or it is truly a global application primitive. Otherwise keep it in its feature.
+
+### 4.4 `src/lib/`
+
+- `api/`: shared HTTP transport, error normalization and retry policy.
+- `server/`: server-only auth, CSRF, BFF backend client, redirect validation, sanitization, request context and security policy.
+- `consent/`: consent state and policy interfaces used by analytics and UI.
+- `feedback/`: shared toast state.
+- `format/`: cross-feature formatting such as money and dates.
+- `analytics/`: typed event definitions and consent-aware tracking.
+- `monitoring/`: error reporting and Web Vitals.
+- `validation/`: generic API boundary helpers, not feature-specific schemas.
+- `browser/`: safe browser utilities; never store session tokens here.
+- `ui/`: shared class variants and presentation utilities.
+- `state/`: shared async-state primitives.
+
+**Dependency rule:** `lib/` must not import from `features/`, `pages/`, or application components. If a shared library needs feature-specific information, pass it in through an argument or a small interface.
+
+### 4.5 `src/layouts/`
+
+- `BaseLayout.astro`: HTML document shell, global styles, SEO head, skip link, global consent/analytics bootstrap where appropriate, and common document structure.
+- `StorefrontLayout.astro`: storefront header/footer and public shopping shell.
+- `AuthLayout.astro`: sign-in, sign-up, forgot-password and reset-password shell. Do not show authenticated account navigation here.
+- `AccountLayout.astro`: authenticated account navigation and account shell only.
+- `CheckoutLayout.astro`: focused checkout shell without unrelated storefront navigation where the design requires it.
+
+Do not duplicate HTML document shells across layouts. Specialized layouts should build on `BaseLayout.astro`.
+
+---
+
+## 5. Strict change-control: adding anything new
+
+This section is mandatory whenever a new page, feature, category, component, store, API endpoint, folder, dependency, or architectural pattern is proposed.
+
+### 5.1 Required evaluation before adding
+
+Before creating something new, the agent MUST answer internally and, when useful, report:
+
+1. **What requirement does it satisfy?** Link it to the user request or a documented product requirement.
+2. **Does an equivalent already exist?** Search the repository for existing components, utilities, stores, schemas, API functions, types and routes.
+3. **Who owns it?** Identify the feature or shared layer responsible for it.
+4. **Where does it belong?** Choose the correct location using Section 4.
+5. **What runtime is it?** Mark it as server-only, browser-only, or safe for both.
+6. **Astro or React?** Explain whether it is static/server content or requires browser state.
+7. **What data contract does it use?** Identify the verified API endpoint, request/response schema, mapper and types. Do not invent missing contracts.
+8. **What security, SEO, caching and accessibility rules apply?** Determine these before implementation.
+9. **How will it be tested?** Identify unit, integration and/or E2E coverage.
+10. **Does it change an approved architecture decision?** If yes, follow the ADR process below.
+
+Do not create a folder just because a similar project has one. Do not create an abstraction that has only one trivial use unless it clearly isolates a volatile or security-sensitive responsibility.
+
+### 5.2 New feature procedure
+
+For a genuinely new feature:
+
+1. Search for related existing features and shared capabilities.
+2. Define its responsibility and public interface.
+3. Add the smallest feature folder that fits the existing pattern.
+4. Add only required subfolders (`components`, `api`, `schemas`, `types`, `mappers`, `store`, `utils`, `tests`).
+5. Add its page route only under `src/pages/`.
+6. Add API endpoints under `src/pages/api/` only when a same-origin BFF endpoint is required.
+7. Update route access, render/cache, SEO, navigation and sitemap rules where relevant.
+8. Add tests and documentation.
+9. Update this file or an ADR only if the architecture itself changes—not for every ordinary component addition.
+
+### 5.3 New category, collection, or product taxonomy
+
+Do not assume `categories` and `collections` are interchangeable.
+
+- A **category** classifies products (for example: shirts, trousers, jackets).
+- A **collection** is a curated merchandising grouping (for example: New Arrivals, Autumn Edit, a campaign or an editorial selection).
+- A product may belong to a category and one or more collections.
+- Category and collection route conventions, canonical policy, API fields and navigation must be consistent with their separate meanings.
+- Do not add a new taxonomy level (department, subcategory, season, brand, fit, style, etc.) without first checking the existing product/domain model and obtaining a clear requirement.
+
+### 5.4 New file or component procedure
+
+- Search before creating; extend an existing component where that is the correct responsibility.
+- Use a descriptive name and match the existing naming convention.
+- Do not create duplicate components with different names for the same behavior.
+- Do not split a component into many tiny files unless each part has independent meaning, reuse, state, or test value.
+- Do not merge components merely to reduce file count if it harms accessibility, reuse, or clarity.
+- Do not create placeholder files, empty test files, or empty directories.
+- Update imports and tests when moving a file. Do not leave compatibility duplicates unless explicitly required.
+
+### 5.5 Architecture decision records
+
+If a task requires changing a rule in this document, do not silently implement the change.
+
+1. Explain the current rule and the conflict.
+2. Propose the smallest alternative and its trade-offs.
+3. Create or update the appropriate `docs/adr/` record with status (`Proposed`, `Accepted`, `Superseded`, or `Rejected`).
+4. Obtain user approval before making a breaking architecture change, wholesale restructure, dependency replacement, or change to security/session ownership.
+5. After approval, update `AGENTS.md`, the relevant ADR, and affected architecture references together.
+
+An ordinary new feature that fits the approved architecture does not require approval for its folder creation.
+
+---
+
+## 6. Import boundaries and dependency direction
+
+The permitted dependency direction is:
+
+```text
+src/pages/  ───────►  src/features/
+     │                       │
+     │                       ├────────► src/components/ui/
+     │                       │
+     │                       └────────► src/lib/
+     │
+     ├──────────────────────► src/components/
+     └──────────────────────► src/layouts/
+
+src/components/ui/ ─────────► src/lib/ui/ (and safe shared helpers)
+
+src/lib/ ────────────────────► no imports from pages, features, or UI components
+```
+
+Additional rules:
+
+- Features must not create circular imports with other features.
+- A feature may consume a narrowly defined shared UI primitive, but shared UI must not know about product, cart, auth, or order domain rules.
+- If two features need the same domain operation, expose a stable shared contract or move the genuinely shared capability to an appropriate lower-level layer after review.
+- `config/` may be imported by layers that need it, but config must not import feature UI or page modules.
+- Add ESLint import-boundary rules so these constraints are automated. Do not rely on memory alone.
+
+---
+
+## 7. Astro and React rules
+
+### 7.1 When to use Astro
+
+Use `.astro` for:
+
+- Route/page composition and server data loading.
+- Static or server-rendered editorial content.
+- Product description and detail content that does not need browser state.
+- SEO metadata and JSON-LD.
+- Server-rendered order status when it is not live-updating.
+- Presentational product cards, grids and content sections when their behavior can use native links/forms or small React controls.
+
+Astro components do not become client-reactive. Do not place changing client state inside `.astro` and expect it to update after hydration.
+
+### 7.2 When to use React
+
+Use `.tsx` for:
+
+- Forms with interactive validation and state.
+- Dialogs, drawers and interactive navigation.
+- Product gallery, lightbox and client-side zoom.
+- Product color/size selection and purchase interactions.
+- Cart totals, quantity changes and optimistic cart updates.
+- Wishlist state and controls.
+- Search combobox and live results.
+- Checkout selections and recalculating order summary.
+- Fit Finder form/results.
+- Size Guide dialog interactions.
+
+If a component is reactive in the browser, it must be implemented as React (or another explicitly approved client framework), not as an Astro component pretending to be reactive.
+
+### 7.3 Islands and composition
+
+- Astro pages may render Astro components and hydrate React islands.
+- **Never render an `.astro` component inside a React component tree.** Astro components are not React children.
+- For the product page, `ProductDetailExperience.tsx` is the coordinated React island containing the gallery and purchase interaction. Astro content sections such as description, details, Style It With and related products are siblings composed by `[slug].astro`.
+- Keep color, selected variant, size, gallery state and add-to-cart interaction coordinated within the product React experience.
+- Fit Finder and Size Guide belong to the catalog feature while they remain product-sizing capabilities. Lazy-load them when opened; do not create separate Astro islands inside a React tree.
+- Use `client:load` only for immediately necessary interactivity. Use `client:visible`, `client:idle`, or `client:media` only when their behavior is appropriate and verified. Nested React components use React lazy loading/dynamic imports, not Astro `client:*` directives.
+- Prefer CSS scroll-snap for simple carousels. Hydrate controls only when native scrolling is insufficient.
+- Never hydrate an entire page just because one small control is interactive.
+
+### 7.4 Shared components with Astro and React versions
+
+`Button.astro` and `Button.tsx`, or `Input.astro` and `Input.tsx`, are allowed only when both server-rendered and React usages genuinely exist.
+
+- Share the class-variant map from `src/lib/ui/variants.ts` where feasible.
+- Do not duplicate styling rules between the two implementations.
+- Do not import an Astro component into React.
+- Avoid creating a second implementation if a native HTML element is sufficient.
+
+---
+
+## 8. Product, sizing, and purchasing architecture
+
+### 8.1 Product detail experience
+
+The approved product page composition is:
+
+```text
+src/pages/products/[slug].astro
+├── ProductDetailExperience.tsx
+│   ├── ProductGallery.tsx
+│   ├── ProductLightbox.tsx
+│   └── ProductPurchasePanel.tsx
+│       ├── ProductColorSelector.tsx
+│       ├── ProductSizeSelector.tsx
+│       ├── ProductSizingActions.tsx
+│       ├── FitFinderDialog.tsx (loaded on demand)
+│       ├── SizeGuideDialog.tsx (loaded on demand)
+│       └── AddToBagButton
+├── ProductDescription.astro
+├── ProductDetailsAccordion.astro
+├── StyleItWith.astro
+└── RelatedProducts.astro
+```
+
+Rules:
+
+- The product route loads the correct product by slug and handles not-found responses.
+- Server-render meaningful product name, description, price/offer information where safe, canonical metadata and structured data.
+- Keep interactive gallery and purchase state in the same React island when those states depend on one another.
+- Selecting a color must update the selected color/variant, relevant images and available sizes.
+- Selecting a size must resolve to a real backend variant ID/SKU; never fabricate one.
+- Add-to-cart must send a product/variant identifier and quantity, not trust client-supplied price or stock.
+- `StyleItWith` and `RelatedProducts` are distinct merchandising roles. Do not collapse them without a product requirement.
+
+### 8.2 Fit Finder
+
+- Fit Finder is separate from Size Guide.
+- It gathers only the inputs defined by the approved product and backend contract (e.g. gender, birth year, height, weight, fit preference, if actually required).
+- The UI form, Zod schema, types, API client and result mapping must agree.
+- The frontend must not invent the sizing algorithm or claim a recommendation is accurate without a verified provider/backend contract.
+- Any external sizing provider integration and credentials belong on the backend, not in browser code.
+- Treat measurement/profile data as personal data: collect only necessary fields, explain use, avoid unnecessary retention, and follow applicable privacy requirements.
+- A recommendation is not proof of stock. Revalidate the selected variant with the backend.
+
+### 8.3 Size Guide
+
+- Size Guide is a reference chart, not a recommendation engine.
+- Support both international size conversion and product-specific garment measurements.
+- Do not hardcode trouser measurements for shirts, jackets or other garment types.
+- The data model must describe measurement columns/units per garment type or product chart.
+- Display units clearly and make wide tables usable on mobile (horizontal scroll or a suitable responsive alternative).
+
+### 8.4 Categories and collections
+
+- Category is product classification.
+- Collection is a curated or campaign grouping.
+- Use separate data concepts and routes unless an accepted ADR explicitly changes this.
+- Filter, sort, pagination, color and size state should be serializable in URL query parameters when shareable.
+- Parse and serialize listing parameters in `features/catalog/utils/listing-params.ts`.
+- Validate query parameters; do not trust arbitrary values.
+
+---
+
+## 9. Cart, wishlist, checkout, and payment rules
+
+### 9.1 Cart
+
+- Nano Stores is the shared client-side cart state mechanism.
+- The backend cart is the source of truth for quantities, variants, prices, promotions, tax, shipping and availability.
+- Use optimistic updates only with rollback on failure and reconciliation from the backend response.
+- Support guest cart and guest-to-authenticated cart merge if those flows are part of the product requirements.
+- Do not expose a personalized cart count inside a publicly cached shared HTML response. Load it through a request/user-specific path or client hydration.
+- Ensure the cart store is safe during SSR; do not access `window`, `document`, or browser storage at module initialization.
+
+### 9.2 Wishlist
+
+- Keep one `wishlist.store.ts` for shared state.
+- Keep one `WishlistButton.tsx` implementation with a variant/size prop where placements differ.
+- Support guest behavior only according to the agreed persistence model; do not assume localStorage is the source of truth for authenticated wishlists.
+- The wishlist page/grid must be reactive if guest or authenticated wishlist state can change without navigation.
+
+### 9.3 Checkout and orders
+
+- Guest checkout is allowed unless the product owner explicitly changes that decision.
+- Order totals must be recalculated/verified by the backend before order creation.
+- Send an idempotency key for one logical order submission; reuse the same key for retries of that submission. The backend must enforce idempotency.
+- Order confirmation pages must not disclose orders based only on enumerable IDs. Require the authenticated owner or a sufficiently protected signed/unguessable confirmation token.
+- Payment failure and cancellation flows must recover safely and never imply an order/payment succeeded without backend confirmation.
+- `CheckoutOrderSummary.tsx` is React because delivery/method selections can change totals in the browser.
+- `OrderStatus.astro` is sufficient for server-rendered status. Convert to React only if a verified live-updating requirement exists.
+
+### 9.4 Payments
+
+- Use provider-hosted checkout or hosted payment fields.
+- Raw card data must never enter frontend application state, logs, API payloads, or your backend unless a separately reviewed compliant integration explicitly requires it.
+- Payment secrets and signature verification live on the backend.
+- The frontend may display provider status but must not decide that payment is successful based on a browser redirect alone.
+
+---
+
+## 10. Authentication and server endpoint rules
+
+### 10.1 Required pages
+
+These four routes are explicitly required and must not be removed or renamed without approval:
+
+| Route | Page | Layout | Access |
+|---|---|---|---|
+| `/account/sign-in` | Sign in | `AuthLayout.astro` | Public |
+| `/account/sign-up` | Sign up / registration | `AuthLayout.astro` | Public |
+| `/account/forgot-password` | Request password reset | `AuthLayout.astro` | Public |
+| `/account/reset-password` | Set new password from a validated reset token | `AuthLayout.astro` | Public, token-validated |
+
+Authenticated customer pages:
+
+- `/account`
+- `/account/profile`
+- `/account/addresses`
+- `/account/orders`
+- `/account/orders/[orderId]`
+
+These use `AccountLayout.astro` and require authentication.
+
+Do not protect the entire `/account/*` prefix, because that would incorrectly block sign-in, sign-up, forgot-password, and reset-password.
+
+### 10.2 Session rules
+
+- Store session credentials in `HttpOnly`, `Secure` (production), appropriately `SameSite` cookies with deliberate `Path`, expiry and rotation behavior.
+- Never store session/refresh tokens in `localStorage`, `sessionStorage`, IndexedDB, URLs, analytics, or logs.
+- Use CSRF protection for cookie-authenticated state-changing requests. SameSite is useful defense-in-depth, not a reason to omit CSRF analysis.
+- Validate `returnTo` as an allowed same-origin path. Reject protocol-relative URLs, external origins, malformed URLs and disallowed routes.
+- Clear/rotate cookies correctly on logout, refresh, password reset and session changes.
+- The Hono backend remains responsible for authentication and authorization decisions.
+
+### 10.3 BFF endpoint rules
+
+Default browser-facing route structure:
+
+```text
+src/pages/api/
+├── auth/
+│   ├── sign-in.ts
+│   ├── sign-up.ts
+│   ├── logout.ts
+│   ├── session.ts
+│   ├── refresh.ts
+│   ├── forgot-password.ts
+│   └── reset-password.ts
+├── cart/
+│   ├── index.ts
+│   ├── merge.ts
+│   └── [itemId].ts
+├── wishlist/index.ts
+├── catalog/search.ts
+├── fit-recommendation.ts
+└── checkout/submit.ts
+```
+
+- Validate HTTP method, content type, body size, input schema, session and CSRF as applicable.
+- Use a server-only backend client to call Hono.
+- Normalize errors; never forward raw internal stack traces or secrets to the browser.
+- Do not build an unrestricted arbitrary-URL proxy.
+- Do not duplicate business logic in Astro endpoints. The endpoint is a BFF/security boundary; Hono owns the business operation.
+- If the deployment intentionally lets Hono own the same-site session cookie, document that in an accepted ADR and remove redundant cookie-proxy endpoints. Never create two competing session authorities.
+
+---
+
+## 11. Rendering, caching, routes, and SEO
+
+### 11.1 Rendering policy
+
+Use a hybrid approach: static prerendering for stable public content, cached SSR for changing public catalog pages when safe, and private SSR for personalized routes.
+
+| Route | Rendering/cache | Indexing |
+|---|---|---|
+| `/` | Static or public cached | Index |
+| `/products/[slug]` | Static or public cached SSR; separate freshness for live offers/stock | Index |
+| `/categories/*` | Static or public cached SSR | Index according to SEO policy |
+| `/collections/*` | Static or public cached SSR | Index according to SEO policy |
+| `/search` | SSR; conservative no-store initially | Noindex |
+| `/cart` | SSR/private/no-store or client-loaded private data | Noindex |
+| `/wishlist` | SSR/private/no-store or client-loaded private data | Noindex |
+| `/account/sign-in` | SSR/no-store | Noindex |
+| `/account/sign-up` | SSR/no-store | Noindex |
+| `/account/forgot-password` | SSR/no-store | Noindex |
+| `/account/reset-password` | SSR/no-store | Noindex |
+| Authenticated `/account/*` | SSR/private/no-store | Noindex |
+| `/checkout/*` | SSR/private/no-store | Noindex |
+| `/checkout/confirmation/[orderId]` | SSR/private/no-store and owner/token protected | Noindex |
+| `/legal/*` | Static/public cache | Index |
+| `/contact` | Static or SSR according to form needs | Index |
+| Error pages | Correct error status and no private leakage | Noindex |
+
+Rules:
+
+- Middleware cannot protect a page already emitted as static HTML. Never statically prerender personalized or protected content.
+- Do not cache responses that contain session-specific HTML, account information, cart contents, wishlist data, checkout data, or private order information.
+- Public product cache must not make a purchase decision. Revalidate price, discount and stock on cart/checkout/order operations.
+- If price and availability are fetched separately, make the displayed offer and JSON-LD consistent with the freshness policy.
+- `no-store` is the safe default for private pages. Any more permissive strategy requires evidence that no private data can be shared.
+
+### 11.2 Middleware and headers
+
+`src/middleware.ts` is required for the SSR application and should:
+
+- Establish or validate request ID and request context.
+- Read/validate session where applicable.
+- Apply route access policy without blocking public auth routes.
+- Apply CSRF checks to relevant mutation paths (or ensure the BFF endpoint enforces them).
+- Attach security headers to SSR responses.
+- Avoid logging secrets, reset tokens, session cookies, measurements or payment data.
+
+Static assets do not pass through Worker middleware in the same way as SSR responses. `public/_headers` must be generated from the same security policy used for SSR response headers.
+
+- Source policy: `src/lib/server/security-policy.ts`.
+- SSR application: `src/lib/server/security-headers.ts`.
+- Static output generator: `scripts/generate-cloudflare-headers.ts`.
+- Generated output: `public/_headers`.
+- Do not hand-edit generated `_headers`; edit the source policy and regenerate.
+- Test CSP against the production Astro build and real payment provider origins. Do not casually add broad `unsafe-inline`, `unsafe-eval`, or wildcard sources to make an error disappear.
+- Apply HSTS only in the correct HTTPS production environment and verify subdomain implications before enabling `includeSubDomains` or preload.
+
+### 11.3 Canonical and robots policy
+
+- Product pages use their approved canonical product URL.
+- Category/collection pages have an explicit indexability policy.
+- Filter/sort/page/color/size parameters are parsed and serialized by `listing-params.ts`.
+- Do not blindly canonicalize every filtered or paginated URL to the base category. Decide which combinations are indexable, noindex, or canonicalized based on duplicate/content value.
+- Search, cart, wishlist, account, checkout and confirmation pages must be `noindex`.
+- `robots.txt.ts` must be environment-aware. Staging/non-production must not be accidentally indexed; verify the actual emitted response.
+- Generate product sitemap entries from a verified backend feed or endpoint if products are SSR routes. Do not assume a static sitemap integration automatically discovers dynamic server-rendered products.
+- Structured data must reflect visible, current, verifiable page content. Do not fabricate price, review, availability, rating, SKU or brand data.
+
+---
+
+## 12. API contract, validation, mappers, money, and retries
+
+### 12.1 API client
+
+`src/lib/api/client.ts` and `server.ts` are the shared transport layer. Feature API modules define endpoint-specific calls.
+
+The shared client should support as required:
+
+- Explicit base URL and credentials policy.
+- Timeout and `AbortSignal` cancellation.
+- Request ID propagation.
+- Normalized error shape.
+- Zod validation at untrusted response boundaries.
+- GET-only automatic retries with bounded attempts, backoff and cancellation.
+- No automatic retry for mutations unless the endpoint has an explicit idempotency contract.
+
+### 12.2 Schemas and mappers
+
+- Backend DTO types/schemas must be separate from frontend domain/view-model types when shapes or semantics differ.
+- Validate response payloads at the boundary.
+- Map validated DTOs using feature-owned `*.mapper.ts` files.
+- Components consume frontend domain/view models, not raw backend DTOs.
+- Do not add a mapper that is merely a redundant identity function. Add it where it creates a meaningful boundary or stable frontend contract.
+- Do not invent fields that are absent from the actual backend contract. If a required field is missing, report the contract gap.
+
+### 12.3 Async state
+
+Use `src/lib/state/async-state.ts` for suitable asynchronous resources (`idle/loading/success/error`). Do not force it on simple local UI booleans such as dialog open state or selected tab.
+
+### 12.4 Money and dates
+
+- Represent money as integer minor units plus currency where the backend contract allows it.
+- Do not assume every currency has two fraction digits.
+- Use one shared formatter in `src/lib/format/price.ts` backed by `Intl.NumberFormat` or a verified currency formatting utility.
+- Use `src/lib/format/date.ts` for consistent order/date display and locale/time-zone handling.
+- Do not perform financial calculations with floating-point display values in the browser as authoritative totals.
+
+---
+
+## 13. Accessibility requirements
+
+Every interactive component must be accessible. At minimum:
+
+- A visible-on-focus skip link in the base layout.
+- Correct landmarks, headings, labels and form descriptions.
+- `FormField.tsx` must associate label, hint and error with the input using stable IDs and `aria-describedby`.
+- `Dialog.tsx` and `Drawer.tsx` must provide correct dialog semantics, initial focus, focus containment, focus restoration, Escape handling, and scroll lock. Account for nested/stacked dialogs if the design permits them.
+- Search combobox must implement keyboard interaction and ARIA relationships correctly; do not imitate a combobox with only visual styling.
+- Product gallery controls must work by keyboard and expose useful accessible names/alt text.
+- Size/colour selection must expose selected and disabled states semantically, not only through color/borders.
+- Toast region must use appropriate `aria-live`/`role` behavior without over-announcing.
+- Respect `prefers-reduced-motion` for transitions and animations.
+- Tables require meaningful headers and responsive handling; do not shrink text to unreadable sizes.
+- Run automated accessibility checks (including axe where configured) and manually verify keyboard/focus flows for critical journeys.
+
+Use shared hooks only when they are correct, tested, and needed: `useFocusTrap`, `useScrollLock`, `useReducedMotion`, `useIsHydrated`, and `useAbortableRequest`.
+
+---
+
+## 14. Images, fonts, and assets
+
+- Use `src/assets/` for imported build-time images that benefit from Astro asset processing.
+- Use `public/` for files that must be served unchanged at stable paths (favicons, robots/static files, selected brand assets, generated headers).
+- Product images that are dynamic catalog content should normally be delivered from an approved object-storage/CDN source, not copied into the frontend repository as the production catalog database.
+- Do not move every image into `src/assets` indiscriminately.
+- Configure approved remote image origins/patterns for Astro image optimization where applicable.
+- Verify the Cloudflare adapter image service and runtime behavior against the installed adapter version. Do not assume local build-time image optimization applies to every remote image.
+- Provide explicit image dimensions/aspect ratios where possible to reduce layout shift.
+- Prioritize only the true above-the-fold LCP image; do not set high priority on every image.
+- Use responsive image sizes and modern formats where supported.
+- Self-host subsetted WOFF2 fonts when licensed and technically appropriate. Use deliberate font-display and preload only critical fonts.
+- Development fixtures and test-only images must not leak into production bundles or public routes.
+
+---
+
+## 15. Analytics, consent, and monitoring
+
+- Define typed ecommerce events in `src/lib/analytics/events.ts`.
+- Track meaningful events such as view item, view item list, select item, add to cart, remove from cart, begin checkout, add shipping/payment info, purchase, search, sign-up and login where applicable.
+- Purchase must be deduplicated using a stable order/event identifier; do not fire merely because a confirmation page is reloaded.
+- Do not send personal data, authentication tokens, reset tokens, addresses, measurements, card data, or sensitive order details to analytics.
+- Analytics tracking must read consent through `src/lib/consent/consent.store.ts`; `lib/analytics` must never import from `features/consent`.
+- The consent UI lives in `features/consent/` and delegates to the shared consent contract/store.
+- Non-essential tracking must not run before the applicable consent is granted.
+- Add error reporting and Web Vitals through `src/lib/monitoring/`.
+- Call monitoring from appropriate error boundaries, server error handling and middleware without leaking private data.
+- If a monitoring provider is not configured, do not invent its SDK or environment variables. Keep a documented provider-neutral interface or ask for the chosen provider.
+
+---
+
+## 16. Testing and CI requirements
+
+Tests should validate behavior, not merely file existence.
+
+### Unit tests
+
+Cover at least the relevant feature logic for:
+
+- Product/variant selection and product mappers.
+- Listing query parsing and serialization.
+- Cart calculations, optimistic update rollback and reconciliation.
+- Wishlist state and guest behavior.
+- Auth and form schemas.
+- Fit recommendation input/result mapping.
+- Size guide rendering/data.
+- Money/date formatting.
+- API retry and error normalization.
+- Consent and analytics gating.
+
+### Component tests
+
+Test critical interactive primitives and components, including:
+
+- Dialog and Drawer focus behavior.
+- FormField validation/ARIA wiring.
+- QuantitySelector.
+- ProductColorSelector and ProductSizeSelector.
+- Fit Finder and Size Guide open/close/submit behavior.
+- Sign-in/sign-up/forgot/reset forms.
+
+### E2E tests
+
+Critical paths include:
+
+1. Homepage navigation to a category and product.
+2. Product gallery, color and size selection.
+3. Fit Finder recommendation and selection.
+4. Size Guide display and mobile usability.
+5. Add-to-cart, update quantity, remove item and cart recovery.
+6. Guest cart merge after login if implemented.
+7. Sign-up, sign-in, logout, forgot password and reset password.
+8. Search, filters and URL state.
+9. Guest/authenticated checkout as supported.
+10. Payment success, failure, retry and confirmation security.
+11. Wishlist guest/authenticated behavior.
+12. Consent gating, SEO metadata, canonical, noindex, JSON-LD and error pages.
+13. Keyboard accessibility and mobile layout.
+
+### CI
+
+Before declaring a task complete, run the relevant checks available in the repository. The standard full CI should include:
+
+- Formatting check.
+- ESLint.
+- `astro check` / TypeScript checks.
+- Unit tests.
+- Production build.
+- Relevant Playwright tests.
+- Accessibility checks where configured.
+- Lighthouse CI according to measured budgets.
+
+Do not claim a check passed unless it was actually run and its result observed. If a check cannot be run, state why.
+
+---
+
+## 17. Tooling and configuration rules
+
+- Respect the package manager and lockfile already in the repository. The current baseline is npm with `package-lock.json`; do not introduce pnpm/yarn or a second lockfile without approval.
+- Read installed package versions before using APIs or suggesting upgrades.
+- Keep Astro, React integration, Cloudflare adapter, Tailwind and image integration versions compatible.
+- Tailwind 3 and Tailwind 4 have different Astro integration approaches. Inspect the installed version; do not migrate or rewrite configuration based on assumptions.
+- Keep `astro.config.mjs`, `wrangler.jsonc`, TypeScript, ESLint, Prettier, Vitest, Playwright and Lighthouse configuration consistent with installed versions.
+- Keep `.nvmrc`, `.editorconfig`, Husky/lint-staged, Dependabot, GitHub workflow and root `README.md` aligned with the actual project.
+- Never upgrade all dependencies as an incidental part of a feature task.
+- Do not add a dependency when the installed stack or native browser/Astro capability already solves the problem adequately.
+
+---
+
+## 18. No-hallucination and evidence rules
+
+These rules are strict.
+
+1. Never claim a file, route, component, package, script, endpoint, test, environment variable, database field, provider capability, or configuration exists unless you inspected it or it is explicitly documented here.
+2. Never fabricate Hono API routes or response shapes. Read the backend contract, OpenAPI spec, route definitions, or ask for the missing contract.
+3. Never invent product data, size conversions, garment measurements, stock, prices, tax behavior, delivery promises, ratings, reviews, or payment status.
+4. Never invent a third-party SDK, provider adapter, API method, configuration key or supported Cloudflare behavior. Check installed code/package documentation or official current documentation.
+5. Distinguish clearly between:
+   - **Verified:** observed in repository code/configuration or authoritative documentation.
+   - **Assumption:** necessary but not yet confirmed.
+   - **Recommendation:** a proposed improvement, not a current project fact.
+   - **Blocker:** information or access required before safe implementation.
+6. If backend contract details are missing, do not create speculative DTOs or fake endpoints. Implement only the independent UI shell with clearly marked mock fixtures in tests, or ask one targeted question if the missing information blocks the requested task.
+7. If code cannot be inspected, say so. Do not pretend an architecture review is a code audit.
+8. When uncertain, preserve current working behavior and request clarification for decisions that affect data contracts, session ownership, security, payment, routing, or architecture.
+9. Do not silently reinterpret ambiguous user language as a new feature or change to the architecture.
+10. Never report a production-readiness score as measured unless the implementation has actually been audited and the scoring method is stated.
+
+---
+
+## 19. Prohibited actions unless explicitly approved
+
+The agent MUST NOT:
+
+- Replace Astro with another framework or convert the app into a full React SPA.
+- Replace Nano Stores with another state manager.
+- Move every component into a new global `astro/` or `react/` folder.
+- Move Fit Finder or Size Guide out of catalog without a documented reason and approval.
+- Rename or restructure large parts of the repository as part of an unrelated feature.
+- Introduce a monorepo, microfrontend, state-management framework, repository layer, service container, event bus, or generic plugin architecture without demonstrated need.
+- Make private routes statically prerendered.
+- Put session or refresh tokens in browser storage or URLs.
+- Trust client-side prices, inventory, user roles, order ownership, or payment outcomes.
+- Expose backend/provider secrets to client code.
+- Send raw card data through the application.
+- Bypass Zod/API boundary validation for external data.
+- Add a second source of truth for product/cart/wishlist data.
+- Add fake data to production catalog code to hide an absent backend contract.
+- Suppress TypeScript, lint, accessibility or test errors with broad `any`, `@ts-ignore`, eslint disables, or skipped tests without a specific justified comment and approval.
+- Delete tests, CI checks, lockfiles, ADRs, or security controls just to make a build pass.
+- Change the visual design, brand identity, responsive behavior or existing interactions unless the task requests it.
+
+---
+
+## 20. Required workflow for every agent task
+
+### Before implementation
+
+1. Read this file.
+2. Inspect repository status (`git status`) and do not overwrite unrelated user changes.
+3. Inspect relevant code and tests.
+4. Identify the owning feature and allowed dependency direction.
+5. Identify SSR/browser boundaries, route access, caching, SEO, validation and accessibility implications.
+6. State a short plan for multi-file or high-risk work.
+7. If a requirement conflicts with this architecture, stop and propose the smallest compliant alternative or an ADR. Do not silently divert.
+
+### During implementation
+
+1. Work only on the requested scope.
+2. Reuse existing code and patterns where correct.
+3. Add/modify types, schemas, mappers, API functions and tests consistently.
+4. Keep server-only code server-only.
+5. Preserve responsive design and existing user-visible behavior unless asked to change it.
+6. Avoid opportunistic refactors.
+7. Keep a concise record of important decisions and any assumptions.
+
+### After implementation
+
+1. Review the diff for unrelated changes, duplicate implementations and architecture violations.
+2. Run relevant formatter, lint, type/Astro checks, tests and build.
+3. Inspect the final route/file placement.
+4. Verify that no secrets, session values or personal data are exposed.
+5. Verify loading, empty, error and success states where applicable.
+6. Update tests and docs/ADRs when behavior or architecture changes.
+7. Report exactly what changed, files added/modified, checks run and their actual results.
+8. Explicitly list anything not verified or blocked.
+
+### Required completion report format
+
+```text
+## Completed
+- [What was implemented]
+
+## Files changed
+- [Path] — [purpose]
+
+## Architecture compliance
+- [How the change follows this AGENTS.md]
+- [Any exception and its approved ADR, if applicable]
+
+## Validation
+- [Command/check] — PASS / FAIL / NOT RUN
+- [Observed result]
+
+## Assumptions or blockers
+- [Only if applicable]
+
+## Follow-up
+- [Only concrete remaining work; do not invent future tasks]
+```
+
+---
+
+## 21. Architecture change control and mandatory end-of-task updates
+
+When this file is first introduced, treat the architecture in Section 3 and the rules in this document as the approved baseline.
+
+For future approved architecture changes:
+
+- Add an ADR under `docs/adr/`.
+- Update the relevant part of this file.
+- Update the project tree or route/rendering tables if affected.
+- Update import-boundary and CI checks if the change affects enforcement.
+- Update the corresponding architecture summary in `GEMINI.md` so both instruction files remain aligned.
+- Do not leave contradictory old and new rules in either file.
+
+### Mandatory instruction-file update after every code-generation task
+
+At the end of **every task that creates, modifies, deletes, or moves application code/configuration/tests** (including a task where the implementation is completed but the architecture does not change), the agent MUST update both root instruction files: `AGENTS.md` and `GEMINI.md`.
+
+This is a documentation and audit step, not permission to change the rules. The agent MUST:
+
+1. Re-inspect the final repository tree and the final `git diff` after implementation and tests.
+2. Update the `Current repository structure / implementation snapshot` section in **both** files with the verified final structure relevant to the project. Reflect new files, removed files, moved files, new routes/features/categories, and changed ownership. Never list a planned file as if it exists.
+3. Update the `Implementation update log` in **both** files with the date, task summary, paths changed, validation commands and actual PASS/FAIL/NOT RUN outcomes, plus any unresolved blockers.
+4. If no structural change occurred, explicitly record `No architecture or directory-structure change in this task`; do not invent a change just to make the update look substantial.
+5. Keep the full approved architecture and rules intact. Do not replace, shorten, rewrite, weaken, or delete mandatory rules as part of routine updates.
+6. Keep both files consistent. `AGENTS.md` remains the canonical detailed contract; `GEMINI.md` may summarize and point to it, but must include the verified current structure snapshot and implementation log as required.
+7. If the task is interrupted before implementation or validation is complete, record it as incomplete and identify what was not run. Never mark unfinished work as completed.
+8. If the agent cannot safely update either instruction file, it MUST say so in the final response and identify which file was not updated and why. It must not claim compliance.
+
+The required completion report in Section 20 must state that both instruction files were updated and identify the sections changed. If they were not updated, state that explicitly as a failure/blocker.
+
+### Current repository structure / implementation snapshot
+
+- **Verification date:** 2026-11-09
+- **Verification status:** Verified against active working repository
+- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3
+- **Active Routes:**
+  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, editorial duo, and 3 product carousels)
+  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Dedicated luxury split-screen Product Detail Page with image gallery, sticky purchase panel, fit finder, size guide, lightbox, editorial narrative, style-it-with, and related suggestions)
+
+```text
+deynold-danny-ecommerce/
+├── public/
+│   ├── hero-banner.jpg
+│   ├── hero-banner.png
+│   ├── logo.png
+│   └── images/
+│       ├── cady-trousers-detail.jpg
+│       ├── cady-trousers-model-3.jpg
+│       ├── cady-trousers-model-4.jpg
+│       ├── cady-trousers-model.jpg
+│       ├── cady-trousers-product.jpg
+│       ├── cady-trousers-swatch.jpg
+│       ├── cady-vest.jpg
+│       ├── nappa-flat.jpg
+│       ├── suggest-pants-1.jpg
+│       ├── suggest-pants-2.jpg
+│       ├── suggest-pants-3.jpg
+│       ├── suggest-pants-4.jpg
+│       ├── autumn-product-[1..5].jpg
+│       ├── category-[abiti,accessori,camicie,cappotti,felpe,giubbini,maglieria,pantaloni,scarpe].jpg
+│       ├── mastery-men-[1..5].jpg & hover
+│       ├── news-men-[1..5].jpg & hover
+│       ├── style-space-[1..5].jpg & hover
+│       └── thread-mastery-[1..5].jpg
+├── src/
+│   ├── components/
+│   │   └── layout/
+│   │       ├── Header.astro
+│   │       └── Footer.astro
+│   ├── config/
+│   │   ├── ecommerce.config.ts
+│   │   ├── navigation.config.ts
+│   │   ├── routes.ts
+│   │   └── site.config.ts
+│   ├── features/
+│   │   ├── home/
+│   │   │   ├── components/
+│   │   │   │   ├── HeroBanner.astro
+│   │   │   │   ├── CategoryGrid.astro
+│   │   │   │   └── EditorialDuo.astro
+│   │   │   └── data/
+│   │   │       └── home-content.ts
+│   │   ├── catalog/
+│   │   │   ├── components/
+│   │   │   │   ├── ProductCard.tsx
+│   │   │   │   ├── ProductCarousel.tsx
+│   │   │   │   ├── ProductColorSelector.tsx
+│   │   │   │   ├── ProductSizeSelector.tsx
+│   │   │   │   ├── ProductSizingActions.tsx
+│   │   │   │   ├── ProductPurchasePanel.tsx
+│   │   │   │   ├── ProductGallery.tsx
+│   │   │   │   ├── ProductLightbox.tsx
+│   │   │   │   ├── ProductDetailExperience.tsx
+│   │   │   │   ├── ProductDescription.astro
+│   │   │   │   ├── ProductDetailsAccordion.astro
+│   │   │   │   ├── StyleItWith.astro
+│   │   │   │   └── RelatedProducts.astro
+│   │   │   ├── fit-finder/
+│   │   │   │   └── FitFinderDialog.tsx
+│   │   │   ├── size-guide/
+│   │   │   │   └── SizeGuideDialog.tsx
+│   │   │   ├── types/
+│   │   │   │   ├── product.types.ts
+│   │   │   │   ├── size-guide.types.ts
+│   │   │   │   └── fit-recommendation.types.ts
+│   │   │   ├── utils/
+│   │   │   │   └── product.utils.ts
+│   │   │   └── data/
+│   │   │       └── products.ts
+│   │   ├── cart/
+│   │   │   ├── components/
+│   │   │   │   ├── CartDrawer.tsx
+│   │   │   │   └── CartTrigger.tsx
+│   │   │   ├── store/
+│   │   │   │   └── cart.store.ts
+│   │   │   └── types/
+│   │   │       └── cart.types.ts
+│   │   └── wishlist/
+│   │       ├── store/
+│   │       │   └── wishlist.store.ts
+│   │       └── types/
+│   │           └── wishlist.types.ts
+│   ├── layouts/
+│   │   ├── BaseLayout.astro
+│   │   ├── StorefrontLayout.astro
+│   │   └── Layout.astro
+│   ├── pages/
+│   │   ├── index.astro
+│   │   └── products/
+│   │       └── [slug].astro
+│   ├── styles/
+│   │   ├── global.css
+│   │   ├── variables.css
+│   │   ├── typography.css
+│   │   └── luxury-custom.css
+│   └── env.d.ts
+├── astro.config.mjs
+├── tailwind.config.mjs
+├── tsconfig.json
+├── package.json
+├── package-lock.json
+├── AGENTS.md
+└── GEMINI.md
+```
+
+### Implementation update log
+
+- **2026-11-09 — Architectural Restructuring to Feature Boundaries**:
+  - **Status:** COMPLETE
+  - **Summary:** Restructured existing components, pages, state, styles, and configurations into the canonical architecture defined in `AGENTS.md`. Established `src/features/{home,catalog,cart,wishlist}`, `src/components/layout/`, `src/config/`, `src/layouts/{BaseLayout,StorefrontLayout}.astro`, and modular CSS tokens.
+  - **Files Moved / Created:** Relocated components from `src/components/{astro,react}/` into appropriate feature directories; created config files in `src/config/`.
+  - **Validation:** `npx astro check` (PASS: 0 errors), `npm run build` (PASS).
+  - **Blockers:** None.
+
+- **2026-11-09 — Premium Product Detail Page Implementation**:
+  - **Status:** COMPLETE
+  - **Summary:** Implemented the luxury split-screen product detail page (`/products/[slug]`) adhering to Section 8.1 of `AGENTS.md`. Built React interactive island (`ProductDetailExperience.tsx`), 2-column desktop / carousel mobile gallery (`ProductGallery.tsx`), fullscreen lightbox (`ProductLightbox.tsx`), sticky purchase panel (`ProductPurchasePanel.tsx`), color swatches (`ProductColorSelector.tsx`), size pills (`ProductSizeSelector.tsx`), sizing utilities (`ProductSizingActions.tsx`), `FitFinderDialog.tsx`, `SizeGuideDialog.tsx`, and sibling Astro sections (`ProductDescription.astro`, `ProductDetailsAccordion.astro`, `StyleItWith.astro`, `RelatedProducts.astro`). Connected `addToCart` and `toggleWishlist` via Nano Stores.
+  - **Files Added:**
+    - `src/pages/products/[slug].astro`
+    - `src/features/catalog/components/{ProductDetailExperience.tsx, ProductGallery.tsx, ProductLightbox.tsx, ProductPurchasePanel.tsx, ProductColorSelector.tsx, ProductSizeSelector.tsx, ProductSizingActions.tsx, ProductDescription.astro, ProductDetailsAccordion.astro, StyleItWith.astro, RelatedProducts.astro}`
+    - `src/features/catalog/fit-finder/FitFinderDialog.tsx`
+    - `src/features/catalog/size-guide/SizeGuideDialog.tsx`
+    - `src/features/catalog/types/{product.types.ts, size-guide.types.ts, fit-recommendation.types.ts}`
+    - `src/features/catalog/utils/product.utils.ts`
+    - `src/features/wishlist/{store/wishlist.store.ts, types/wishlist.types.ts}`
+    - Extracted 12 high-resolution imagery assets in `public/images/`.
+  - **Files Modified:**
+    - `src/features/catalog/data/products.ts` (added complete `cadyTrousersProduct` reference and slugs/galleries for all 15 catalog items)
+    - `src/features/catalog/components/ProductCard.tsx` (linked cards to `/products/[slug]`)
+    - `src/features/catalog/components/ProductCarousel.tsx` (cleaned unused props)
+    - `src/components/layout/Footer.astro` (fixed deprecated submit handler)
+  - **Validation:**
+    - `npx astro check`: PASS (47 files checked: 0 errors, 0 warnings, 0 hints)
+    - `npm run build`: PASS (17 static HTML pages generated cleanly in 4.91s)
+  - **Blockers:** None.
+
+**The agent is expected to extend this architecture deliberately, not drift away from it.**

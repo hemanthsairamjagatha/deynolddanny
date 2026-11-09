@@ -1,0 +1,22 @@
+---
+// src/layouts/StorefrontLayout.astro
+import BaseLayout from './BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import CartDrawer from '../features/cart/components/CartDrawer';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <Header />
+  <slot />
+  <Footer />
+  <CartDrawer client:load />
+</BaseLayout>
+

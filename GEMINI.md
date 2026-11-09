@@ -1,0 +1,369 @@
+# GEMINI.md --- Gemini Agent Operating Rules
+
+> **Project:** `deynold-danny-ecommerce`\
+> **Applies to:** Gemini, Gemini CLI, and any coding agent explicitly
+> instructed to follow this file.\
+> **Canonical engineering contract:** Root `AGENTS.md`.
+
+## 1. Mandatory reading before every task
+
+Before planning, inspecting implementation details, or changing
+anything, you MUST:
+
+1.  Read the **entire** root `AGENTS.md`.
+2.  Read the **entire** root `GEMINI.md`.
+3.  Treat `AGENTS.md` as the canonical source for architecture, approved
+    dependencies, security, coding conventions, testing, and change
+    control. This file supplements that contract with the Gemini
+    workflow and mandatory documentation-update procedure.
+4.  Inspect the actual repository, current branch, working tree, and
+    `git status`. Never assume a previously described file or folder
+    still exists.
+5.  Read the relevant source files, package manifest, lockfile,
+    framework configuration, environment declarations, and existing
+    tests before relying on their behavior.
+
+Do not begin implementation until both instruction files have been read.
+Conversation history, previous agent summaries, memory, and proposed
+plans are not substitutes for inspecting the current repository.
+
+## 2. Instruction precedence and conflicts
+
+-   Follow both instruction files. Do not silently ignore a rule because
+    it is inconvenient.
+-   `AGENTS.md` is the canonical architecture and engineering contract.
+    `GEMINI.md` defines the execution workflow and documentation
+    synchronization requirements.
+-   If the files contain a direct contradiction, stop and report the
+    exact conflicting sections before making the affected change. Do not
+    silently choose one.
+-   If a user request appears to require changing an approved
+    architectural decision, identify the impact and follow the approval
+    / ADR process in `AGENTS.md`.
+-   Never invent architecture decisions, endpoints, API contracts, data
+    models, package capabilities, environment variables, business rules,
+    or provider guarantees.
+
+## 3. Architecture guardrails
+
+Follow the detailed rules in `AGENTS.md`. Key non-negotiable boundaries:
+
+-   Preserve the approved Astro + React + TypeScript + existing
+    Tailwind + Nano Stores frontend and the separately owned Hono
+    backend.
+-   Use Astro for routing, server-rendered/static composition, and
+    SEO-oriented content. Use React islands for genuine
+    browser-interactive experiences and stateful UI.
+-   Keep Astro and React component boundaries valid. Do not pass Astro
+    components as React children or hydrate static content without a
+    demonstrated need.
+-   Keep business-critical truth on the backend: prices, variants,
+    inventory, discounts, orders, payment verification, authorization,
+    and persistent customer data.
+-   Follow the approved frontend API / BFF approach. Inspect the real
+    Hono routes or backend contract before implementing or changing API
+    calls.
+-   Keep feature-specific code in its owning feature. Put components in
+    shared locations only when they are genuinely reusable.
+-   Respect dependency direction, browser/server separation, session
+    security, validation, accessibility, caching, SEO, consent, and
+    observability rules in `AGENTS.md`.
+-   Preserve the existing design, responsive behavior, content, and
+    interactions unless the user explicitly requests a change.
+-   Do not migrate package managers, replace lockfiles, upgrade major
+    dependencies, or change framework versions without explicit
+    approval.
+-   Do not create speculative abstractions, duplicate implementations,
+    placeholder files, or empty folders.
+
+## 4. Repository-first implementation workflow
+
+For every coding task:
+
+1.  **Understand the request.** Identify the requested behavior and the
+    smallest complete scope.
+2.  **Inspect before editing.** Review the actual files, established
+    patterns, related features, API clients, stores, schemas, utilities,
+    tests, and current Git changes.
+3.  **Identify ownership.** Determine which existing feature or layer
+    owns the responsibility. Do not create a new folder or category
+    merely because it seems tidy.
+4.  **Plan minimally.** Identify likely files, dependencies, risks, and
+    missing contracts. Ask for clarification before proceeding if a
+    material decision cannot safely be inferred.
+5.  **Implement incrementally.** Make the smallest complete change.
+    Preserve unrelated user work. Avoid broad rewrites and unrelated
+    cleanup.
+6.  **Validate.** Run relevant type checks, linting, tests, builds,
+    and/or browser checks that are available and appropriate.
+7.  **Review.** Inspect the final diff and status for accidental
+    changes, security issues, dead code, broken imports, regressions,
+    and out-of-scope edits.
+8.  **Synchronize documentation.** Update both root instruction files as
+    described in Section 8 before reporting completion.
+
+## 5. Adding files, features, routes, and categories
+
+Before adding a file, feature, route, or product category:
+
+-   Search for an existing implementation, data model, reusable
+    component, or established pattern.
+-   Identify the owning feature and correct layer under `AGENTS.md`.
+-   Check dependency direction and Astro / server / browser boundaries.
+-   For routes, make rendering, caching, authentication, authorization,
+    SEO, and `noindex` decisions based on the actual route purpose.
+-   Confirm the backend/API contract exists; never fabricate it.
+-   Add only files needed for a real responsibility. Avoid placeholder
+    files and speculative scaffolding.
+-   Treat a new product category or collection as data/configuration
+    unless distinct code behavior is genuinely required. Do not
+    automatically create a source feature folder for every category.
+-   If the proposed change alters an approved architectural decision,
+    stop and follow the ADR / approval process in `AGENTS.md`.
+
+## 6. Security and data integrity
+
+-   Never store session tokens in `localStorage`, query strings, or
+    URLs. Follow the secure cookie/session model in `AGENTS.md`.
+-   Never trust client-provided prices, stock, discounts, roles, order
+    totals, payment status, or resource ownership.
+-   Do not weaken authorization, validation, CSRF protections, security
+    headers, or payment verification to make a flow work.
+-   Validate untrusted input at the correct boundary using established
+    project schemas and patterns.
+-   Use safe redirect / return URL handling. Do not expose secrets in
+    logs, browser code, or committed configuration.
+-   Never invent credentials, secrets, production values, or
+    personal/customer data.
+
+## 7. Testing and validation
+
+-   Add or update tests for changed behavior when appropriate and
+    consistent with the existing test strategy.
+-   Prefer the project's installed tools and conventions. Do not add a
+    new test framework without approval.
+-   Run the narrowest relevant checks first, then broader checks when
+    practical.
+-   Report exact commands and observed outcomes as `PASS`, `FAIL`, or
+    `NOT RUN`.
+-   If a check cannot run, state why. Never describe an unrun check as
+    passed.
+-   Distinguish pre-existing failures from failures introduced by the
+    current task.
+
+## 8. Mandatory end-of-task update --- BOTH files
+
+At the end of **every task that generates or changes application code,
+configuration, routes, tests, assets, dependencies, or project
+structure**, you MUST update both root files:
+
+-   `AGENTS.md`
+-   `GEMINI.md`
+
+This requirement applies even when the task makes **no** architecture or
+directory-structure change. The purpose is to keep the actual
+implementation record accurate, not to rewrite standing rules.
+
+### Required update procedure
+
+1.  Complete the implementation and run the relevant validation.
+2.  Inspect the final repository tree, `git diff`, and `git status`.
+3.  Refresh the **Current repository structure / implementation
+    snapshot** in both files using the real working repository. Record
+    only paths and structures that actually exist. Include relevant
+    additions, modifications, removals, moves, routes, feature modules,
+    and category/data changes.
+4.  Append a factual entry to the **Implementation update log** in both
+    files. Every entry must include:
+    -   Date of the task.
+    -   Short task summary and completion state: `COMPLETE` or
+        `INCOMPLETE`.
+    -   Files added, modified, deleted, or moved.
+    -   Structural change summary. If there was none, write exactly:
+        `No architecture or directory-structure change in this task`.
+    -   Validation commands and observed `PASS`, `FAIL`, or `NOT RUN`
+        results.
+    -   Outstanding blockers, known failures, and unverified items.
+5.  Keep the snapshot and corresponding task record synchronized in both
+    files. `AGENTS.md` remains the detailed canonical contract;
+    `GEMINI.md` may summarize standing rules but must contain the same
+    current implementation snapshot and task record.
+6.  Preserve all standing rules. Do not shorten, replace, weaken, or
+    delete architecture/security requirements during routine updates.
+7.  Do not erase previous implementation log entries. Append a new
+    entry. Correct an earlier entry only when it is factually wrong, and
+    explain the correction.
+8.  If the task is interrupted or validation is incomplete, record
+    `INCOMPLETE` and list what remains and which checks were not run.
+9.  If either file cannot be updated, do not claim compliance. State
+    exactly which file was not updated and why.
+
+### Current repository structure / implementation snapshot
+
+- **Verification date:** 2026-11-09
+- **Verification status:** Verified against active working repository
+- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3
+- **Active Routes:**
+  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, editorial duo, and 3 product carousels)
+  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Dedicated luxury split-screen Product Detail Page with image gallery, sticky purchase panel, fit finder, size guide, lightbox, editorial narrative, style-it-with, and related suggestions)
+
+```text
+deynold-danny-ecommerce/
+├── public/
+│   ├── hero-banner.jpg
+│   ├── hero-banner.png
+│   ├── logo.png
+│   └── images/
+│       ├── cady-trousers-detail.jpg
+│       ├── cady-trousers-model-3.jpg
+│       ├── cady-trousers-model-4.jpg
+│       ├── cady-trousers-model.jpg
+│       ├── cady-trousers-product.jpg
+│       ├── cady-trousers-swatch.jpg
+│       ├── cady-vest.jpg
+│       ├── nappa-flat.jpg
+│       ├── suggest-pants-1.jpg
+│       ├── suggest-pants-2.jpg
+│       ├── suggest-pants-3.jpg
+│       ├── suggest-pants-4.jpg
+│       ├── autumn-product-[1..5].jpg
+│       ├── category-[abiti,accessori,camicie,cappotti,felpe,giubbini,maglieria,pantaloni,scarpe].jpg
+│       ├── mastery-men-[1..5].jpg & hover
+│       ├── news-men-[1..5].jpg & hover
+│       ├── style-space-[1..5].jpg & hover
+│       └── thread-mastery-[1..5].jpg
+├── src/
+│   ├── components/
+│   │   └── layout/
+│   │       ├── Header.astro
+│   │       └── Footer.astro
+│   ├── config/
+│   │   ├── ecommerce.config.ts
+│   │   ├── navigation.config.ts
+│   │   ├── routes.ts
+│   │   └── site.config.ts
+│   ├── features/
+│   │   ├── home/
+│   │   │   ├── components/
+│   │   │   │   ├── HeroBanner.astro
+│   │   │   │   ├── CategoryGrid.astro
+│   │   │   │   └── EditorialDuo.astro
+│   │   │   └── data/
+│   │   │       └── home-content.ts
+│   │   ├── catalog/
+│   │   │   ├── components/
+│   │   │   │   ├── ProductCard.tsx
+│   │   │   │   ├── ProductCarousel.tsx
+│   │   │   │   ├── ProductColorSelector.tsx
+│   │   │   │   ├── ProductSizeSelector.tsx
+│   │   │   │   ├── ProductSizingActions.tsx
+│   │   │   │   ├── ProductPurchasePanel.tsx
+│   │   │   │   ├── ProductGallery.tsx
+│   │   │   │   ├── ProductLightbox.tsx
+│   │   │   │   ├── ProductDetailExperience.tsx
+│   │   │   │   ├── ProductDescription.astro
+│   │   │   │   ├── ProductDetailsAccordion.astro
+│   │   │   │   ├── StyleItWith.astro
+│   │   │   │   └── RelatedProducts.astro
+│   │   │   ├── fit-finder/
+│   │   │   │   └── FitFinderDialog.tsx
+│   │   │   ├── size-guide/
+│   │   │   │   └── SizeGuideDialog.tsx
+│   │   │   ├── types/
+│   │   │   │   ├── product.types.ts
+│   │   │   │   ├── size-guide.types.ts
+│   │   │   │   └── fit-recommendation.types.ts
+│   │   │   ├── utils/
+│   │   │   │   └── product.utils.ts
+│   │   │   └── data/
+│   │   │       └── products.ts
+│   │   ├── cart/
+│   │   │   ├── components/
+│   │   │   │   ├── CartDrawer.tsx
+│   │   │   │   └── CartTrigger.tsx
+│   │   │   ├── store/
+│   │   │   │   └── cart.store.ts
+│   │   │   └── types/
+│   │   │       └── cart.types.ts
+│   │   └── wishlist/
+│   │       ├── store/
+│   │       │   └── wishlist.store.ts
+│   │       └── types/
+│   │           └── wishlist.types.ts
+│   ├── layouts/
+│   │   ├── BaseLayout.astro
+│   │   ├── StorefrontLayout.astro
+│   │   └── Layout.astro
+│   ├── pages/
+│   │   ├── index.astro
+│   │   └── products/
+│   │       └── [slug].astro
+│   ├── styles/
+│   │   ├── global.css
+│   │   ├── variables.css
+│   │   ├── typography.css
+│   │   └── luxury-custom.css
+│   └── env.d.ts
+├── astro.config.mjs
+├── tailwind.config.mjs
+├── tsconfig.json
+├── package.json
+├── package-lock.json
+├── AGENTS.md
+└── GEMINI.md
+```
+
+### Implementation update log
+
+- **2026-11-09 — Architectural Restructuring to Feature Boundaries**:
+  - **Status:** COMPLETE
+  - **Summary:** Restructured existing components, pages, state, styles, and configurations into the canonical architecture defined in `AGENTS.md`. Established `src/features/{home,catalog,cart,wishlist}`, `src/components/layout/`, `src/config/`, `src/layouts/{BaseLayout,StorefrontLayout}.astro`, and modular CSS tokens.
+  - **Files Moved / Created:** Relocated components from `src/components/{astro,react}/` into appropriate feature directories; created config files in `src/config/`.
+  - **Validation:** `npx astro check` (PASS: 0 errors), `npm run build` (PASS).
+  - **Blockers:** None.
+
+- **2026-11-09 — Premium Product Detail Page Implementation**:
+  - **Status:** COMPLETE
+  - **Summary:** Implemented the luxury split-screen product detail page (`/products/[slug]`) adhering to Section 8.1 of `AGENTS.md`. Built React interactive island (`ProductDetailExperience.tsx`), 2-column desktop / carousel mobile gallery (`ProductGallery.tsx`), fullscreen lightbox (`ProductLightbox.tsx`), sticky purchase panel (`ProductPurchasePanel.tsx`), color swatches (`ProductColorSelector.tsx`), size pills (`ProductSizeSelector.tsx`), sizing utilities (`ProductSizingActions.tsx`), `FitFinderDialog.tsx`, `SizeGuideDialog.tsx`, and sibling Astro sections (`ProductDescription.astro`, `ProductDetailsAccordion.astro`, `StyleItWith.astro`, `RelatedProducts.astro`). Connected `addToCart` and `toggleWishlist` via Nano Stores.
+  - **Files Added:**
+    - `src/pages/products/[slug].astro`
+    - `src/features/catalog/components/{ProductDetailExperience.tsx, ProductGallery.tsx, ProductLightbox.tsx, ProductPurchasePanel.tsx, ProductColorSelector.tsx, ProductSizeSelector.tsx, ProductSizingActions.tsx, ProductDescription.astro, ProductDetailsAccordion.astro, StyleItWith.astro, RelatedProducts.astro}`
+    - `src/features/catalog/fit-finder/FitFinderDialog.tsx`
+    - `src/features/catalog/size-guide/SizeGuideDialog.tsx`
+    - `src/features/catalog/types/{product.types.ts, size-guide.types.ts, fit-recommendation.types.ts}`
+    - `src/features/catalog/utils/product.utils.ts`
+    - `src/features/wishlist/{store/wishlist.store.ts, types/wishlist.types.ts}`
+    - Extracted 12 high-resolution imagery assets in `public/images/`.
+  - **Files Modified:**
+    - `src/features/catalog/data/products.ts` (added complete `cadyTrousersProduct` reference and slugs/galleries for all 15 catalog items)
+    - `src/features/catalog/components/ProductCard.tsx` (linked cards to `/products/[slug]`)
+    - `src/features/catalog/components/ProductCarousel.tsx` (cleaned unused props)
+    - `src/components/layout/Footer.astro` (fixed deprecated submit handler)
+  - **Validation:**
+    - `npx astro check`: PASS (47 files checked: 0 errors, 0 warnings, 0 hints)
+    - `npm run build`: PASS (17 static HTML pages generated cleanly in 4.91s)
+  - **Blockers:** None.
+
+## 9. Required final response
+
+After each coding task, provide a concise completion report that states:
+
+-   What was implemented and what was intentionally left unchanged.
+-   Files added, modified, deleted, or moved.
+-   Validation commands and actual `PASS` / `FAIL` / `NOT RUN` results.
+-   Known issues, blockers, and remaining work.
+-   `AGENTS.md` updated: **YES / NO**.
+-   `GEMINI.md` updated: **YES / NO**.
+-   Structure snapshot updated in both files: **YES / NO**.
+-   Implementation log appended in both files: **YES / NO**.
+
+Never say both files were updated unless you verified that they were.
+Never claim a task is complete or architecture-compliant without
+evidence from the actual repository and relevant checks.
+
+------------------------------------------------------------------------
+
+**Core rule:** Read both instruction files first. Follow the approved
+architecture. Inspect before changing. Implement only what is needed.
+Validate honestly. Update both instruction files after every coding
+task.

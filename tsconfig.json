@@ -5,7 +5,12 @@
     "jsxImportSource": "react",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@features/*": ["src/features/*"],
+      "@layouts/*": ["src/layouts/*"],
+      "@styles/*": ["src/styles/*"],
+      "@config/*": ["src/config/*"]
     }
   },
   "exclude": ["dist", "node_modules"]

@@ -1,0 +1,103 @@
+---
+// src/pages/products/[slug].astro
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+import { allProducts, getProductBySlug } from '../../features/catalog/data/products';
+import { getProductSlug } from '../../features/catalog/utils/product.utils';
+import { ProductDetailExperience } from '../../features/catalog/components/ProductDetailExperience';
+import ProductDescription from '../../features/catalog/components/ProductDescription.astro';
+import ProductDetailsAccordion from '../../features/catalog/components/ProductDetailsAccordion.astro';
+import StyleItWith from '../../features/catalog/components/StyleItWith.astro';
+import RelatedProducts from '../../features/catalog/components/RelatedProducts.astro';
+import type { ProductCardData } from '../../features/catalog/types/product.types';
+
+export async function getStaticPaths() {
+  return allProducts.map((product) => {
+    const slug = getProductSlug(product);
+    return {
+      params: { slug },
+      props: { product }
+    };
+  });
+}
+
+interface Props {
+  product?: ProductCardData;
+}
+
+const { slug } = Astro.params;
+const product = Astro.props.product || (slug ? getProductBySlug(slug) : undefined);
+
+if (!product) {
+  return Astro.redirect('/404');
+}
+
+const pageTitle = `${product.title} | DEYNOLD DANNY`;
+const pageDescription = product.description || `Explore ${product.title} in the DEYNOLD DANNY luxury collection.`;
+
+// JSON-LD structured data
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": product.title,
+  "image": product.images && product.images.length > 0 ? product.images : [product.defaultImg],
+  "description": pageDescription,
+  "sku": product.sku || product.id,
+  "brand": {
+    "@type": "Brand",
+    "name": "DEYNOLD DANNY"
+  },
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": product.price.includes('€') ? 'EUR' : 'INR',
+    "price": product.priceNum,
+    "availability": "https://schema.org/InStock",
+    "itemCondition": "https://schema.org/NewCondition"
+  }
+};
+---
+
+<StorefrontLayout title={pageTitle} description={pageDescription}>
+  {/* SEO JSON-LD */}
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <main class="min-h-screen bg-white">
+    {/* Subtle Breadcrumb Navigation */}
+    <nav class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2" aria-label="Breadcrumb">
+      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
+        <li>
+          <a href="/" class="hover:text-black transition-colors">Home</a>
+        </li>
+        <li class="select-none">/</li>
+        <li>
+          <a href="/#mastery" class="hover:text-black transition-colors">
+            {product.category || 'Collection'}
+          </a>
+        </li>
+        <li class="select-none">/</li>
+        <li class="text-neutral-900 font-medium truncate max-w-[200px] sm:max-w-none" aria-current="page">
+          {product.title}
+        </li>
+      </ol>
+    </nav>
+
+    {/* Primary Interactive Island: Split-screen Gallery + Sticky Purchase Panel */}
+    <ProductDetailExperience client:load product={product} />
+
+    {/* Section 1: Editorial Craft & Fabric Narrative */}
+    <ProductDescription product={product} />
+
+    {/* Section 2: Technical Specifications & Measurements */}
+    <ProductDetailsAccordion product={product} />
+
+    {/* Section 3: Style It With Merchandising */}
+    {product.styleItWith && product.styleItWith.length > 0 && (
+      <StyleItWith items={product.styleItWith} />
+    )}
+
+    {/* Section 4: Related Products / Suggestions */}
+    {product.relatedProducts && product.relatedProducts.length > 0 && (
+      <RelatedProducts items={product.relatedProducts} title="More Suggestions" />
+    )}
+  </main>
+</StorefrontLayout>
+
