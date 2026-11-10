@@ -125,12 +125,9 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
           </button>
         </div>
 
-        {/* Price with VAT inc. */}
+        {/* Price */}
         <div className="flex items-baseline gap-2 text-sm tracking-wide text-neutral-900 -mt-3">
           <span className="font-normal">{displayPrice}</span>
-          <span className="text-[11px] uppercase tracking-wider text-neutral-500 font-mono">
-            VAT Inc.
-          </span>
         </div>
 
         {/* Color Selection */}

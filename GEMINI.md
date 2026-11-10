@@ -585,6 +585,14 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 7.33s).
   - **Blockers:** None.
 
+- **2026-11-10 — Removal of 'VAT Inc.' Price Label**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the `span.text-[11px].uppercase.tracking-wider.text-neutral-500.font-mono` ("VAT Inc.") element adjacent to the price display in `src/features/catalog/components/ProductPurchasePanel.tsx` as requested in user-provided screenshot (`media_1794313165624_a5097034.png`).
+  - **Files Modified:** `src/features/catalog/components/ProductPurchasePanel.tsx`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 7.06s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:
