@@ -53,7 +53,7 @@ export const FitFinderDialog: React.FC<FitFinderDialogProps> = ({
     let baseIndex = 1; // default to 2nd size (e.g. IT 40 or M)
 
     if (availableSizes.length >= 6) {
-      // Italian trouser scale: 38, 40, 42, 44, 46, 48
+      // Sizing scale: 38, 40, 42, 44, 46, 48
       if (weightKg < 52) baseIndex = 0;
       else if (weightKg < 58) baseIndex = 1;
       else if (weightKg < 66) baseIndex = 2;

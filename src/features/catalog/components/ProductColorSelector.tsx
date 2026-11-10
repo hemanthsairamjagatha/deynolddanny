@@ -17,12 +17,9 @@ export const ProductColorSelector: React.FC<ProductColorSelectorProps> = ({
   const currentColor = colors[selectedIndex] || colors[0];
 
   return (
-    <div
-      className="w-full flex flex-col gap-3 ProductColorSelection__product-color-selection"
-      style={{ padding: '16px 0px' }}
-    >
+    <div className="space-y-3">
       {/* Color Name Label */}
-      <div className="text-[13px] leading-5 tracking-wide text-neutral-800">
+      <div className="text-[13px] tracking-wide text-neutral-800">
         <span>Color: </span>
         <span className="font-semibold text-neutral-950">{currentColor.name}</span>
       </div>

@@ -42,7 +42,7 @@ VALUES (
   'tailored-virgin-wool-suit',
   'DD-MS1-01',
   'Tailored Virgin Wool Suit',
-  'A masterpiece of sartorial craft. Cut from pure virgin wool with a structured shoulder and slim silhouette that defines modern Italian elegance.',
+  'A masterpiece of sartorial craft. Cut from pure virgin wool with a structured shoulder and slim silhouette that defines modern elegance. Made in India.',
   '100% Virgin Wool',
   'Dry clean only. Store on a wide-shouldered wooden hanger.',
   'Men',

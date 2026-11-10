@@ -25,7 +25,7 @@ export const cadyTrousersProduct: ProductCardData = {
   category: "Trousers",
   gender: "Women",
   description:
-    "Wide leg trousers in cady with an elasticated waist for refined comfort. Filo diamante adds a luminous and discreet accent, enhancing the design with natural sophistication. Made in Italy through sustainable processes.",
+    "Wide leg trousers in cady with an elasticated waist for refined comfort. Filo diamante adds a luminous and discreet accent, enhancing the design with natural sophistication. Made in India through sustainable processes.",
   colors: [
     {
       name: "Butter",
@@ -52,14 +52,14 @@ export const cadyTrousersProduct: ProductCardData = {
     }
   ],
   sizeAndFit: [
-    "Model is 178 cm / 5'10\" and is wearing Italian size 40.",
+    "Model is 178 cm / 5'10\" and is wearing size 40.",
     "Wide leg cut with tailored pressed creases along the front and back.",
     "Mid-rise fit with an elasticated gathered waistband for maximum refinement and ease.",
     "Inside leg length: 84 cm / 33.1 inches.",
     "Leg opening hem circumference: 56 cm / 22 inches."
   ],
   compositionAndCare: [
-    "Main fabric: 71% Triacetate, 29% Polyethylene Cady woven in Biella, Italy.",
+    "Main fabric: 71% Triacetate, 29% Polyethylene Cady. Made in India.",
     "Filo diamante micro-thread luminous detailing.",
     "Pocket lining: 100% Cupro with jacquard weave.",
     "Dry clean only in tetrachloroethene or hydrocarbons, mild treatment.",
@@ -146,14 +146,14 @@ export const masteryProducts: ProductCardData[] = [
     category: "Knitwear",
     gender: "Men",
     description:
-      "Spun from ultra-fine Mongolian inner fleece cashmere in the Italian Alps. Features a half-zip mock collar, English rib knit construction, and hand-stitched calfskin zip puller.",
+      "Spun from ultra-fine Mongolian inner fleece cashmere. Made in India with artisanal craftsmanship. Features a half-zip mock collar, English rib knit construction, and hand-stitched calfskin zip puller.",
     colors: [
       { name: "Natural Oatmeal", hex: "#E8E2D7", img: "/images/mastery-men-1.jpg" },
       { name: "Slate Blue", hex: "#4E6D82" },
       { name: "Midnight Navy", hex: "#1C2434" }
     ],
     sizeAndFit: [
-      "Model is 187 cm / 6'1\" and wears an Italian size 48.",
+      "Model is 187 cm / 6'1\" and wears size 48.",
       "Regular sartorial fit designed for layered or standalone elegance.",
       "Ribbed collar, cuffs, and hem retain elasticity and form."
     ],
@@ -195,7 +195,7 @@ export const masteryProducts: ProductCardData[] = [
       { name: "Charcoal Melange", hex: "#3A3A3C" }
     ],
     sizeAndFit: [
-      "Model is 188 cm / 6'2\" and wears an Italian size 50.",
+      "Model is 188 cm / 6'2\" and wears size 50.",
       "Tailored overcoat cut designed to layer over tailoring or fine knitwear."
     ],
     compositionAndCare: [
@@ -248,8 +248,8 @@ export const masteryProducts: ProductCardData[] = [
   },
   {
     id: "mastery-4",
-    slug: "hand-burnished-italian-calfskin-oxford-shoes",
-    title: "Hand-burnished Italian calfskin oxford shoes",
+    slug: "hand-burnished-artisanal-calfskin-oxford-shoes",
+    title: "Hand-burnished artisanal calfskin oxford shoes",
     price: "₹ 58,000.00",
     priceNum: 58000,
     badge: "NEW IN",
@@ -261,12 +261,12 @@ export const masteryProducts: ProductCardData[] = [
       "/images/mastery-men-4.jpg"
     ],
     sizes: ["40", "41", "42", "43", "44", "45"],
-    link: "/products/hand-burnished-italian-calfskin-oxford-shoes",
+    link: "/products/hand-burnished-artisanal-calfskin-oxford-shoes",
     sku: "SHOE881C300L220000054",
     category: "Footwear",
     gender: "Men",
     description:
-      "Handmade in the Marche region of Italy using full-grain French calfskin. Hand-patinated with natural waxes and constructed on a classic Goodyear welted channeled leather sole.",
+      "Handmade in India using premium full-grain French calfskin. Hand-patinated with natural waxes and constructed on a classic Goodyear welted channeled leather sole.",
     colors: [
       { name: "Castagno Brown", hex: "#4A2E1B", img: "/images/mastery-men-4.jpg" },
       { name: "Nero Assoluto", hex: "#1C1C1C" }
@@ -422,7 +422,7 @@ export const styleSpaceProducts: ProductCardData[] = [
       "Model is 185 cm / 6'1\" and wears size 48."
     ],
     compositionAndCare: [
-      "100% Pure Italian Cashmere."
+      "100% Pure Cashmere. Made in India."
     ],
     shippingAndReturns: [
       "Complimentary express delivery worldwide."
@@ -482,7 +482,7 @@ export const styleSpaceProducts: ProductCardData[] = [
     category: "Accessories",
     gender: "Unisex",
     description:
-      "Hand-polished Japanese titanium and Italian Mazzucchelli bio-acetate frames. Fitted with polarized Zeiss mineral glass lenses offering 100% UVA/UVB protection.",
+      "Hand-polished Japanese titanium and bio-acetate frames. Fitted with polarized Zeiss mineral glass lenses offering 100% UVA/UVB protection.",
     colors: [
       { name: "Havana Amber", hex: "#754C24", img: "/images/style-space-5.jpg" }
     ],
@@ -519,7 +519,7 @@ export const newsProducts: ProductCardData[] = [
     category: "Outerwear",
     gender: "Men",
     description:
-      "Velvety goat suede tanned with natural tannins in Tuscany. Features two-way brushed palladium zippers, silk-cupro lining, and snap cuffs.",
+      "Velvety goat suede tanned with natural tannins. Made in India. Features two-way brushed palladium zippers, silk-cupro lining, and snap cuffs.",
     colors: [
       { name: "Cognac Amber", hex: "#8A4F2A", img: "/images/news-men-1.jpg" }
     ],
@@ -527,7 +527,7 @@ export const newsProducts: ProductCardData[] = [
       "Model is 187 cm / 6'1\" and wears size 48."
     ],
     compositionAndCare: [
-      "100% Italian Kid Suede."
+      "100% Premium Kid Suede. Made in India."
     ],
     shippingAndReturns: [
       "Complimentary white-glove delivery worldwide."
@@ -569,8 +569,8 @@ export const newsProducts: ProductCardData[] = [
   },
   {
     id: "news-3",
-    slug: "deconstructed-italian-wool-silk-evening-blazer",
-    title: "Deconstructed Italian wool-silk evening blazer",
+    slug: "deconstructed-tailored-wool-silk-evening-blazer",
+    title: "Deconstructed tailored wool-silk evening blazer",
     price: "₹ 145,000.00",
     priceNum: 145000,
     badge: "NEW IN",
@@ -582,12 +582,12 @@ export const newsProducts: ProductCardData[] = [
       "/images/news-men-3.jpg"
     ],
     sizes: ["46", "48", "50", "52", "54"],
-    link: "/products/deconstructed-italian-wool-silk-evening-blazer",
+    link: "/products/deconstructed-tailored-wool-silk-evening-blazer",
     sku: "BLZ890W200S110000049",
     category: "Tailoring",
     gender: "Men",
     description:
-      "Spun from a decadent blend of Super 150s virgin wool and mulberry silk. Neapolitan soft spalla camicia shoulder construction with mother-of-pearl buttons.",
+      "Spun from a decadent blend of Super 150s virgin wool and mulberry silk. Made in India with soft natural shoulder construction and mother-of-pearl buttons.",
     colors: [
       { name: "Midnight Blue", hex: "#162035", img: "/images/news-men-3.jpg" }
     ],

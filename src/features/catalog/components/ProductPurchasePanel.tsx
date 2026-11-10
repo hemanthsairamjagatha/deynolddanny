@@ -98,7 +98,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
     <div className="w-full max-w-[396.93px] text-neutral-900">
       {/* Upper purchase box matching ProductDetailDescription with exact 40px 20px 24px 24px padding */}
       <div
-        className="w-full flex flex-col pt-[40px] pr-[20px] pb-[24px] pl-[24px]"
+        className="w-full flex flex-col space-y-5 pt-[40px] pr-[20px] pb-[24px] pl-[24px]"
         style={{ padding: '40px 20px 24px 24px' }}
       >
         {/* Heading Container matching ProductDetailDescription__heading with exact 0px 0px 16px padding */}
@@ -136,7 +136,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
           </div>
         </div>
 
-        {/* Color Selection with exact 16px 0px padding */}
+        {/* Color Selection */}
         <ProductColorSelector
           colors={colors}
           selectedIndex={selectedColorIndex}
@@ -144,23 +144,19 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
         />
 
         {/* Sizing Utilities */}
-        <div className="pt-2 pb-3">
-          <ProductSizingActions
-            tag={product.tag}
-            onOpenFitFinder={onOpenFitFinder}
-            onOpenSizeGuide={onOpenSizeGuide}
-          />
-        </div>
+        <ProductSizingActions
+          tag={product.tag}
+          onOpenFitFinder={onOpenFitFinder}
+          onOpenSizeGuide={onOpenSizeGuide}
+        />
 
         {/* Sizing Dropdown / Pill selector */}
-        <div className="pb-3">
-          <ProductSizeSelector
-            sizes={product.sizes}
-            selectedSize={selectedSize}
-            onSelectSize={handleSelectSize}
-            hasError={sizeError}
-          />
-        </div>
+        <ProductSizeSelector
+          sizes={product.sizes}
+          selectedSize={selectedSize}
+          onSelectSize={handleSelectSize}
+          hasError={sizeError}
+        />
 
         {/* Add To Bag Primary CTA */}
         <button
@@ -192,7 +188,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
         <div className="text-xs leading-relaxed text-neutral-700 space-y-3">
           <p>
             {product.description ||
-              'Wide leg trousers in cady with an elasticated waist for refined comfort. Filo diamante adds a luminous and discreet accent, enhancing the design with natural sophistication. Made in Italy through sustainable processes.'}
+              'Wide leg trousers in cady with an elasticated waist for refined comfort. Filo diamante adds a luminous and discreet accent, enhancing the design with natural sophistication. Made in India through sustainable processes.'}
           </p>
 
           {product.sku && (
@@ -256,7 +252,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
                     </p>
                   ))
                 ) : (
-                  <p>Carefully crafted in Italy from premium natural fibers. Dry clean only.</p>
+                  <p>Carefully crafted in India from premium natural fibers. Dry clean only.</p>
                 )}
               </div>
             )}

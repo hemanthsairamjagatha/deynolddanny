@@ -1606,4 +1606,25 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 7.70s).
   - **Blockers:** None.
 
+- **2026-11-10 — Brand Provenance & Manufacturing Correction to 'Made in India'**:
+  - **Status:** COMPLETE
+  - **Summary:** Corrected all brand provenance, product descriptions, meta tags, and contact details from "Made in Italy / Italian brand" to "Made in India / Indian luxury brand":
+    - Updated `src/config/site.config.ts` title and description to `DEYNOLD DANNY | Luxury Fashion House & Artisanal Tailoring — Made in India`.
+    - In `src/features/catalog/components/ProductPurchasePanel.tsx`, updated product description default and care instructions to "Made in India through sustainable processes" and "Carefully crafted in India".
+    - In `src/features/catalog/data/products.ts`, updated all product descriptions, compositions, craftsmanship notes, model size labels, and slugs across the catalog to reflect "Made in India" and artisanal Indian luxury tailoring.
+    - In `src/pages/contact.astro`, updated Flagship Atelier to New Delhi, India with Indian concierge telephone assistance (`+91 11 4820 9000`).
+    - In `src/pages/cart.astro`, updated description to "Review your selected DEYNOLD DANNY luxury garments. Handcrafted in India."
+    - In `backend/migrations/0002_seed_data.sql`, updated description to "defines modern elegance. Made in India."
+  - **Files Modified:**
+    - `src/config/site.config.ts`
+    - `src/features/catalog/components/ProductPurchasePanel.tsx`
+    - `src/features/catalog/data/products.ts`
+    - `src/features/catalog/fit-finder/FitFinderDialog.tsx`
+    - `src/pages/cart.astro`
+    - `src/pages/contact.astro`
+    - `backend/migrations/0002_seed_data.sql`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 5.46s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
