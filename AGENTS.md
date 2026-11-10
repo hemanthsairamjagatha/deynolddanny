@@ -1637,4 +1637,17 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 5.49s).
   - **Blockers:** None.
 
+- **2026-11-10 — Add to Bag Cart-Block and Button Padding, Margin & Font Size Alignment**:
+  - **Status:** COMPLETE
+  - **Summary:** Aligned the Add to Bag CTA and its enclosing cart-block container to the exact box model and typography inspected in user-provided DevTools screenshots (`media_1794318987426_56a4f694.png`, `media_1794319015170_5abc56cc.png`, `media_1794319031018_42282817.png`):
+    - Wrapped the Add to Bag CTA inside `div.ProductDetailDescription__product-detail-description__cart-block` configured with `margin: 0px -16px`, `padding: 16px`, `width: calc(100% + 32px)`, and `backgroundColor: #FFFFFF` (`384.93 × 77.6`).
+    - Styled `button.Button__btn.ProductAddToCart__product-add-to-cart` with `height: 45.6px`, `padding: 13px 24px 9px 24px`, and `backgroundColor: #424242` (`352.93 × 45.6`).
+    - Styled `span.Button__btn__content.btn__content` with exact `text-[14px] leading-[22px] font-semibold text-white uppercase tracking-wider`, while preserving the project's native font style per user instruction.
+    - Sizing utilities and size selector remain cleanly partitioned in an adjacent container.
+    - In accordance with the user's standing instruction, no changes were pushed to GitHub.
+  - **Files Modified:** `src/features/catalog/components/ProductPurchasePanel.tsx`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 3.51s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
