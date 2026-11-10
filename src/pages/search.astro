@@ -1,0 +1,66 @@
+---
+// src/pages/search.astro
+import StorefrontLayout from '../layouts/StorefrontLayout.astro';
+import { fetchProducts, searchCatalog } from '../features/catalog/api/catalog.api';
+import { ProductCard } from '../features/catalog/components/ProductCard';
+
+const q = Astro.url.searchParams.get('q') || '';
+const all = await fetchProducts();
+const results = q.trim() ? await searchCatalog(q) : all;
+
+const title = q.trim() ? `Search: "${q}" | DEYNOLD DANNY` : 'Search Collection | DEYNOLD DANNY';
+const description = `Discover tailoring and knitwear results for ${q || 'the DEYNOLD DANNY collection'}.`;
+---
+
+<StorefrontLayout title={title} description={description}>
+  <main class="min-h-screen bg-white">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20">
+      <!-- Breadcrumb -->
+      <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
+          <li>
+            <a href="/" class="hover:text-black transition-colors">Home</a>
+          </li>
+          <li class="select-none">/</li>
+          <li class="text-neutral-900 font-medium" aria-current="page">
+            Search
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Search Header -->
+      <div class="mb-10 text-center max-w-xl mx-auto">
+        <span class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
+          Atelier Archive
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif mb-4">
+          {q.trim() ? `Results for "${q}"` : 'The Collection'}
+        </h1>
+        <p class="text-xs text-neutral-500 font-mono tracking-wide">
+          Showing {results.length} piece{results.length === 1 ? '' : 's'}
+        </p>
+      </div>
+
+      <!-- Search Results Grid -->
+      {results.length === 0 ? (
+        <div class="py-20 text-center max-w-md mx-auto">
+          <p class="text-sm text-neutral-600 mb-6 font-mono">
+            No sartorial items matched your inquiry.
+          </p>
+          <a
+            href="/"
+            class="inline-block px-8 py-3 rounded-full bg-neutral-900 text-white text-xs uppercase tracking-widest font-medium hover:bg-black transition-all"
+          >
+            Explore All Creations
+          </a>
+        </div>
+      ) : (
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          {results.map((product) => (
+            <ProductCard client:visible product={product} />
+          ))}
+        </div>
+      )}
+    </div>
+  </main>
+</StorefrontLayout>

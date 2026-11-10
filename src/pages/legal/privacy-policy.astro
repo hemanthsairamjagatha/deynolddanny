@@ -1,0 +1,65 @@
+---
+// src/pages/legal/privacy-policy.astro
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+---
+
+<StorefrontLayout
+  title="Privacy Policy | DEYNOLD DANNY"
+  description="Client data confidentiality and privacy commitment of DEYNOLD DANNY."
+>
+  <main class="min-h-screen bg-white">
+    <article class="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 text-neutral-800 font-light leading-relaxed">
+      <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
+          <li>
+            <a href="/" class="hover:text-black transition-colors">Home</a>
+          </li>
+          <li class="select-none">/</li>
+          <li class="text-neutral-900 font-medium" aria-current="page">
+            Privacy Policy
+          </li>
+        </ol>
+      </nav>
+
+      <div class="mb-12 border-b border-neutral-100 pb-8">
+        <span class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
+          Legal Governance
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
+          Privacy & Confidentiality Policy
+        </h1>
+        <p class="text-xs text-neutral-500 font-mono mt-2">Effective Date: January 1, 2026</p>
+      </div>
+
+      <div class="space-y-8 text-sm text-neutral-700 leading-relaxed">
+        <section class="space-y-3">
+          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">1. Our Commitment to Client Discretion</h2>
+          <p>
+            At DEYNOLD DANNY, client discretion and data integrity are fundamental to our atelier heritage. We protect all personal, measurements, and transactional data with military-grade encryption and adhere strictly to international data privacy statutes (GDPR, CCPA).
+          </p>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">2. Information We Collect</h2>
+          <p>
+            We collect personal information necessary to deliver bespoke tailoring, process orders, and facilitate private showroom viewings. This includes: contact details, delivery addresses, bespoke measurements, and order history.
+          </p>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">3. Payment & Security</h2>
+          <p>
+            All payment processing is executed through PCI-DSS Level 1 compliant gateway partners (Cashfree, Stripe). DEYNOLD DANNY does not store raw credit card credentials or sensitive payment tokens on our servers.
+          </p>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">4. Client Rights & Contact</h2>
+          <p>
+            You have the right to inspect, correct, or request deletion of your client profile at any time. For privacy inquiries, please contact our Data Governance Officer at <span class="font-mono text-neutral-900">privacy@deynolddanny.com</span>.
+          </p>
+        </section>
+      </div>
+    </article>
+  </main>
+</StorefrontLayout>

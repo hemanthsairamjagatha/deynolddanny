@@ -1,0 +1,46 @@
+---
+// src/pages/cart.astro
+import StorefrontLayout from '../layouts/StorefrontLayout.astro';
+---
+
+<StorefrontLayout title="Shopping Bag | DEYNOLD DANNY" description="Review your selected Italian luxury garments.">
+  <main class="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4 py-16 text-center">
+    <span class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-3">
+      Client Bag
+    </span>
+    <h1 class="text-3xl sm:text-4xl font-light font-serif text-neutral-900 mb-4">
+      Your Sartorial Wardrobe
+    </h1>
+    <p class="text-xs text-neutral-500 font-mono max-w-md mx-auto mb-8">
+      View and manage your items in the luxury slide-over bag drawer.
+    </p>
+    <div class="flex flex-wrap justify-center gap-4">
+      <button
+        type="button"
+        id="open-bag-page-btn"
+        class="px-8 py-3.5 bg-neutral-900 text-white uppercase text-xs tracking-widest font-mono hover:bg-neutral-800 transition-colors"
+      >
+        Open Shopping Bag
+      </button>
+      <a
+        href="/checkout"
+        class="px-8 py-3.5 border border-neutral-900 text-neutral-900 uppercase text-xs tracking-widest font-mono hover:bg-neutral-900 hover:text-white transition-colors"
+      >
+        Proceed to Checkout
+      </a>
+    </div>
+  </main>
+</StorefrontLayout>
+
+<script>
+  // Automatically open cart drawer when navigating to /cart
+  import { openCart } from '../features/cart/store/cart.store';
+  openCart();
+
+  const openBtn = document.getElementById('open-bag-page-btn');
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      openCart();
+    });
+  }
+</script>

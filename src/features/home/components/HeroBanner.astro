@@ -5,7 +5,7 @@
 <section class="hero-section" id="hero">
   <!-- Centered Search Strip Matching Reference Image -->
   <div class="hero-search-strip">
-    <form class="hero-search-box" action="#search" method="GET">
+    <form class="hero-search-box" action="/search" method="GET" id="hero-search-form">
       <svg
         class="search-icon"
         width="19"
@@ -22,9 +22,11 @@
       </svg>
       <input
         type="text"
+        name="q"
         class="hero-search-input"
         placeholder="Type your search request"
         aria-label="Type your search request"
+        autocomplete="off"
       />
       <button type="submit" class="hero-search-arrow" aria-label="Submit search request">
         <svg
@@ -58,18 +60,187 @@
     <!-- Direct Editorial Typography Overlay -->
     <div class="hero-overlay-content">
       <h1 class="hero-headline">
-        Knitwear: fine yarns
+        <span class="hero-headline-sub">Modern Sartorial</span>
+        <span class="hero-headline-main">DEYNOLD DANNY</span>
       </h1>
-
-      <p class="hero-description">
-        Discover our selection of fine knitwear, crafted with quality yarns and exquisite workmanship.
-      </p>
-
-      <div class="hero-actions">
-        <a href="#shop" class="hero-btn">Shop Collection</a>
-        <a href="#collections" class="hero-btn">Explore More</a>
-      </div>
+      <p class="hero-tagline">Autumn / Winter 2026 Architectural Tailoring</p>
     </div>
   </div>
 </section>
 
+<script>
+  const heroForm = document.getElementById('hero-search-form') as HTMLFormElement | null;
+  const heroInput = heroForm?.querySelector('.hero-search-input') as HTMLInputElement | null;
+
+  if (heroForm && heroInput) {
+    const triggerSearch = (e: Event) => {
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent('open-search-modal'));
+    };
+
+    heroForm.addEventListener('submit', triggerSearch);
+    heroInput.addEventListener('click', triggerSearch);
+  }
+</script>
+
+<style>
+  /* Base Hero Section Layout */
+  .hero-section {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #faf9f6;
+  }
+
+  /* Centered Search Strip */
+  .hero-search-strip {
+    position: absolute;
+    top: 2rem;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    padding: 0 1.5rem;
+  }
+
+  .hero-search-box {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 620px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 9999px;
+    padding: 0 1.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .hero-search-box:focus-within {
+    border-color: #111111;
+    background: #ffffff;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .search-icon {
+    flex-shrink: 0;
+    color: #555555;
+    margin-right: 0.75rem;
+  }
+
+  .hero-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: 0.85rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: #111111;
+  }
+
+  .hero-search-input::placeholder {
+    color: #888888;
+  }
+
+  .hero-search-arrow {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #111111;
+    padding: 0;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+  }
+
+  .hero-search-arrow:hover {
+    transform: translateX(3px);
+  }
+
+  /* Hero Visual Image Banner */
+  .hero-banner-container {
+    position: relative;
+    width: 100%;
+    max-width: 1521px;
+    margin: 0 auto;
+    aspect-ratio: 1521 / 855;
+    min-height: 520px;
+  }
+
+  .hero-banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 25%;
+    display: block;
+  }
+
+  /* Editorial Overlay Content */
+  .hero-overlay-content {
+    position: absolute;
+    bottom: clamp(2.5rem, 6vw, 5rem);
+    left: clamp(1.5rem, 5vw, 4.5rem);
+    z-index: 10;
+    max-width: 600px;
+  }
+
+  .hero-headline {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .hero-headline-sub {
+    font-family: var(--font-mono, monospace);
+    font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  .hero-headline-main {
+    font-family: var(--font-serif, 'Bodoni Moda', serif);
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    line-height: 1.05;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .hero-tagline {
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: clamp(0.75rem, 1.2vw, 0.9rem);
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0.75rem;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  @media (max-width: 640px) {
+    .hero-search-strip {
+      top: 1rem;
+      padding: 0 1rem;
+    }
+    .hero-search-box {
+      height: 42px;
+    }
+    .hero-banner-container {
+      min-height: 420px;
+    }
+  }
+</style>

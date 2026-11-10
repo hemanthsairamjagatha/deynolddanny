@@ -1,5 +1,7 @@
 ---
 import CartTrigger from '../../features/cart/components/CartTrigger';
+import SearchTrigger from '../../features/search/components/SearchTrigger';
+import SearchDialog from '../../features/search/components/SearchDialog';
 ---
 
 <header class="site-header" id="header">
@@ -22,7 +24,7 @@ import CartTrigger from '../../features/cart/components/CartTrigger';
 
       <!-- Center: DEYNOLD DANNY Official Anchor Monogram Logo -->
       <div class="header-center">
-        <a href="#" class="brand-logo" aria-label="DEYNOLD DANNY Home">
+        <a href="/" class="brand-logo" aria-label="DEYNOLD DANNY Home">
           <img src="/logo.png" alt="DEYNOLD DANNY" class="brand-logo-img" />
         </a>
       </div>
@@ -30,12 +32,7 @@ import CartTrigger from '../../features/cart/components/CartTrigger';
       <!-- Right: 4 Utility Icons (Search, Account, Wishlist/Heart, Bag) -->
       <div class="header-right">
         <!-- 1. Search Icon -->
-        <a href="#search" class="header-icon-link" aria-label="Search Collection">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="10.5" cy="10.5" r="7.5"></circle>
-            <line x1="21" y1="21" x2="16" y2="16"></line>
-          </svg>
-        </a>
+        <SearchTrigger client:load />
 
         <!-- 2. Account Icon -->
         <a href="/account/sign-in" class="header-icon-link" aria-label="Client Account">
@@ -62,12 +59,12 @@ import CartTrigger from '../../features/cart/components/CartTrigger';
   <nav class="header-nav-tier" aria-label="Primary Navigation">
     <div class="container">
       <ul class="nav-tier-list">
-        <li><a href="#women" class="nav-tier-link">Women</a></li>
-        <li><a href="#men" class="nav-tier-link">Men</a></li>
-        <li><a href="#occasion" class="nav-tier-link">Shop by Occasion</a></li>
-        <li><a href="#category" class="nav-tier-link">Shop by Category</a></li>
-        <li><a href="#fabric" class="nav-tier-link">Shop by Fabric</a></li>
-        <li><a href="#journal" class="nav-tier-link">Journal</a></li>
+        <li><a href="/#thread-of-mastery" class="nav-tier-link">Women</a></li>
+        <li><a href="/#thread-of-mastery" class="nav-tier-link">Men</a></li>
+        <li><a href="/#style-space" class="nav-tier-link">Shop by Occasion</a></li>
+        <li><a href="/#categories" class="nav-tier-link">Shop by Category</a></li>
+        <li><a href="/#thread-of-mastery" class="nav-tier-link">Shop by Fabric</a></li>
+        <li><a href="/#latest-news" class="nav-tier-link">Journal</a></li>
       </ul>
     </div>
   </nav>
@@ -90,42 +87,42 @@ import CartTrigger from '../../features/cart/components/CartTrigger';
       <div>
         <span class="drawer-section-title">The Collections</span>
         <div class="drawer-links-main">
-          <a href="#women" class="drawer-link-serif">
+          <a href="/#thread-of-mastery" class="drawer-link-serif">
             <span>Women</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <a href="#men" class="drawer-link-serif">
+          <a href="/#thread-of-mastery" class="drawer-link-serif">
             <span>Men</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <a href="#occasion" class="drawer-link-serif">
+          <a href="/#style-space" class="drawer-link-serif">
             <span>Shop by Occasion</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <a href="#category" class="drawer-link-serif">
+          <a href="/#categories" class="drawer-link-serif">
             <span>Shop by Category</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <a href="#fabric" class="drawer-link-serif">
+          <a href="/#thread-of-mastery" class="drawer-link-serif">
             <span>Shop by Fabric</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <a href="#journal" class="drawer-link-serif">
+          <a href="/#latest-news" class="drawer-link-serif">
             <span>Journal</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -140,21 +137,23 @@ import CartTrigger from '../../features/cart/components/CartTrigger';
         <div class="drawer-links-sub">
           <a href="/account/sign-in" class="drawer-link-sans">My Client Account</a>
           <a href="/wishlist" class="drawer-link-sans">Saved Wishlist</a>
-          <a href="#consultation" class="drawer-link-sans">Private Styling Concierge</a>
-          <a href="#shipping" class="drawer-link-sans">Global Delivery & Returns</a>
-          <a href="#contact" class="drawer-link-sans">Atelier Contact</a>
+          <a href="/contact" class="drawer-link-sans">Private Styling Concierge</a>
+          <a href="/legal/shipping-returns" class="drawer-link-sans">Global Delivery & Returns</a>
+          <a href="/contact" class="drawer-link-sans">Atelier Contact</a>
         </div>
       </div>
     </div>
 
     <!-- Drawer Footer -->
     <div class="drawer-footer">
-      <span>Region: United States &bull; USD ($)</span>
+      <span>Region: India &bull; INR (₹)</span>
       <span>&copy; 2026 DEYNOLD DANNY. All rights reserved.</span>
     </div>
   </aside>
 
   <!-- Backdrop overlay for drawer -->
   <label for="nav-toggle" class="nav-backdrop" aria-hidden="true"></label>
-</header>
 
+  <!-- Live Search Dialog Overlay -->
+  <SearchDialog client:load />
+</header>

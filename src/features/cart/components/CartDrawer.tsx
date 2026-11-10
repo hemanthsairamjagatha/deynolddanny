@@ -211,19 +211,20 @@ export const CartDrawer: React.FC = () => {
                   aria-label="checkout button"
                   onClick={e => {
                     e.preventDefault();
-                    alert('Proceeding to secure checkout...');
+                    if (items.length === 0) return;
+                    closeCart();
+                    window.location.href = '/checkout';
                   }}
                 >
                   checkout
                 </button>
                 <a
-                  href="#cart"
+                  href="/cart"
                   className="button button--outlined button--lowercase button--full cart-view-cart-btn"
                   id="cart-view-cart-btn"
                   role="link"
                   aria-label="view cart"
-                  onClick={e => {
-                    e.preventDefault();
+                  onClick={() => {
                     closeCart();
                   }}
                 >

@@ -11,9 +11,9 @@
       <div class="footer-col footer-col-nav">
         <h4 class="footer-col-title">GET TO KNOW US</h4>
         <ul class="footer-link-list">
-          <li><a href="#search" class="footer-link">SEARCH</a></li>
-          <li><a href="#about-us" class="footer-link">ABOUT US</a></li>
-          <li><a href="#contact-us" class="footer-link">CONTACT US</a></li>
+          <li><button type="button" class="footer-link footer-search-trigger">SEARCH</button></li>
+          <li><a href="/#thread-of-mastery" class="footer-link">ABOUT US</a></li>
+          <li><a href="/contact" class="footer-link">CONTACT US</a></li>
         </ul>
       </div>
 
@@ -21,10 +21,10 @@
       <div class="footer-col footer-col-nav">
         <h4 class="footer-col-title">CUSTOMER CARE</h4>
         <ul class="footer-link-list">
-          <li><a href="#return-exchange" class="footer-link">RETURN AND EXCHANGE POLICY</a></li>
-          <li><a href="#privacy-policy" class="footer-link">PRIVACY POLICY</a></li>
-          <li><a href="#shipping-delivery" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
-          <li><a href="#terms-condition" class="footer-link">TERMS AND CONDITION</a></li>
+          <li><a href="/legal/shipping-returns" class="footer-link">RETURN AND EXCHANGE POLICY</a></li>
+          <li><a href="/legal/privacy-policy" class="footer-link">PRIVACY POLICY</a></li>
+          <li><a href="/legal/shipping-returns" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
+          <li><a href="/legal/terms" class="footer-link">TERMS AND CONDITION</a></li>
         </ul>
       </div>
 
@@ -34,23 +34,25 @@
         <p class="footer-text-newsletter">
           Never miss any news and be the first to know about sale and offers
         </p>
-        <form class="footer-newsletter-form" action="#newsletter-signup" method="POST" onsubmit="return false;">
+        <form class="footer-newsletter-form" id="newsletter-form">
           <div class="footer-input-group">
             <input
               type="email"
+              id="newsletter-email"
               name="email"
               placeholder="Email"
               required
               class="footer-email-input"
               aria-label="Email address for newsletter"
             />
-            <button type="submit" class="footer-submit-btn" aria-label="Subscribe to newsletter">
+            <button type="submit" class="footer-submit-btn" aria-label="Subscribe to newsletter" id="newsletter-submit-btn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </button>
           </div>
+          <p id="newsletter-status" class="newsletter-status-msg" aria-live="polite"></p>
         </form>
       </div>
     </div>
@@ -75,6 +77,56 @@
   </div>
 </footer>
 
+<script>
+  // Newsletter submission wiring
+  const form = document.getElementById('newsletter-form') as HTMLFormElement | null;
+  const emailInput = document.getElementById('newsletter-email') as HTMLInputElement | null;
+  const statusMsg = document.getElementById('newsletter-status') as HTMLParagraphElement | null;
+  const submitBtn = document.getElementById('newsletter-submit-btn') as HTMLButtonElement | null;
+
+  if (form && emailInput && statusMsg && submitBtn) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      if (!email || !email.includes('@')) return;
+
+      submitBtn.disabled = true;
+      statusMsg.textContent = 'Subscribing...';
+      statusMsg.style.color = '#737373';
+
+      try {
+        const res = await fetch('https://deynold-danny-backend.deynolddanny.workers.dev/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.success) {
+          statusMsg.textContent = 'Thank you for subscribing to DEYNOLD DANNY.';
+          statusMsg.style.color = '#171717';
+          emailInput.value = '';
+        } else {
+          statusMsg.textContent = data.error?.message || 'Subscription failed. Please try again.';
+          statusMsg.style.color = '#dc2626';
+        }
+      } catch {
+        statusMsg.textContent = 'Connection error. Please try again.';
+        statusMsg.style.color = '#dc2626';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  // Footer search trigger
+  const searchTriggers = document.querySelectorAll('.footer-search-trigger');
+  searchTriggers.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('open-search-modal'));
+    });
+  });
+</script>
+
 <style>
   /* --------------------------------------------------------------------------
      SITE FOOTER COMPONENT - PURE WHITE BACKGROUND
@@ -98,132 +150,30 @@
     box-sizing: border-box;
   }
 
-  /* --------------------------------------------------------------------------
-     TOP 3-COLUMN GRID
-     -------------------------------------------------------------------------- */
   .footer-top-grid {
     display: grid;
-    grid-template-columns: 300px 300px 1fr;
-    column-gap: 0;
-    row-gap: 2.5rem;
-    align-items: start;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    padding-bottom: clamp(2.5rem, 4vw, 3.5rem);
+    border-bottom: 1px solid #ebebeb;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 768px) {
     .footer-top-grid {
       grid-template-columns: 1fr;
-      row-gap: 2.5rem;
+      gap: 2.25rem;
+      padding-bottom: 2.5rem;
     }
-  }
-
-  /* Column 3: Newsletter (Right-Aligned) */
-  .footer-col-newsletter {
-    max-width: 440px;
-    width: 100%;
-    justify-self: end;
-  }
-
-  @media (max-width: 900px) {
-    .footer-col-newsletter {
-      justify-self: start;
-    }
-  }
-
-  .footer-heading-newsletter {
-    font-family: inherit;
-    font-size: 18px;
-    font-weight: 400;
-    line-height: 1.3;
-    color: #111111;
-    margin: 0 0 10px 0;
-    letter-spacing: 0.01em;
-  }
-
-  .footer-text-newsletter {
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: #555555;
-    margin: 0 0 20px 0;
-  }
-
-  .footer-newsletter-form {
-    width: 100%;
-  }
-
-  .footer-input-group {
-    display: flex;
-    align-items: stretch;
-    width: 100%;
-    max-width: 320px;
-  }
-
-  .footer-email-input {
-    flex: 1;
-    min-width: 0;
-    height: 42px;
-    padding: 0 14px;
-    background-color: #ffffff;
-    border: 1px solid #111111;
-    border-right: none;
-    border-radius: 0;
-    font-family: inherit;
-    font-size: 13.5px;
-    color: #111111;
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color 0.2s ease;
-  }
-
-  .footer-email-input::placeholder {
-    color: #888888;
-    opacity: 1;
-  }
-
-  .footer-email-input:focus {
-    border-color: #000000;
-  }
-
-  .footer-submit-btn {
-    width: 46px;
-    height: 42px;
-    flex-shrink: 0;
-    background-color: #e5e5e5;
-    border: 1px solid #111111;
-    border-radius: 0;
-    color: #111111;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-sizing: border-box;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    padding: 0;
-  }
-
-  .footer-submit-btn:hover {
-    background-color: #111111;
-    color: #ffffff;
-    border-color: #111111;
-  }
-
-  /* Columns 1 & 2: Navigation Links */
-  .footer-col-nav {
-    display: flex;
-    flex-direction: column;
-    width: 300px;
-    max-width: 100%;
-    margin: 0;
-    padding: 0;
   }
 
   .footer-col-title {
-    font-family: inherit;
-    font-size: 13px;
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #111111;
-    margin: 0 0 18px 0;
+    margin: 0 0 1.25rem;
   }
 
   .footer-link-list {
@@ -232,94 +182,164 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.85rem;
   }
 
   .footer-link {
-    font-size: 12.5px;
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: 0.6875rem;
     font-weight: 400;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #333333;
+    color: #4a4a4a;
     text-decoration: none;
+    transition: color 0.18s ease;
     display: inline-block;
-    transition: color 0.2s ease, transform 0.2s ease;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
   }
 
   .footer-link:hover {
     color: #000000;
-    text-decoration: underline;
-    text-underline-offset: 3px;
   }
 
-  /* --------------------------------------------------------------------------
-     BOTTOM SUB-FOOTER ROW
-     -------------------------------------------------------------------------- */
+  .footer-heading-newsletter {
+    font-family: var(--font-serif, 'Bodoni Moda', serif);
+    font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+    font-weight: 400;
+    color: #111111;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  .footer-text-newsletter {
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #666666;
+    margin: 0 0 1.25rem;
+    max-width: 380px;
+  }
+
+  .footer-newsletter-form {
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .footer-input-group {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    border: 1px solid #d4d4d4;
+    background-color: #ffffff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .footer-input-group:focus-within {
+    border-color: #111111;
+  }
+
+  .footer-email-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 46px 0 14px;
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: #111111;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .footer-email-input::placeholder {
+    color: #999999;
+    font-weight: 300;
+  }
+
+  .footer-submit-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 44px;
+    width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #111111;
+    cursor: pointer;
+    transition: transform 0.2s ease, color 0.18s ease;
+  }
+
+  .footer-submit-btn:hover {
+    transform: translateX(2px);
+    color: #000000;
+  }
+
+  .newsletter-status-msg {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.6875rem;
+    margin-top: 0.5rem;
+    min-height: 1.25rem;
+  }
+
   .footer-bottom-row {
-    margin-top: clamp(2.5rem, 5vw, 4rem);
-    padding-top: 1.75rem;
-    border-top: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding-top: clamp(1.5rem, 2.5vw, 2rem);
     flex-wrap: wrap;
-    gap: 1.25rem;
-  }
-
-  .footer-copyright-wrap {
-    flex: 1;
-    min-width: 280px;
+    gap: 1rem;
   }
 
   .footer-copyright-text {
-    font-size: 12px;
-    line-height: 1.6;
-    letter-spacing: 0.03em;
-    color: #555555;
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #666666;
     margin: 0;
   }
 
   .footer-pixenox-link {
     color: #111111;
-    font-weight: 500;
     text-decoration: underline;
     text-underline-offset: 3px;
-    transition: color 0.2s ease;
+    font-weight: 600;
+    transition: opacity 0.18s ease;
   }
 
   .footer-pixenox-link:hover {
-    color: #000000;
-  }
-
-  /* Currency / Region Selector */
-  .footer-currency-wrap {
-    display: flex;
-    align-items: center;
+    opacity: 0.75;
   }
 
   .footer-currency-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.35rem;
     background: transparent;
     border: none;
-    padding: 6px 4px;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
+    padding: 0;
     color: #111111;
+    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.18s ease;
   }
 
   .footer-currency-btn:hover {
-    opacity: 0.7;
-  }
-
-  .footer-chevron-icon {
-    display: block;
-    stroke-width: 2.5;
+    opacity: 0.75;
   }
 </style>
-

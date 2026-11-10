@@ -1,0 +1,23 @@
+---
+// src/pages/checkout.astro
+import StorefrontLayout from '../layouts/StorefrontLayout.astro';
+import CheckoutExperience from '../features/checkout/components/CheckoutExperience';
+---
+
+<StorefrontLayout title="Secure Checkout | DEYNOLD DANNY" description="Finalize your bespoke luxury garment order.">
+  <main class="min-h-[70vh] bg-white">
+    <!-- Breadcrumb strip -->
+    <div class="border-b border-neutral-100 py-3 bg-neutral-50/50">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 text-[11px] font-mono text-neutral-400 uppercase tracking-widest">
+        <a href="/" class="hover:text-neutral-900 transition-colors">Home</a>
+        <span>/</span>
+        <a href="/cart" class="hover:text-neutral-900 transition-colors">Bag</a>
+        <span>/</span>
+        <span class="text-neutral-900">Checkout</span>
+      </div>
+    </div>
+
+    <!-- Interactive Checkout Island -->
+    <CheckoutExperience client:load />
+  </main>
+</StorefrontLayout>

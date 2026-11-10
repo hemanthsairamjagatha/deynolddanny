@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { sendOtpApi } from '../api/auth.api';
 
 export const ForgotPasswordForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -17,11 +18,18 @@ export const ForgotPasswordForm: React.FC = () => {
 
     setIsLoading(true);
 
-    // Simulate recovery email dispatch
-    setTimeout(() => {
+    try {
+      const res = await sendOtpApi(email);
       setIsLoading(false);
-      setIsSubmitted(true);
-    }, 750);
+      if (res.success) {
+        setIsSubmitted(true);
+      } else {
+        setErrorMessage(res.error?.message || 'Unable to dispatch recovery instructions. Please try again.');
+      }
+    } catch {
+      setIsLoading(false);
+      setErrorMessage('Unable to reach server. Please check your connection and try again.');
+    }
   };
 
   return (
@@ -138,4 +146,3 @@ export const ForgotPasswordForm: React.FC = () => {
     </div>
   );
 };
-
