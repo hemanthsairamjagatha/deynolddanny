@@ -23,29 +23,36 @@ export const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="w-full">
       {/* Primary Pill Button matching reference screenshot */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className={`w-full h-12 px-6 rounded-full border text-xs uppercase tracking-widest font-medium relative flex items-center justify-center transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-900 bg-white ${
+        className={`w-full rounded-full border text-neutral-900 relative flex items-center justify-center transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-900 Button__btn ProductDetailDescription__product-detail-description__size-selection-button ${
           hasError && !selectedSize
             ? 'border-red-500 text-red-600'
             : selectedSize
-            ? 'border-neutral-900 text-neutral-900'
-            : 'border-neutral-800 text-neutral-800 hover:border-black'
+            ? 'border-neutral-900'
+            : 'border-neutral-800 hover:border-black'
         }`}
+        style={{
+          width: '352.93px',
+          maxWidth: '100%',
+          height: '45.6px',
+          padding: '13px 20px 9px',
+          backgroundColor: '#FFFFFF'
+        }}
       >
-        <span>
+        <span className="Button__btn__content btn__content text-[14px] leading-[22px] font-semibold tracking-wider uppercase flex items-center justify-center w-full">
           {selectedSize ? `SIZE: ${selectedSize}` : 'SELECT SIZE'}
         </span>
       </button>
 
       {/* Error Message if Add To Bag was clicked without choosing size */}
       {hasError && !selectedSize && (
-        <p className="text-[11px] text-red-500 text-center tracking-wide font-medium">
+        <p className="text-[11px] text-red-500 text-center tracking-wide font-medium mt-1.5">
           Please select a size to proceed
         </p>
       )}
