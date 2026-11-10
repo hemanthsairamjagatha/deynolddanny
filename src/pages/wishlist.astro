@@ -1,0 +1,15 @@
+---
+// src/pages/wishlist.astro
+import StorefrontLayout from '../layouts/StorefrontLayout.astro';
+import { WishlistExperience } from '../features/wishlist/components/WishlistExperience';
+---
+
+<StorefrontLayout
+  title="My Wishlist | DEYNOLD DANNY"
+  description="Manage your curated selection of luxury menswear and womenswear in your DEYNOLD DANNY wishlist."
+>
+  <main class="min-h-screen bg-white">
+    <WishlistExperience client:load />
+  </main>
+</StorefrontLayout>
+

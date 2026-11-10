@@ -1,0 +1,54 @@
+name = "deynold-danny-backend"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+FRONTEND_URL = "http://localhost:4321"
+BACKEND_URL = "http://localhost:8787"
+ADMIN_URL = "http://localhost:4321"
+MEDIA_BUCKET_PUBLIC_URL = "http://localhost:8787/media"
+CASHFREE_API_URL = "https://sandbox.cashfree.com/pg"
+CASHFREE_API_VERSION = "2023-08-01"
+
+# Cloudflare D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "deynold-danny-db"
+database_id = "e7a8af53-0174-4e60-8ef6-bf65acb5ae92"
+
+# Cloudflare KV (Catalog Edge Cache — read-only catalog caching)
+[[kv_namespaces]]
+binding = "CATALOG_KV"
+id = "1714f27a97d74d86bf98e151adc00862"
+
+# Cloudflare R2 (Product Image Storage - enable via Cloudflare Dashboard > R2 to activate)
+# [[r2_buckets]]
+# binding = "MEDIA_BUCKET"
+# bucket_name = "deynold-danny-assets"
+
+# Cloudflare Queues (Optional async email dispatch - emails currently handled via ctx.waitUntil)
+# [[queues.producers]]
+# binding = "EMAIL_QUEUE"
+# queue = "deynold-danny-emails"
+#
+# [[queues.consumers]]
+# queue = "deynold-danny-emails"
+# max_batch_size = 10
+# max_batch_timeout = 30
+
+# Scheduled Cron: Release expired stock reservations every 5 minutes
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Production environment overrides
+[env.production]
+[env.production.vars]
+ENVIRONMENT = "production"
+FRONTEND_URL = "https://deynolddanny.com"
+BACKEND_URL = "https://api.deynolddanny.com"
+ADMIN_URL = "https://admin.deynolddanny.com"
+MEDIA_BUCKET_PUBLIC_URL = "https://media.deynolddanny.com"
+CASHFREE_API_URL = "https://api.cashfree.com/pg"
+CASHFREE_API_VERSION = "2023-08-01"

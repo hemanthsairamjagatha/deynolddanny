@@ -13,5 +13,5 @@
       "@config/*": ["src/config/*"]
     }
   },
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules", "backend", "Deynold Danny Backend"]
 }

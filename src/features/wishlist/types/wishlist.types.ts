@@ -5,6 +5,8 @@ export interface WishlistItem {
   price: string;
   priceNum: number;
   image: string;
+  link?: string;
+  category?: string;
+  sizes?: string[];
   dateAdded?: string;
 }
-

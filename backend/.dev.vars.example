@@ -1,0 +1,24 @@
+# ==============================================================================
+# DEYNOLD DANNY — Backend Local Development Secrets
+# ==============================================================================
+# Copy this file to `backend/.dev.vars` for local development with `wrangler dev`.
+# Note: `.dev.vars` is git-ignored and must NEVER be committed to version control.
+#
+# For production deployment on Cloudflare, set these using:
+#   npx wrangler secret put <SECRET_NAME>
+# ==============================================================================
+
+# 1. JWT Signing Secret (minimum 32-64 random characters for HS256 token signing)
+JWT_SECRET="your-super-secret-random-jwt-key-min-32-chars-long"
+
+# 2. Resend API Key (for transactional OTP and order emails, from https://resend.com)
+RESEND_API_KEY="re_123456789_abcdefghijklmnopqrstuvwxyz"
+
+# 3. Cashfree Payment Gateway Credentials (from https://merchant.cashfree.com)
+# For local testing, use your Sandbox credentials:
+CASHFREE_APP_ID="your_cashfree_app_id"
+CASHFREE_SECRET_KEY="your_cashfree_secret_key"
+
+# 4. Authorized Admin Email Addresses (comma-separated list, lowercase)
+ADMIN_EMAILS="admin@deynolddanny.com,director@deynolddanny.com"
+

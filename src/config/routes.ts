@@ -5,7 +5,7 @@ export const routes = {
   signIn: '/account/sign-in',
   signUp: '/account/sign-up',
   forgotPassword: '/account/forgot-password',
-  wishlist: '#wishlist',
+  wishlist: '/wishlist',
   cart: '#cart',
   women: '#women',
   men: '#men',
