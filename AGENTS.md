@@ -1465,4 +1465,21 @@ deynold-danny-ecommerce/
   - **Validation:** Live health endpoint query (200 OK ✅), Live products endpoint returning 12 luxury products (200 OK ✅), Live categories endpoint returning 8 categories (200 OK ✅), Frontend wishlist page at `https://deynolddanny.pixenox.com/wishlist` (200 OK ✅).
   - **Blockers:** None.
 
+- **2026-11-10 — Frontend and Backend Integration (API Client, Catalog & Cart Wiring)**:
+  - **Status:** COMPLETE
+  - **Summary:** Connected the Astro frontend to the live Cloudflare Worker backend (`https://deynold-danny-backend.deynolddanny.workers.dev`). Created `src/lib/api/client.ts` with anonymous `x-session-id` generation and Bearer token support. Implemented typed feature API clients for catalog (`src/features/catalog/api/catalog.api.ts`), cart (`src/features/cart/api/cart.api.ts`), and auth (`src/features/auth/api/auth.api.ts`). Connected `src/features/cart/store/cart.store.ts` to sync with backend cart endpoints (`getCartApi`, `addToCartApi`, `updateCartItemApi`, `removeCartItemApi`) with optimistic UI response. Updated `src/pages/index.astro` and `src/pages/products/[slug].astro` to fetch live products dynamically from Cloudflare D1 with zero-crash local fallbacks. Updated backend CORS policy in `backend/src/middleware/cors.ts` to permit `https://deynolddanny.pixenox.com`.
+  - **Files Added:**
+    - `src/lib/api/client.ts`
+    - `src/features/catalog/api/catalog.api.ts`
+    - `src/features/cart/api/cart.api.ts`
+    - `src/features/auth/api/auth.api.ts`
+  - **Files Modified:**
+    - `backend/src/middleware/cors.ts`
+    - `src/features/cart/store/cart.store.ts`
+    - `src/features/cart/types/cart.types.ts`
+    - `src/pages/index.astro`
+    - `src/pages/products/[slug].astro`
+  - **Validation:** `npx astro check` (PASS: 62 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 19 static pages built with live D1 fetch in 2.81s), CORS verification with live domain (200 OK ✅), `git push origin main` (PASS: commit `d31e4d7`).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
