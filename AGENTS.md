@@ -1525,4 +1525,12 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 2.62s).
   - **Blockers:** None.
 
+- **2026-11-10 — Removal of Product Detail Page Breadcrumb Navigation**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the entire breadcrumb navigation bar (`HOME COLLECTION [PRODUCT TITLE]`) from the product detail page template (`src/pages/products/[slug].astro`) as requested in the user-provided screenshot (`media_1794310647880_1b0f7fd8.png`). The split-screen interactive product experience now begins directly beneath the header in alignment with luxury fashion editorial layouts.
+  - **Files Modified:** `src/pages/products/[slug].astro`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 7.79s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
