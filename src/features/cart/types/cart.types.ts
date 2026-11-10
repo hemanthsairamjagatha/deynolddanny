@@ -6,5 +6,7 @@ export interface CartItem {
   size: string;
   img: string;
   qty: number;
+  variantId?: string;
+  backendItemId?: string;
 }
 

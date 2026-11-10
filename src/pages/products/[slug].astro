@@ -1,7 +1,7 @@
 ---
 // src/pages/products/[slug].astro
 import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
-import { allProducts, getProductBySlug } from '../../features/catalog/data/products';
+import { fetchProducts, fetchProductBySlug } from '../../features/catalog/api/catalog.api';
 import { getProductSlug } from '../../features/catalog/utils/product.utils';
 import { ProductDetailExperience } from '../../features/catalog/components/ProductDetailExperience';
 import StyleItWith from '../../features/catalog/components/StyleItWith.astro';
@@ -9,7 +9,8 @@ import RelatedProducts from '../../features/catalog/components/RelatedProducts.a
 import type { ProductCardData } from '../../features/catalog/types/product.types';
 
 export async function getStaticPaths() {
-  return allProducts.map((product) => {
+  const products = await fetchProducts();
+  return products.map((product) => {
     const slug = getProductSlug(product);
     return {
       params: { slug },
@@ -23,7 +24,7 @@ interface Props {
 }
 
 const { slug } = Astro.params;
-const product = Astro.props.product || (slug ? getProductBySlug(slug) : undefined);
+const product = Astro.props.product || (slug ? await fetchProductBySlug(slug) : undefined);
 
 if (!product) {
   return Astro.redirect('/404');

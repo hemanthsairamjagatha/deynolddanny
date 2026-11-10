@@ -8,11 +8,17 @@ import ProductCarousel from '../features/catalog/components/ProductCarousel';
 import CartDrawer from '../features/cart/components/CartDrawer';
 import Footer from '../components/layout/Footer.astro';
 
+import { fetchProducts } from '../features/catalog/api/catalog.api';
 import {
-  masteryProducts,
-  styleSpaceProducts,
-  newsProducts
+  masteryProducts as defaultMastery,
+  styleSpaceProducts as defaultStyleSpace,
+  newsProducts as defaultNews
 } from '../features/catalog/data/products';
+
+const liveProducts = await fetchProducts();
+const masteryProducts = liveProducts.length >= 4 ? liveProducts.slice(0, 4) : defaultMastery;
+const styleSpaceProducts = liveProducts.length >= 8 ? liveProducts.slice(4, 8) : defaultStyleSpace;
+const newsProducts = liveProducts.length >= 12 ? liveProducts.slice(8, 12) : defaultNews;
 ---
 
 <Layout>

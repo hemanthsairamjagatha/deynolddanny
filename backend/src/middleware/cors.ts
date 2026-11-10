@@ -19,14 +19,18 @@ export const cors = createMiddleware(async (c, next) => {
   const env = c.env as Env;
   const origin = c.req.header('Origin') ?? '';
 
-  const allowedOrigins = new Set<string>([
-    env.FRONTEND_URL,
-    env.ADMIN_URL,
-  ]);
+  const isAllowed =
+    !origin ||
+    origin === env.FRONTEND_URL ||
+    origin === env.ADMIN_URL ||
+    origin === 'https://deynolddanny.pixenox.com' ||
+    origin.endsWith('.pixenox.com') ||
+    origin.endsWith('.pages.dev') ||
+    origin.startsWith('http://localhost:');
 
   // Handle preflight
   if (c.req.method === 'OPTIONS') {
-    if (origin && allowedOrigins.has(origin)) {
+    if (origin && isAllowed) {
       return new Response(null, {
         status: 200,
         headers: {
@@ -53,7 +57,7 @@ export const cors = createMiddleware(async (c, next) => {
   }
 
   // Actual request — set headers if origin is allowed, block otherwise
-  if (origin && !allowedOrigins.has(origin)) {
+  if (origin && !isAllowed) {
     return c.json(
       {
         success: false,
@@ -69,7 +73,7 @@ export const cors = createMiddleware(async (c, next) => {
 
   await next();
 
-  if (origin && allowedOrigins.has(origin)) {
+  if (origin && isAllowed) {
     c.header('Access-Control-Allow-Origin', origin);
     c.header('Access-Control-Allow-Methods', ALLOWED_METHODS);
     c.header('Access-Control-Allow-Headers', ALLOWED_HEADERS);

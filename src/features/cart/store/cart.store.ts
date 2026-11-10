@@ -1,5 +1,6 @@
 import { atom, computed } from 'nanostores';
 import type { CartItem } from '../types/cart.types';
+import { getCartApi, addToCartApi, updateCartItemApi, removeCartItemApi } from '../api/cart.api';
 
 // Initial state matching the existing project
 const initialCart: CartItem[] = [
@@ -58,6 +59,32 @@ export function toggleCart() {
   }
 }
 
+/**
+ * Synchronize local cart state with the Cloudflare Worker backend
+ */
+export async function syncCartWithBackend() {
+  if (typeof window === 'undefined') return;
+  try {
+    const res = await getCartApi();
+    if (res.success && res.data?.items && res.data.items.length > 0) {
+      const mapped: CartItem[] = res.data.items.map(item => ({
+        id: item.productId,
+        backendItemId: item.id,
+        variantId: item.variantId,
+        title: item.title,
+        price: item.unitPriceFormatted,
+        priceNum: item.unitPricePaise / 100,
+        size: item.size,
+        img: item.imageUrl,
+        qty: item.quantity,
+      }));
+      $cartItems.set(mapped);
+    }
+  } catch {
+    // Graceful fallback to local cart if network is unavailable
+  }
+}
+
 export function addToCart(product: {
   id: string;
   title: string;
@@ -65,6 +92,7 @@ export function addToCart(product: {
   priceNum: number;
   size: string;
   img: string;
+  variantId?: string;
 }) {
   const current = $cartItems.get();
   const existingIndex = current.findIndex(
@@ -73,13 +101,38 @@ export function addToCart(product: {
 
   if (existingIndex > -1) {
     const updated = [...current];
+    const newQty = updated[existingIndex].qty + 1;
     updated[existingIndex] = {
       ...updated[existingIndex],
-      qty: updated[existingIndex].qty + 1
+      qty: newQty
     };
     $cartItems.set(updated);
+
+    // Background sync with Cloudflare backend
+    const backendItemId = updated[existingIndex].backendItemId;
+    if (backendItemId) {
+      updateCartItemApi(backendItemId, newQty).catch(() => {});
+    }
   } else {
     $cartItems.set([...current, { ...product, qty: 1 }]);
+
+    // Background sync with Cloudflare backend
+    const variantId = product.variantId || `${product.id}-${product.size.replace(/\s+/g, '')}`;
+    addToCartApi(variantId, 1).then(res => {
+      if (res.success && res.data?.items) {
+        const backendItem = res.data.items.find(
+          i => i.variantId === variantId || i.productId === product.id
+        );
+        if (backendItem) {
+          const fresh = $cartItems.get().map(it =>
+            it.id === product.id && it.size === product.size
+              ? { ...it, backendItemId: backendItem.id }
+              : it
+          );
+          $cartItems.set(fresh);
+        }
+      }
+    }).catch(() => {});
   }
 }
 
@@ -91,8 +144,14 @@ export function updateQuantity(index: number, qty: number) {
   }
   const updated = [...current];
   if (updated[index]) {
+    const backendItemId = updated[index].backendItemId;
     updated[index] = { ...updated[index], qty };
     $cartItems.set(updated);
+
+    // Background sync
+    if (backendItemId) {
+      updateCartItemApi(backendItemId, qty).catch(() => {});
+    }
   }
 }
 
@@ -112,12 +171,21 @@ export function decrementQuantity(index: number) {
 
 export function removeFromCart(index: number) {
   const current = $cartItems.get();
+  const target = current[index];
   $cartItems.set(current.filter((_, i) => i !== index));
+
+  // Background sync
+  if (target?.backendItemId) {
+    removeCartItemApi(target.backendItemId).catch(() => {});
+  }
 }
 
 // Drawer keyboard & URL hash initializer
 export function initInspectListeners() {
   if (typeof window === 'undefined') return;
+
+  // Sync cart from Cloudflare backend on page boot
+  syncCartWithBackend().catch(() => {});
 
   // Listen for Escape key to close cart
   document.addEventListener('keydown', (e: KeyboardEvent) => {
