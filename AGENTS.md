@@ -1482,4 +1482,12 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 62 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 19 static pages built with live D1 fetch in 2.81s), CORS verification with live domain (200 OK ✅), `git push origin main` (PASS: commit `d31e4d7`).
   - **Blockers:** None.
 
+- **2026-11-10 — Product Gallery Image Alignment and Asset Resolution**:
+  - **Status:** COMPLETE
+  - **Summary:** Resolved broken image issue on live product detail page (`/products/tailored-virgin-wool-suit`). Created gallery image aliases in `public/images/` for all catalog sections (`mastery-1..5`, `style-1..5`, `news-1..5`, and `categories/`) matching backend D1 seed references (`model`, `product`, `detail`, `back`). Added `normalizeProduct` mapper in `src/features/catalog/api/catalog.api.ts` to attach full gallery image arrays to product colors.
+  - **Files Added:** 68 gallery image assets under `public/images/` and `public/images/categories/`.
+  - **Files Modified:** `src/features/catalog/api/catalog.api.ts`.
+  - **Validation:** `npx astro check` (PASS: 62 files, 0 errors), `npm run build` (PASS: 19 static pages), live asset HTTP 200 check on Vercel (`mastery-1-model.jpg` returning 200 OK ✅), `git push origin main` (PASS: commit `7c2f7bf`).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
