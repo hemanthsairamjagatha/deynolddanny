@@ -125,7 +125,80 @@ export const cadyTrousersProduct: ProductCardData = {
   ]
 };
 
+// Flagship Bordeaux Sheath Dress Reference Product (from Rinascimento Reference Screenshots)
+export const bordeauxSheathDressProduct: ProductCardData = {
+  id: "bordeaux-sheath-dress-with-asymmetrical-draping",
+  slug: "bordeaux-sheath-dress-with-asymmetrical-draping",
+  title: "Bordeaux sheath dress with asymmetrical draping",
+  price: "€ 189.00",
+  priceNum: 18900,
+  badge: "SOLD OUT",
+  tag: "SHEATH DRESS",
+  defaultImg: "/images/bordeaux-dress-model.jpg",
+  hoverImg: "/images/bordeaux-dress-detail.jpg",
+  images: [
+    "/images/bordeaux-dress-back.jpg",
+    "/images/bordeaux-dress-detail.jpg",
+    "/images/bordeaux-dress-model.jpg",
+    "/images/bordeaux-dress-side.jpg"
+  ],
+  sizes: ["IT 38", "IT 40", "IT 42", "IT 44", "IT 46"],
+  link: "/products/bordeaux-sheath-dress-with-asymmetrical-draping",
+  sku: "CFC0130327003B098",
+  category: "Clothing",
+  subCategory: "Short Dresses",
+  gender: "Women",
+  description:
+    "Feminine sheath dress crafted in stretch cady with asymmetrical side draping that contours the silhouette with timeless grace. Round neckline, three-quarter sleeves, and invisible rear zip fastening. Made in India through sustainable artisanal processes.",
+  colors: [
+    {
+      name: "Bordeaux",
+      hex: "#6b2144",
+      swatchImg: "/images/bordeaux-dress-detail.jpg",
+      img: "/images/bordeaux-dress-model.jpg",
+      images: [
+        "/images/bordeaux-dress-back.jpg",
+        "/images/bordeaux-dress-detail.jpg",
+        "/images/bordeaux-dress-model.jpg",
+        "/images/bordeaux-dress-side.jpg"
+      ]
+    },
+    {
+      name: "Dark Slate",
+      hex: "#2b363d",
+      img: "/images/bordeaux-dress-model.jpg"
+    },
+    {
+      name: "Coral Red",
+      hex: "#f43f4f",
+      img: "/images/bordeaux-dress-model.jpg"
+    },
+    {
+      name: "Espresso",
+      hex: "#3a282b",
+      img: "/images/bordeaux-dress-model.jpg"
+    }
+  ],
+  sizeAndFit: [
+    "Model is 177 cm / 5'9.5\" and is wearing size 40.",
+    "Form-fitting sheath silhouette with asymmetrical pleated gathering at the waist.",
+    "Knee length hemline with center-back walking vent.",
+    "Sleeve length: 48 cm."
+  ],
+  compositionAndCare: [
+    "Composition: 96% Polyester, 4% Elastane.",
+    "Lining: 100% Stretch cupro.",
+    "Care: Dry clean only. Iron at low temperature.",
+    "Carefully crafted in India."
+  ],
+  shippingAndReturns: [
+    "Complimentary express delivery across India and worldwide.",
+    "Returns accepted within 14 days of receipt."
+  ]
+};
+
 export const masteryProducts: ProductCardData[] = [
+  bordeauxSheathDressProduct,
   {
     id: "mastery-1",
     slug: "artisanal-ribbed-cashmere-zip-sweater",
@@ -672,6 +745,7 @@ export const newsProducts: ProductCardData[] = [
 ];
 
 export const allProducts: ProductCardData[] = [
+  bordeauxSheathDressProduct,
   cadyTrousersProduct,
   ...masteryProducts,
   ...styleSpaceProducts,

@@ -61,7 +61,10 @@ export async function fetchProducts(params: {
   const res = await apiFetch<CatalogListResponse>(endpoint);
 
   if (res.success && res.data?.items && res.data.items.length > 0) {
-    return res.data.items.map(normalizeProduct);
+    const remoteItems = res.data.items.map(normalizeProduct);
+    const remoteSlugs = new Set(remoteItems.map(p => p.slug || p.id));
+    const additionalLocal = allProducts.filter(p => !remoteSlugs.has(p.slug || p.id));
+    return [...remoteItems, ...additionalLocal];
   }
 
   // Graceful fallback to local products if offline or empty

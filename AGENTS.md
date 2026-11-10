@@ -1683,4 +1683,27 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 3.00s).
   - **Blockers:** None.
 
+- **2026-11-10 — Product Detail Page Redesign to Rinascimento Horizontal Gallery & Floating Card Layout**:
+  - **Status:** COMPLETE
+  - **Summary:** Redesigned the Product Detail Page (`/products/[slug]`) to match the referenced luxury layout (`media_1794322333276_fcb9bd3a.png`, `media_1794322333277_eae166fb.png`, `media_1794322333277_05cb2ac1.png`):
+    - Replaced vertical split-screen with a full-width horizontal image gallery track (`505.66 × 674.21` per image), horizontal scroll/snap navigation, left/right desktop controls, and a top-right slideshow pause button (`||`).
+    - Implemented the floating product info card (`div.product-info-wrapper.bg-body.p-2.p-xl-4`, `526 × 354.1`, `padding: 20px`, `background: #FFFFFF`, rounded corners and shadow) anchored on the bottom-right of the gallery on desktop and responsive on mobile.
+    - Card features uppercase breadcrumbs (`HOME > CLOTHING > DRESSES AND OUTFITS > SHORT DRESSES > ...`), `SOLD OUT` status badge (or price/selection for in-stock items), uppercase title, boxed `MADE IN INDIA` badge with thin border per explicit user instruction (*'BUT "MADE IN INDIA"'*), SKU label, `Color [Name]` heading, 4 square color swatches, divider, `Share this product` action, and floating bottom-right concierge chat bubble.
+    - Added the reference product `bordeaux-sheath-dress-with-asymmetrical-draping` ("Bordeaux sheath dress with asymmetrical draping", SKU `CFC0130327003B098`, 4 color swatches, cropped images `/images/bordeaux-dress-[back,detail,model,side].jpg`) to `src/features/catalog/data/products.ts`, `allProducts`, and the homepage carousel.
+    - Updated `src/features/catalog/api/catalog.api.ts` to combine remote D1 backend products with local catalog products.
+    - In accordance with the user's standing instruction, no changes were pushed to GitHub.
+  - **Files Added:**
+    - `public/images/bordeaux-dress-back.jpg`
+    - `public/images/bordeaux-dress-detail.jpg`
+    - `public/images/bordeaux-dress-model.jpg`
+    - `public/images/bordeaux-dress-side.jpg`
+  - **Files Modified:**
+    - `src/features/catalog/components/ProductDetailExperience.tsx`
+    - `src/features/catalog/data/products.ts`
+    - `src/features/catalog/types/product.types.ts`
+    - `src/features/catalog/api/catalog.api.ts`
+  - **Structural change summary:** Added 4 image assets for the reference Bordeaux dress; updated catalog and PDP experience component.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 40 static pages built in 7.45s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**

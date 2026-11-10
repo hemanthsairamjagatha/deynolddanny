@@ -32,6 +32,7 @@ export interface ProductCardData {
   colors?: ProductColor[];
   sku?: string;
   category?: string;
+  subCategory?: string;
   gender?: string;
   description?: string;
   details?: string[];
