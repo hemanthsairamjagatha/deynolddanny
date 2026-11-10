@@ -577,6 +577,14 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 5.15s).
   - **Blockers:** None.
 
+- **2026-11-10 — Product Title Heading Font Size Adjusted to 20px**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the product title heading (`h1`) in `src/features/catalog/components/ProductPurchasePanel.tsx` from `text-xl sm:text-2xl` (which rendered at 24px on desktop) to exact `text-[20px] font-normal leading-snug`, matching the user's specification (`media_1794312985029_694f2b66.png`).
+  - **Files Modified:** `src/features/catalog/components/ProductPurchasePanel.tsx`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 7.33s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:

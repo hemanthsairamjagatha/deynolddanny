@@ -103,7 +103,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
       >
         {/* Title & Wishlist Row */}
         <div className="flex items-start justify-between gap-4">
-          <h1 className="text-xl sm:text-2xl font-normal tracking-tight text-neutral-900 leading-tight">
+          <h1 className="text-[20px] font-normal tracking-tight text-neutral-900 leading-snug">
             {product.title}
           </h1>
 
