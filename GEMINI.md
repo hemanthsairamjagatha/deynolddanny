@@ -655,6 +655,19 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 3.51s).
   - **Blockers:** None.
 
+- **2026-11-10 — Product Color Swatch Picture & Img Dimensions Alignment (40 × 59 / 40 × 55)**:
+  - **Status:** COMPLETE
+  - **Summary:** Aligned the color swatch thumbnail dimensions in `src/features/catalog/components/ProductColorSelector.tsx` to the exact DevTools inspection screenshots (`media_1794319442698_44a166bd.png` and `media_1794319479651_04413861.png`):
+    - Replaced the generic wrapper with `picture.ProductColorSelection__product-color-selection__image` styled with exact `width: 40px`, `height: 59px` (`40 × 59`).
+    - Configured the inner `img` with exact `width: 40px`, `height: 55px` (`40 × 55`) with `object-cover object-top`.
+    - Applied 4px bottom border indicator (`border-b-[4px] border-neutral-900` when active, `border-b-[4px] border-transparent` when inactive) matching the 4px bottom difference (`59px - 55px = 4px`) shown in the reference inspection.
+    - Preserved container dimensions `352.93 × 128` with `gap-[17px]` and `padding: 16px 0px`.
+    - In accordance with the user's standing instruction, no changes were pushed to GitHub.
+  - **Files Modified:** `src/features/catalog/components/ProductColorSelector.tsx`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 2.74s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:

@@ -18,7 +18,7 @@ export const ProductColorSelector: React.FC<ProductColorSelectorProps> = ({
 
   return (
     <div
-      className="w-full flex flex-col gap-3 ProductColorSelection__product-color-selection"
+      className="w-full flex flex-col gap-[17px] ProductColorSelection__product-color-selection"
       style={{ padding: '16px 0px' }}
     >
       {/* Color Name Label */}
@@ -41,28 +41,38 @@ export const ProductColorSelector: React.FC<ProductColorSelectorProps> = ({
               aria-checked={isSelected}
               aria-label={`Select color ${color.name}`}
               onClick={() => onSelectColor(idx)}
-              className={`relative group focus:outline-none focus:ring-1 focus:ring-neutral-900 transition-all ${
-                isSelected ? 'ring-1 ring-neutral-900' : 'ring-1 ring-transparent hover:ring-neutral-300'
-              }`}
+              className="relative focus:outline-none group"
             >
               {swatchImage ? (
-                <div className="w-12 h-16 bg-[#f5f3ee] overflow-hidden flex items-center justify-center border border-neutral-200">
+                <picture
+                  className={`ProductColorSelection__product-color-selection__image block overflow-hidden transition-colors ${
+                    isSelected
+                      ? 'border-b-[4px] border-neutral-900'
+                      : 'border-b-[4px] border-transparent hover:border-neutral-300'
+                  }`}
+                  style={{ width: '40px', height: '59px' }}
+                >
                   <img
                     src={swatchImage}
                     alt={color.name}
-                    className="w-full h-full object-cover object-top"
+                    className="object-cover object-top block"
+                    style={{ width: '40px', height: '55px' }}
                   />
-                </div>
+                </picture>
               ) : (
                 <div
-                  className="w-10 h-10 rounded-full border border-neutral-300 shadow-inner flex items-center justify-center"
-                  style={{ backgroundColor: color.hex }}
-                />
-              )}
-
-              {/* Bottom selection indicator matching screenshot */}
-              {isSelected && (
-                <div className="absolute -bottom-1.5 left-0 right-0 h-[2px] bg-neutral-900" />
+                  className={`block overflow-hidden transition-colors ${
+                    isSelected
+                      ? 'border-b-[4px] border-neutral-900'
+                      : 'border-b-[4px] border-transparent hover:border-neutral-300'
+                  }`}
+                  style={{ width: '40px', height: '59px' }}
+                >
+                  <div
+                    className="border border-neutral-200"
+                    style={{ width: '40px', height: '55px', backgroundColor: color.hex }}
+                  />
+                </div>
               )}
             </button>
           );
