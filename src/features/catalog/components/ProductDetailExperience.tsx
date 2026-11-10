@@ -46,7 +46,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
           </div>
 
           {/* Right Column: Sticky Purchase Panel */}
-          <div className="w-full lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24 pt-2">
+          <div className="w-full lg:col-span-5 xl:col-span-4 lg:sticky lg:top-20 flex justify-start">
             <ProductPurchasePanel
               product={product}
               selectedColorIndex={selectedColorIndex}

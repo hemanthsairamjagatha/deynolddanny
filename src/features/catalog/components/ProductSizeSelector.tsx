@@ -30,7 +30,7 @@ export const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className={`w-full h-12 px-6 rounded-full border text-xs uppercase tracking-widest font-medium flex items-center justify-between transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-900 bg-white ${
+        className={`w-full h-12 px-6 rounded-full border text-xs uppercase tracking-widest font-medium relative flex items-center justify-center transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-900 bg-white ${
           hasError && !selectedSize
             ? 'border-red-500 text-red-600'
             : selectedSize
@@ -38,19 +38,9 @@ export const ProductSizeSelector: React.FC<ProductSizeSelectorProps> = ({
             : 'border-neutral-800 text-neutral-800 hover:border-black'
         }`}
       >
-        <span className="mx-auto">
+        <span>
           {selectedSize ? `SIZE: ${selectedSize}` : 'SELECT SIZE'}
         </span>
-        <svg
-          className={`w-4 h-4 transition-transform duration-200 text-neutral-500 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 9l-7 7-7-7" />
-        </svg>
       </button>
 
       {/* Error Message if Add To Bag was clicked without choosing size */}
