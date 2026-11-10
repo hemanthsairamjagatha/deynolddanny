@@ -1627,4 +1627,14 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 5.46s).
   - **Blockers:** None.
 
+- **2026-11-10 — Product Color Selection 16px 0px Padding and Vertical Rhythm Re-alignment**:
+  - **Status:** COMPLETE
+  - **Summary:** Applied the exact DevTools box-model padding inspected in `media_1794318665775_2fee9302.png` to `ProductColorSelection` (`div.ProductColorSelection__product-color-selection`, `352.93 × 128`, `Padding: 16px 0px`). Configured `style={{ padding: '16px 0px' }}` and `gap-3` (12px) with `leading-5` in `src/features/catalog/components/ProductColorSelector.tsx`. In `src/features/catalog/components/ProductPurchasePanel.tsx`, eliminated `space-y-5` from the parent container (`pt-[40px] pr-[20px] pb-[24px] pl-[24px]`), allowing heading bottom padding (16px) and color selection top padding (16px) to sit contiguously without extraneous margin-top. In accordance with the user's standing instruction, no changes were pushed to GitHub.
+  - **Files Modified:**
+    - `src/features/catalog/components/ProductColorSelector.tsx`
+    - `src/features/catalog/components/ProductPurchasePanel.tsx`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 5.49s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
