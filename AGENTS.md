@@ -1533,4 +1533,12 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 7.79s).
   - **Blockers:** None.
 
+- **2026-11-10 — Product Detail Page Image Dimensions and Aspect Ratio Alignment**:
+  - **Status:** COMPLETE
+  - **Summary:** Aligned the product detail gallery image container to the exact native aspect ratio `aspect-[1124/1546]` and attached intrinsic dimensions (`width={1124}`, `height={1546}`) in `src/features/catalog/components/ProductGallery.tsx`. This ensures the exact `561.92 × 773.18` rendered desktop viewport dimensions requested in the user's DevTools screenshot (`media_1794311868025_b7075c4c.png`) without any cropping, distortion, or CLS. Updated container width to `max-w-[1520px]` in `src/features/catalog/components/ProductDetailExperience.tsx` aligning with site chrome. Backend was untouched per user instruction.
+  - **Files Modified:** `src/features/catalog/components/ProductGallery.tsx`, `src/features/catalog/components/ProductDetailExperience.tsx`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 3.16s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**

@@ -15,7 +15,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
 
   if (!images || images.length === 0) {
     return (
-      <div className="w-full aspect-[3/4] bg-[#f5f3ee] flex items-center justify-center text-neutral-400">
+      <div className="w-full aspect-[1124/1546] bg-[#f5f3ee] flex items-center justify-center text-neutral-400">
         No image available
       </div>
     );
@@ -43,7 +43,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
           {images.map((img, idx) => (
             <div
               key={idx}
-              className="flex-shrink-0 w-full snap-center bg-[#f5f3ee] relative aspect-[3/4.4] cursor-pointer"
+              className="flex-shrink-0 w-full snap-center bg-[#f5f3ee] relative aspect-[1124/1546] cursor-pointer"
               onClick={() => onOpenLightbox(idx)}
             >
               <img
@@ -51,6 +51,8 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
                 alt={`${title} - view ${idx + 1}`}
                 className="w-full h-full object-cover object-center"
                 loading={idx === 0 ? 'eager' : 'lazy'}
+                width={1124}
+                height={1546}
               />
             </div>
           ))}
@@ -89,7 +91,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
             <div
               key={idx}
               onClick={() => onOpenLightbox(idx)}
-              className={`group relative bg-[#f5f3ee] overflow-hidden cursor-zoom-in transition-all duration-300 aspect-[3/4.4] ${
+              className={`group relative bg-[#f5f3ee] overflow-hidden cursor-zoom-in transition-all duration-300 aspect-[1124/1546] ${
                 isFullWidthDetail ? 'md:col-span-1' : ''
               }`}
             >
@@ -98,6 +100,8 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
                 alt={`${title} - view ${idx + 1}`}
                 className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                 loading={idx < 2 ? 'eager' : 'lazy'}
+                width={1124}
+                height={1546}
               />
 
               {/* Subtle hover zoom prompt */}
