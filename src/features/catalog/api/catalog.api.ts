@@ -16,6 +16,33 @@ export interface CatalogListResponse {
 }
 
 /**
+ * Normalizes backend product data into full frontend ProductCardData structure
+ */
+export function normalizeProduct(p: ProductCardData & { gallery?: Array<{ colorName: string; images: string[] }> }): ProductCardData {
+  if (!p) return p;
+
+  const galleryImages = p.gallery?.[0]?.images || [];
+  const topImages = (p.images && p.images.length > 0) 
+    ? p.images 
+    : (galleryImages.length > 0 ? galleryImages : [p.defaultImg, p.hoverImg].filter(Boolean));
+
+  const colors = (p.colors || []).map((c, idx) => {
+    const matchingGallery = p.gallery?.find(g => g.colorName.toLowerCase() === c.name.toLowerCase());
+    return {
+      ...c,
+      images: matchingGallery?.images || (idx === 0 ? topImages : [p.defaultImg, p.hoverImg].filter(Boolean)),
+      swatchImg: c.swatchImg || p.defaultImg,
+    };
+  });
+
+  return {
+    ...p,
+    images: topImages,
+    colors: colors.length > 0 ? colors : [{ name: 'Default', hex: '#111111', images: topImages, swatchImg: p.defaultImg }],
+  };
+}
+
+/**
  * Fetch products list from Cloudflare backend with fallback to static catalog
  */
 export async function fetchProducts(params: {
@@ -34,7 +61,7 @@ export async function fetchProducts(params: {
   const res = await apiFetch<CatalogListResponse>(endpoint);
 
   if (res.success && res.data?.items && res.data.items.length > 0) {
-    return res.data.items;
+    return res.data.items.map(normalizeProduct);
   }
 
   // Graceful fallback to local products if offline or empty
@@ -51,11 +78,12 @@ export async function fetchProductBySlug(slug: string): Promise<ProductCardData 
   const res = await apiFetch<ProductCardData>(`/api/products/${slug}`);
 
   if (res.success && res.data) {
-    return res.data;
+    return normalizeProduct(res.data);
   }
 
   // Fallback to local product definition
-  return getLocalProductBySlug(slug) || null;
+  const local = getLocalProductBySlug(slug);
+  return local ? normalizeProduct(local) : null;
 }
 
 /**
