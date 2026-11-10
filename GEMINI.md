@@ -711,6 +711,23 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 40 static pages built in 7.45s).
   - **Blockers:** None.
 
+- **2026-11-10 — Floating Product Info Card Box Model & Dimensions Alignment (Exact DevTools Measurements)**:
+  - **Status:** COMPLETE
+  - **Summary:** Aligned all child elements of the floating product info card (`div.product-info-wrapper.bg-body.p-2.p-xl-4`, `526 × 354.1`, `padding: 20px`, `inner width: 486px`) in `src/features/catalog/components/ProductDetailExperience.tsx` to the exact DevTools inspection screenshots:
+    - Title (`span`): Configured `text-[16px] leading-[23.2px]` with exact box dimensions `364.39 × 46.4` and `color: #000000`.
+    - Origin Badge (`div.p-1`): Configured exact box dimensions `101.15 × 22.24`, `font-size: 11px`, `padding: 4px`, `margin: -3px 0px 0px -3px`, `border: 1px solid #000000`, containing uppercase text `MADE IN INDIA` per explicit user instructions.
+    - SKU (`div.product-sku.mt-1`): Configured box dimensions `381.16 × 10.5`, `font-size: 10px`, `color: #000000`, `margin: 4px 0px 0px` (`mt-1`).
+    - Color Label (`span`): Configured dimensions `110.59 × 19.2`, `font-size: 14px`, `line-height: 19.2px`, `color: #000000`.
+    - Color Swatches Container (`div.color-group.mt-2`): Configured dimensions `486 × 45.8`, `font-size: 14px`, `margin: 10px 0px 0px`.
+    - Swatch Thumbnails (`div.variant-color.d-inline-block`): Configured exact `40 × 40` squares with `margin-right: 17px` (last item `0px`).
+    - Divider (`div.w100.border-bottom.mt-5.mb-5.bordermb-none`): Configured dimensions `486 × 0.8` with `margin: 24px 0px`.
+    - Share Section (`div.product-info-wishlist.d-flex.flex-column`): Configured dimensions `486 × 56`, `padding: 16px 0px`, `font-size: 14px`, `color: #000000`.
+    - In accordance with the user's standing instruction, no changes were pushed to GitHub.
+  - **Files Modified:** `src/features/catalog/components/ProductDetailExperience.tsx`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 40 static pages built in 4.38s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:

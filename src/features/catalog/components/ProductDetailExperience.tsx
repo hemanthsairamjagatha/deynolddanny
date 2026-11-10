@@ -185,8 +185,11 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             backgroundColor: '#FFFFFF'
           }}
         >
-          {/* Row 1: Breadcrumbs & Status Badge */}
-          <div className="flex items-start justify-between gap-3 text-[10px] uppercase tracking-wider text-neutral-500 font-medium">
+          {/* Row 1: Breadcrumbs & Status / Price Badge */}
+          <div
+            className="flex items-start justify-between gap-3 text-[10px] uppercase tracking-wider text-neutral-500 font-medium"
+            style={{ width: '486px', maxWidth: '100%' }}
+          >
             <div className="flex items-center gap-1.5 flex-wrap leading-tight">
               <a href="/" className="hover:text-black transition-colors">HOME</a>
               <span>&gt;</span>
@@ -209,40 +212,89 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                 SOLD OUT
               </span>
             ) : (
-              <span className="text-neutral-900 font-semibold text-[13px] flex-shrink-0">
+              <span className="text-black font-semibold text-[13px] flex-shrink-0">
                 {product.price}
               </span>
             )}
           </div>
 
-          {/* Row 2: Product Title & Boxed "MADE IN INDIA" Badge */}
-          <div className="flex items-start justify-between gap-4 mt-2.5">
-            <h1 className="text-[15px] font-bold tracking-wide text-neutral-900 uppercase leading-snug">
-              {product.title}
+          {/* Row 2: Product Title (364.39 x 46.4, 16px) & Boxed "MADE IN INDIA" Badge (101.15 x 22.24, 11px) */}
+          <div
+            className="flex items-start justify-between gap-4 mt-2.5"
+            style={{ width: '486px', maxWidth: '100%' }}
+          >
+            <h1
+              className="m-0 p-0 text-[16px] leading-[23.2px] text-black uppercase font-medium tracking-normal"
+              style={{ width: '364.39px', maxWidth: 'calc(100% - 110px)' }}
+            >
+              <span style={{ display: 'inline-block', width: '100%' }}>
+                {product.title}
+              </span>
             </h1>
 
-            {/* Boxed MADE IN INDIA Badge matching reference with thin border */}
+            {/* Boxed MADE IN INDIA Badge matching reference with thin border & exact 101.15 x 22.24 box */}
             <div
-              className="border border-neutral-800 px-2.5 py-0.5 text-[9px] font-medium tracking-widest text-neutral-900 uppercase whitespace-nowrap flex-shrink-0"
-              style={{ border: '1px solid #222222' }}
+              className="p-1 uppercase text-black font-medium tracking-wider flex items-center justify-center whitespace-nowrap flex-shrink-0"
+              style={{
+                width: '101.15px',
+                height: '22.24px',
+                fontSize: '11px',
+                padding: '4px',
+                margin: '-3px 0px 0px -3px',
+                border: '1px solid #000000',
+                color: '#000000'
+              }}
             >
               MADE IN INDIA
             </div>
           </div>
 
-          {/* Row 3: SKU */}
-          <div className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider mt-1">
+          {/* Row 3: SKU (381.16 x 10.5, 10px, mt-1 = 4px margin) */}
+          <div
+            className="product-sku mt-1 uppercase tracking-wider font-mono"
+            style={{
+              width: '381.16px',
+              maxWidth: '100%',
+              minHeight: '10.5px',
+              fontSize: '10px',
+              color: '#000000',
+              margin: '4px 0px 0px'
+            }}
+          >
             SKU {product.sku || 'CFC0130327003B098'}
           </div>
 
-          {/* Row 4: Color Label */}
-          <div className="text-[12px] text-neutral-600 tracking-wide mt-3.5">
-            <span>Color </span>
-            <span className="font-bold text-neutral-900">{currentColor.name}</span>
+          {/* Row 4: Color Label (110.59 x 19.2, 14px, leading 19.2px) */}
+          <div className="mt-3.5" style={{ width: '486px', maxWidth: '100%' }}>
+            <span
+              className="text-black"
+              style={{
+                display: 'inline-block',
+                minWidth: '110.59px',
+                height: '19.2px',
+                fontSize: '14px',
+                lineHeight: '19.2px',
+                color: '#000000'
+              }}
+            >
+              Color <strong className="font-bold">{currentColor.name}</strong>
+            </span>
           </div>
 
-          {/* Row 5: Square Color Swatches matching reference */}
-          <div className="flex items-center gap-2.5 mt-2" role="radiogroup" aria-label="Available colors">
+          {/* Row 5: Square Color Swatches (div.color-group.mt-2: 486 x 45.8, each swatch 40 x 40 with 17px right margin) */}
+          <div
+            className="color-group mt-2 flex items-center"
+            role="radiogroup"
+            aria-label="Available colors"
+            style={{
+              width: '486px',
+              maxWidth: '100%',
+              minHeight: '45.8px',
+              fontSize: '14px',
+              color: '#000000',
+              margin: '10px 0px 0px'
+            }}
+          >
             {colors.map((c, idx) => {
               const isSelected = selectedColorIndex === idx;
               return (
@@ -253,12 +305,17 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                   aria-checked={isSelected}
                   aria-label={`Select color ${c.name}`}
                   onClick={() => setSelectedColorIndex(idx)}
-                  className={`w-7 h-7 rounded-[2px] border transition-all focus:outline-none ${
+                  className={`variant-color d-inline-block rounded-[2px] transition-all focus:outline-none flex-shrink-0 ${
                     isSelected
-                      ? 'ring-2 ring-offset-2 ring-neutral-900 border-neutral-900'
-                      : 'border-neutral-300 hover:border-neutral-700'
+                      ? 'ring-2 ring-offset-2 ring-black border border-black'
+                      : 'border border-neutral-300 hover:border-black'
                   }`}
-                  style={{ backgroundColor: c.hex }}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    marginRight: idx === colors.length - 1 ? '0px' : '17px',
+                    backgroundColor: c.hex
+                  }}
                 />
               );
             })}
@@ -266,7 +323,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
 
           {/* Row 6: Interactive Size Selection & Add to Bag (When in stock) */}
           {!isSoldOut && product.sizes && product.sizes.length > 0 && (
-            <div className="mt-4 space-y-2.5">
+            <div className="mt-4 space-y-2.5" style={{ width: '486px', maxWidth: '100%' }}>
               <div className="flex items-center justify-between text-[11px] uppercase tracking-wider">
                 <span className="font-medium text-neutral-700">Size: {selectedSize || 'Select'}</span>
                 <div className="flex items-center gap-3">
@@ -315,29 +372,74 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                 <p className="text-[11px] text-red-500">Please choose a size</p>
               )}
 
-              {/* Add To Bag Primary CTA */}
-              <button
-                type="button"
-                onClick={handleAddToBag}
-                disabled={isAdding}
-                className="w-full h-10 rounded-[3px] bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest font-semibold transition-all flex items-center justify-center mt-2"
+              {/* Add To Bag Primary CTA matching exact 45.6px height and #424242 background */}
+              <div
+                className="bg-white ProductDetailDescription__product-detail-description__cart-block mt-3"
+                style={{
+                  margin: '0px -16px',
+                  padding: '16px',
+                  width: 'calc(100% + 32px)',
+                  backgroundColor: '#FFFFFF'
+                }}
               >
-                {isAdding ? 'ADDING...' : 'ADD TO BAG'}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleAddToBag}
+                  disabled={isAdding}
+                  className="w-full rounded-full text-white transition-colors duration-200 flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-neutral-900 hover:bg-black"
+                  style={{
+                    padding: '13px 24px 9px 24px',
+                    height: '45.6px',
+                    backgroundColor: '#424242'
+                  }}
+                >
+                  {isAdding ? (
+                    <span className="inline-flex items-center gap-2 text-[14px] font-semibold tracking-wider uppercase text-white leading-[22px]">
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>ADDING...</span>
+                    </span>
+                  ) : (
+                    <span className="Button__btn__content btn__content text-[14px] font-semibold tracking-wider uppercase text-white leading-[22px]">
+                      ADD TO BAG
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Row 7: Divider */}
-          <div className="border-t border-neutral-200 mt-4 mb-3" />
+          {/* Row 7: Divider (div.w100.border-bottom.mt-5.mb-5.bordermb-none: 486 x 0.8, margin: 24px 0px) */}
+          <div
+            className="w100 border-bottom mt-5 mb-5 bordermb-none border-b border-neutral-200"
+            style={{
+              width: '486px',
+              maxWidth: '100%',
+              height: '0.8px',
+              margin: '24px 0px'
+            }}
+          />
 
-          {/* Row 8: Share this product */}
-          <div className="flex items-center justify-between">
+          {/* Row 8: Share Section (div.product-info-wishlist.d-flex.flex-column: 486 x 56, padding: 16px 0px, 14px) */}
+          <div
+            className="product-info-wishlist d-flex flex-column flex items-center justify-between"
+            style={{
+              width: '486px',
+              maxWidth: '100%',
+              height: '56px',
+              padding: '16px 0px',
+              fontSize: '14px',
+              color: '#000000'
+            }}
+          >
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center gap-2 text-[12px] text-neutral-700 hover:text-black font-medium transition-colors focus:outline-none"
+              className="inline-flex items-center gap-2.5 text-[14px] text-black hover:opacity-80 transition-opacity focus:outline-none"
             >
-              <svg className="w-4 h-4 text-neutral-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg className="w-4 h-4 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 15V3m0 0l-4 4m4-4l4 4" />
               </svg>
               <span>{copied ? 'Link copied to clipboard!' : 'Share this product'}</span>
