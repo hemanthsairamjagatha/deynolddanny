@@ -3,49 +3,6 @@
 ---
 
 <section class="hero-section" id="hero">
-  <!-- Centered Search Strip Matching Reference Image -->
-  <div class="hero-search-strip">
-    <form class="hero-search-box" action="/search" method="GET" id="hero-search-form">
-      <svg
-        class="search-icon"
-        width="19"
-        height="19"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <circle cx="10.5" cy="10.5" r="7.5"></circle>
-        <line x1="21" y1="21" x2="16" y2="16"></line>
-      </svg>
-      <input
-        type="text"
-        name="q"
-        class="hero-search-input"
-        placeholder="Type your search request"
-        aria-label="Type your search request"
-        autocomplete="off"
-      />
-      <button type="submit" class="hero-search-arrow" aria-label="Submit search request">
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-          <polyline points="12 5 19 12 12 19"></polyline>
-        </svg>
-      </button>
-    </form>
-  </div>
-
   <!-- Hero Visual Banner: Exact Size 1520.8 x 855 -->
   <div class="hero-banner-container">
     <img
@@ -68,21 +25,6 @@
   </div>
 </section>
 
-<script>
-  const heroForm = document.getElementById('hero-search-form') as HTMLFormElement | null;
-  const heroInput = heroForm?.querySelector('.hero-search-input') as HTMLInputElement | null;
-
-  if (heroForm && heroInput) {
-    const triggerSearch = (e: Event) => {
-      e.preventDefault();
-      window.dispatchEvent(new CustomEvent('open-search-modal'));
-    };
-
-    heroForm.addEventListener('submit', triggerSearch);
-    heroInput.addEventListener('click', triggerSearch);
-  }
-</script>
-
 <style>
   /* Base Hero Section Layout */
   .hero-section {
@@ -92,79 +34,6 @@
     padding: 0;
     overflow: hidden;
     background-color: #faf9f6;
-  }
-
-  /* Centered Search Strip */
-  .hero-search-strip {
-    position: absolute;
-    top: 2rem;
-    left: 0;
-    right: 0;
-    z-index: 20;
-    display: flex;
-    justify-content: center;
-    padding: 0 1.5rem;
-  }
-
-  .hero-search-box {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    max-width: 620px;
-    height: 48px;
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    border-radius: 9999px;
-    padding: 0 1.25rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .hero-search-box:focus-within {
-    border-color: #111111;
-    background: #ffffff;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
-  }
-
-  .search-icon {
-    flex-shrink: 0;
-    color: #555555;
-    margin-right: 0.75rem;
-  }
-
-  .hero-search-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-family: var(--font-primary, 'Plus Jakarta Sans'), sans-serif;
-    font-size: 0.85rem;
-    font-weight: 400;
-    letter-spacing: 0.04em;
-    color: #111111;
-  }
-
-  .hero-search-input::placeholder {
-    color: #888888;
-  }
-
-  .hero-search-arrow {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    color: #111111;
-    padding: 0;
-    margin-left: 0.5rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease;
-  }
-
-  .hero-search-arrow:hover {
-    transform: translateX(3px);
   }
 
   /* Hero Visual Image Banner */
@@ -232,13 +101,6 @@
   }
 
   @media (max-width: 640px) {
-    .hero-search-strip {
-      top: 1rem;
-      padding: 0 1rem;
-    }
-    .hero-search-box {
-      height: 42px;
-    }
     .hero-banner-container {
       min-height: 420px;
     }

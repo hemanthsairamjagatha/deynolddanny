@@ -1672,7 +1672,15 @@ deynold-danny-ecommerce/
     - In accordance with the user's standing instruction, no changes were pushed to GitHub.
   - **Files Modified:** `src/features/catalog/components/ProductSizeSelector.tsx`.
   - **Structural change summary:** No architecture or directory-structure change in this task.
-  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 5.95s).
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 5.95s).
+  - **Blockers:** None.
+
+- **2026-11-10 — Removal of Hero Search Strip Form (620 × 48)**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the redundant floating search strip form (`form#hero-search-form.hero-search-box`, `620 × 48`) and its inline event scripts and styles from `src/features/home/components/HeroBanner.astro`, as inspected in user-provided DevTools screenshot `media_1794321322188_60ec5915.jpg`. Global search functionality remains cleanly and fully accessible via the primary search trigger icon in the site header (`SearchTrigger`). In accordance with the user's standing instruction, no changes were pushed to GitHub.
+  - **Files Modified:** `src/features/home/components/HeroBanner.astro`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 3.00s).
   - **Blockers:** None.
 
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
