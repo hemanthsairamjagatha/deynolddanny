@@ -62,17 +62,15 @@ const jsonLd = {
   <main class="min-h-screen bg-white">
     {/* Subtle Breadcrumb Navigation */}
     <nav class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2" aria-label="Breadcrumb">
-      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
+      <ol class="flex items-center gap-2.5 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
         <li>
           <a href="/" class="hover:text-black transition-colors">Home</a>
         </li>
-        <li class="select-none">/</li>
         <li>
           <a href="/#mastery" class="hover:text-black transition-colors">
             {product.category || 'Collection'}
           </a>
         </li>
-        <li class="select-none">/</li>
         <li class="text-neutral-900 font-medium truncate max-w-[200px] sm:max-w-none" aria-current="page">
           {product.title}
         </li>
