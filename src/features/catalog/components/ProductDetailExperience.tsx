@@ -34,7 +34,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
   return (
     <div className="w-full">
       {/* Split-screen PDP Grid matching reference 1123.86px gallery and 396.93px purchase panel */}
-      <div className="w-full max-w-[1521px] mx-auto pt-2 pb-12 lg:pb-16 px-4 sm:px-6 lg:px-0">
+      <div className="w-full max-w-[1521px] mx-auto">
         <div className="flex flex-col lg:flex-row items-start justify-between gap-0">
           {/* Left Column: Image Gallery (2-column on desktop with 0 gap, carousel on mobile) */}
           <div className="w-full lg:w-[calc(100%-396.93px)] xl:w-[1123.86px] lg:flex-shrink-0">

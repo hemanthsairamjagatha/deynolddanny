@@ -1564,4 +1564,12 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 3.35s).
   - **Blockers:** None.
 
+- **2026-11-10 — Removal of Product Detail Split-Screen Outer Container Padding**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the outer container padding (`pt-4 pb-12 lg:pt-6 lg:pb-16 px-4 sm:px-6 lg:px-8` which caused `24px 32px 64px` padding) from `src/features/catalog/components/ProductDetailExperience.tsx` as inspected in DevTools screenshot (`media_1794312437180_2b7da302.png`). The container is now flush (`<div className="w-full max-w-[1521px] mx-auto">`), allowing the gallery images to sit edge-to-edge seamlessly. In accordance with the user's explicit instruction, no changes were pushed to GitHub.
+  - **Files Modified:** `src/features/catalog/components/ProductDetailExperience.tsx`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 5.15s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
