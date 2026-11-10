@@ -33,11 +33,11 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
 
   return (
     <div className="w-full">
-      {/* Split-screen PDP Grid */}
-      <div className="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 lg:pt-6 lg:pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-16 items-start">
-          {/* Left Column: Image Gallery (2-column on desktop, carousel on mobile) */}
-          <div className="w-full lg:col-span-7 xl:col-span-8">
+      {/* Split-screen PDP Grid matching reference 1123.86px gallery and 396.93px purchase panel */}
+      <div className="w-full max-w-[1521px] mx-auto pt-2 pb-12 lg:pb-16 px-4 sm:px-6 lg:px-0">
+        <div className="flex flex-col lg:flex-row items-start justify-between gap-0">
+          {/* Left Column: Image Gallery (2-column on desktop with 0 gap, carousel on mobile) */}
+          <div className="w-full lg:w-[calc(100%-396.93px)] xl:w-[1123.86px] lg:flex-shrink-0">
             <ProductGallery
               images={galleryImages}
               title={product.title}
@@ -45,8 +45,8 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             />
           </div>
 
-          {/* Right Column: Sticky Purchase Panel */}
-          <div className="w-full lg:col-span-5 xl:col-span-4 lg:sticky lg:top-20 flex justify-start">
+          {/* Right Column: Sticky Purchase Panel (396.93px wide) */}
+          <div className="w-full lg:w-[396.93px] lg:flex-shrink-0 lg:sticky lg:top-20">
             <ProductPurchasePanel
               product={product}
               selectedColorIndex={selectedColorIndex}

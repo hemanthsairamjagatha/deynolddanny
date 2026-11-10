@@ -1553,4 +1553,15 @@ deynold-danny-ecommerce/
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 7.51s).
   - **Blockers:** None.
 
+- **2026-11-10 — Product Detail 2-Column Seamless Image Grid (1123.86 × 2319.53) Alignment**:
+  - **Status:** COMPLETE
+  - **Summary:** Aligned the product detail gallery grid to the exact specifications inspected in DevTools (`div.ProductGallery__product-gallery__grid`, `1123.86 × 2319.53`) from the user's uploaded reference screenshot (`media_1794312506569_f06efeb1.jpg`). Replaced the gap spacing with seamless `gap-0` across rows and columns in `src/features/catalog/components/ProductGallery.tsx`, where each image occupies a single column cell with aspect ratio `1124 / 1546` (`561.93 × 773.18`), leaving odd-numbered trailing cells unoccupied with natural CSS Grid track hatching. In `src/features/catalog/components/ProductDetailExperience.tsx`, updated the split-screen container to `max-w-[1521px]` with `w-[calc(100%-396.93px)] xl:w-[1123.86px]` gallery and `396.93px` purchase panel (`gap-0` between them). In accordance with the user's explicit instruction, no changes were pushed to GitHub.
+  - **Files Modified:**
+    - `src/features/catalog/components/ProductGallery.tsx`
+    - `src/features/catalog/components/ProductDetailExperience.tsx`
+    - `src/features/catalog/components/ProductPurchasePanel.tsx`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 26 static pages built in 3.35s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**

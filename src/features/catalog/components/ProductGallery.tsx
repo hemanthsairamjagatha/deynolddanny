@@ -82,37 +82,31 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
         )}
       </div>
 
-      {/* Desktop 2-Column Luxury Grid (>= md) */}
-      <div className="hidden md:grid md:grid-cols-2 gap-3 lg:gap-4 w-full">
-        {images.map((img, idx) => {
-          // If total images is odd and this is the last image, let it span 1 column or 2 columns based on editorial balance
-          const isFullWidthDetail = images.length % 2 === 1 && idx === images.length - 1;
-          return (
-            <div
-              key={idx}
-              onClick={() => onOpenLightbox(idx)}
-              className={`group relative bg-[#f5f3ee] overflow-hidden cursor-zoom-in transition-all duration-300 aspect-[1124/1546] ${
-                isFullWidthDetail ? 'md:col-span-1' : ''
-              }`}
-            >
-              <img
-                src={img}
-                alt={`${title} - view ${idx + 1}`}
-                className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                loading={idx < 2 ? 'eager' : 'lazy'}
-                width={1124}
-                height={1546}
-              />
+      {/* Desktop 2-Column Luxury Grid (>= md) with 0 gap matching DevTools reference 1123.86 x 2319.53 */}
+      <div className="hidden md:grid md:grid-cols-2 gap-0 w-full ProductGallery__product-gallery__grid">
+        {images.map((img, idx) => (
+          <div
+            key={idx}
+            onClick={() => onOpenLightbox(idx)}
+            className="group relative bg-[#f5f3ee] overflow-hidden cursor-zoom-in aspect-[1124/1546] w-full"
+          >
+            <img
+              src={img}
+              alt={`${title} - view ${idx + 1}`}
+              className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.01]"
+              loading={idx < 2 ? 'eager' : 'lazy'}
+              width={1124}
+              height={1546}
+            />
 
-              {/* Subtle hover zoom prompt */}
-              <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm text-neutral-800">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-                </svg>
-              </div>
+            {/* Subtle hover zoom prompt */}
+            <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm text-neutral-800">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+              </svg>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );

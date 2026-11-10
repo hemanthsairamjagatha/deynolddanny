@@ -95,7 +95,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
     : `€ ${product.priceNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="w-full max-w-[400px] text-neutral-900">
+    <div className="w-full max-w-[396.93px] text-neutral-900">
       {/* Upper purchase box matching ProductDetailDescription with exact 40px 20px 24px 24px padding */}
       <div
         className="w-full flex flex-col space-y-6 pt-[40px] pr-[20px] pb-[24px] pl-[24px]"
