@@ -29,3 +29,4 @@ export const SearchTrigger: React.FC = () => {
 };
 
 export default SearchTrigger;
+
