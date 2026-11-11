@@ -1773,4 +1773,15 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 static pages built in 3.26s).
   - **Blockers:** None.
 
+- **2026-11-11 — Removal of Editorial Description & Specifications Section from Product Detail Page**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the 3-column lower section (`Description & Craftsmanship`, `Size & Fit`, `Composition & Care`, `div.max-w-[1200px].mx-auto.px-6.py-14.border-t.border-neutral-200/80`) from `src/features/catalog/components/ProductDetailExperience.tsx` as requested in user-provided screenshot `media_1794384540827_91856a79.png`. Preserved the horizontal gallery, floating product info card, lightbox, fit finder, size guide, and sibling sections (`StyleItWith.astro`, `RelatedProducts.astro`).
+  - **Files Modified:** `src/features/catalog/components/ProductDetailExperience.tsx`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task
+  - **Validation:**
+    - `$matches = Get-ChildItem -Path "src" -Recurse -File | Select-String -Pattern "Description & Craftsmanship","Luxury Editorial Description"; if ($matches) { $matches; exit 1 } else { Write-Output "0 matches" }`: PASS (0 matches remaining in `src/`).
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 static pages built in 9.23s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**

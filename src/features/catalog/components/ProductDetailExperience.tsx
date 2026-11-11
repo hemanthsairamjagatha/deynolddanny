@@ -448,63 +448,6 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* 3. Luxury Editorial Description & Specifications Section     */}
-      {/* ============================================================ */}
-      <div className="max-w-[1200px] mx-auto px-6 py-14 border-t border-neutral-200/80">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {/* Description */}
-          <div className="space-y-3">
-            <h2 className="text-[12px] uppercase tracking-widest font-bold text-neutral-900">
-              Description & Craftsmanship
-            </h2>
-            <p className="text-[13px] leading-relaxed text-neutral-600">
-              {product.description ||
-                'Feminine sheath dress crafted in stretch cady with asymmetrical side draping that contours the silhouette with timeless grace. Round neckline, three-quarter sleeves, and invisible rear zip fastening. Made in India through sustainable artisanal processes.'}
-            </p>
-          </div>
-
-          {/* Size & Fit */}
-          <div className="space-y-3">
-            <h2 className="text-[12px] uppercase tracking-widest font-bold text-neutral-900">
-              Size & Fit
-            </h2>
-            <ul className="text-[13px] leading-relaxed text-neutral-600 space-y-1.5">
-              {(product.sizeAndFit || [
-                "Model is 177 cm / 5'9.5\" and is wearing size 40.",
-                'Form-fitting sheath silhouette with asymmetrical pleated gathering.',
-                'Knee length hemline with center-back walking vent.'
-              ]).map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-neutral-400 mt-1">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Composition & Care */}
-          <div className="space-y-3">
-            <h2 className="text-[12px] uppercase tracking-widest font-bold text-neutral-900">
-              Composition & Care
-            </h2>
-            <ul className="text-[13px] leading-relaxed text-neutral-600 space-y-1.5">
-              {(product.compositionAndCare || [
-                'Composition: 96% Polyester, 4% Elastane.',
-                'Lining: 100% Stretch cupro.',
-                'Care: Dry clean only. Iron at low temperature.',
-                'Carefully crafted in India.'
-              ]).map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-neutral-400 mt-1">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
       {/* Lightbox Modal */}
       <ProductLightbox
         isOpen={isLightboxOpen}
