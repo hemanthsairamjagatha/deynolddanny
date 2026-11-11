@@ -449,22 +449,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       </div>
 
       {/* ============================================================ */}
-      {/* 3. Floating Concierge Chat Bubble (Bottom-Right of viewport) */}
-      {/* ============================================================ */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <a
-          href="/contact"
-          aria-label="Contact Concierge"
-          className="w-12 h-12 rounded-full bg-neutral-900 hover:bg-black text-white flex items-center justify-center shadow-2xl hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-neutral-900"
-        >
-          <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" />
-          </svg>
-        </a>
-      </div>
-
-      {/* ============================================================ */}
-      {/* 4. Luxury Editorial Description & Specifications Section     */}
+      {/* 3. Luxury Editorial Description & Specifications Section     */}
       {/* ============================================================ */}
       <div className="max-w-[1200px] mx-auto px-6 py-14 border-t border-neutral-200/80">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">

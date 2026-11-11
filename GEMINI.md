@@ -200,86 +200,71 @@ implementation record accurate, not to rewrite standing rules.
 
 ### Current repository structure / implementation snapshot
 
-- **Verification date:** 2026-11-10
+- **Verification date:** 2026-11-11
 - **Verification status:** Verified against active working repository
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3
-- **Active Routes:**
-  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, editorial duo, and 3 product carousels)
-  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Dedicated luxury split-screen Product Detail Page with image gallery, sticky purchase panel, fit finder, size guide, lightbox, style-it-with, and related suggestions)
-  - `/wishlist` -> `src/pages/wishlist.astro` (Dedicated luxury wishlist experience with breadcrumbs, count header, empty state matching reference, and populated shopping grid)
-  - `/account/sign-in` (or `/login`) -> `src/pages/account/sign-in.astro` (Client identification & sign-in experience)
-  - `/account/sign-up` (or `/signup`) -> `src/pages/account/sign-up.astro` (Client profile creation & registration)
-  - `/account/forgot-password` -> `src/pages/account/forgot-password.astro` (Client credential recovery assistance)
+- **Active Routes (`src/pages/`):**
+  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, editorial duo, and product carousels)
+  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with horizontal gallery, floating info card, lightbox, fit finder, size guide, style-it-with, and related suggestions)
+  - `/search` -> `src/pages/search.astro` (Storefront search results page)
+  - `/cart` -> `src/pages/cart.astro` (Shopping bag page)
+  - `/checkout` -> `src/pages/checkout.astro` (Multi-step checkout page)
+  - `/wishlist` -> `src/pages/wishlist.astro` (Wishlist page with breadcrumbs, item count, empty state, and wishlist grid)
+  - `/contact` -> `src/pages/contact.astro` (Client concierge & salon contact page)
+  - `/account/sign-in` (alias `/login`) -> `src/pages/account/sign-in.astro` (`src/pages/login.astro`)
+  - `/account/sign-up` (alias `/signup`) -> `src/pages/account/sign-up.astro` (`src/pages/signup.astro`)
+  - `/account/forgot-password` -> `src/pages/account/forgot-password.astro`
+  - `/legal/{privacy-policy,shipping-returns,terms}` -> `src/pages/legal/*.astro`
 
 ```text
 deynold-danny-ecommerce/
+├── backend/                               # Separate Hono / Cloudflare Workers backend
 ├── public/
 │   ├── hero-banner.jpg
 │   ├── hero-banner.png
 │   ├── logo.png
 │   └── images/
-│       ├── cady-trousers-detail.jpg
-│       ├── cady-trousers-model-3.jpg
-│       ├── cady-trousers-model-4.jpg
-│       ├── cady-trousers-model.jpg
-│       ├── cady-trousers-product.jpg
-│       ├── cady-trousers-swatch.jpg
-│       ├── cady-vest.jpg
-│       ├── nappa-flat.jpg
-│       ├── suggest-pants-1.jpg
-│       ├── suggest-pants-2.jpg
-│       ├── suggest-pants-3.jpg
-│       ├── suggest-pants-4.jpg
 │       ├── autumn-product-[1..5].jpg
-│       ├── category-[abiti,accessori,camicie,cappotti,felpe,giubbini,maglieria,pantaloni,scarpe].jpg
+│       ├── bordeaux-dress-[back,detail,model,side].jpg
+│       ├── cady-trousers-[back,detail,fabric,model,model-3,model-4,product,swatch,waist].jpg
+│       ├── cady-vest.jpg
+│       ├── categories/[abiti,accessori,borse,camicie,capispalla,maglieria,pantaloni,scarpe].jpg
+│       ├── category-*.jpg
+│       ├── cleaned-inspection.png
+│       ├── mastery-[1..5]-[back,detail,model,product].jpg
 │       ├── mastery-men-[1..5].jpg & hover
+│       ├── nappa-flat.jpg
+│       ├── news-[1..5]-[back,detail,model,product].jpg
 │       ├── news-men-[1..5].jpg & hover
+│       ├── style-[1..5]-[back,detail,model,product].jpg
 │       ├── style-space-[1..5].jpg & hover
+│       ├── suggest-pants-[1..4].jpg
 │       └── thread-mastery-[1..5].jpg
 ├── src/
 │   ├── components/
 │   │   └── layout/
-│   │       ├── Header.astro
-│   │       └── Footer.astro
+│   │       ├── Footer.astro
+│   │       └── Header.astro
 │   ├── config/
 │   │   ├── ecommerce.config.ts
 │   │   ├── navigation.config.ts
 │   │   ├── routes.ts
 │   │   └── site.config.ts
+│   ├── data/
+│   │   └── products.ts
 │   ├── features/
-│   │   ├── home/
+│   │   ├── auth/
+│   │   │   ├── api/
+│   │   │   │   └── auth.api.ts
 │   │   │   ├── components/
-│   │   │   │   ├── HeroBanner.astro
-│   │   │   │   ├── CategoryGrid.astro
-│   │   │   │   └── EditorialDuo.astro
-│   │   │   └── data/
-│   │   │       └── home-content.ts
-│   │   ├── catalog/
-│   │   │   ├── components/
-│   │   │   │   ├── ProductCard.tsx
-│   │   │   │   ├── ProductCarousel.tsx
-│   │   │   │   ├── ProductColorSelector.tsx
-│   │   │   │   ├── ProductSizeSelector.tsx
-│   │   │   │   ├── ProductSizingActions.tsx
-│   │   │   │   ├── ProductPurchasePanel.tsx
-│   │   │   │   ├── ProductGallery.tsx
-│   │   │   │   ├── ProductLightbox.tsx
-│   │   │   │   ├── ProductDetailExperience.tsx
-│   │   │   │   ├── StyleItWith.astro
-│   │   │   │   └── RelatedProducts.astro
-│   │   │   ├── fit-finder/
-│   │   │   │   └── FitFinderDialog.tsx
-│   │   │   ├── size-guide/
-│   │   │   │   └── SizeGuideDialog.tsx
-│   │   │   ├── types/
-│   │   │   │   ├── product.types.ts
-│   │   │   │   ├── size-guide.types.ts
-│   │   │   │   └── fit-recommendation.types.ts
-│   │   │   ├── utils/
-│   │   │   │   └── product.utils.ts
-│   │   │   └── data/
-│   │   │       └── products.ts
+│   │   │   │   ├── ForgotPasswordForm.tsx
+│   │   │   │   ├── SignInForm.tsx
+│   │   │   │   └── SignUpForm.tsx
+│   │   │   └── types/
+│   │   │       └── auth.types.ts
 │   │   ├── cart/
+│   │   │   ├── api/
+│   │   │   │   └── cart.api.ts
 │   │   │   ├── components/
 │   │   │   │   ├── CartDrawer.tsx
 │   │   │   │   └── CartTrigger.tsx
@@ -287,48 +272,102 @@ deynold-danny-ecommerce/
 │   │   │   │   └── cart.store.ts
 │   │   │   └── types/
 │   │   │       └── cart.types.ts
-│   │   ├── wishlist/
+│   │   ├── catalog/
+│   │   │   ├── api/
+│   │   │   │   └── catalog.api.ts
 │   │   │   ├── components/
-│   │   │   │   ├── WishlistButton.tsx
-│   │   │   │   └── WishlistExperience.tsx
-│   │   │   ├── store/
-│   │   │   │   └── wishlist.store.ts
-│   │   │   └── types/
-│   │   │       └── wishlist.types.ts
-│   │   └── auth/
+│   │   │   │   ├── ProductCard.tsx
+│   │   │   │   ├── ProductCarousel.tsx
+│   │   │   │   ├── ProductColorSelector.tsx
+│   │   │   │   ├── ProductDetailExperience.tsx
+│   │   │   │   ├── ProductGallery.tsx
+│   │   │   │   ├── ProductLightbox.tsx
+│   │   │   │   ├── ProductPurchasePanel.tsx
+│   │   │   │   ├── ProductSizeSelector.tsx
+│   │   │   │   ├── ProductSizingActions.tsx
+│   │   │   │   ├── RelatedProducts.astro
+│   │   │   │   └── StyleItWith.astro
+│   │   │   ├── data/
+│   │   │   │   └── products.ts
+│   │   │   ├── fit-finder/
+│   │   │   │   └── FitFinderDialog.tsx
+│   │   │   ├── size-guide/
+│   │   │   │   └── SizeGuideDialog.tsx
+│   │   │   ├── types/
+│   │   │   │   ├── fit-recommendation.types.ts
+│   │   │   │   ├── product.types.ts
+│   │   │   │   └── size-guide.types.ts
+│   │   │   └── utils/
+│   │   │       └── product.utils.ts
+│   │   ├── checkout/
+│   │   │   ├── api/
+│   │   │   │   └── checkout.api.ts
+│   │   │   └── components/
+│   │   │       └── CheckoutExperience.tsx
+│   │   ├── home/
+│   │   │   ├── components/
+│   │   │   │   ├── CategoryGrid.astro
+│   │   │   │   ├── EditorialDuo.astro
+│   │   │   │   └── HeroBanner.astro
+│   │   │   └── data/
+│   │   │       └── home-content.ts
+│   │   ├── search/
+│   │   │   ├── components/
+│   │   │   │   ├── SearchDialog.tsx
+│   │   │   │   └── SearchTrigger.tsx
+│   │   │   └── store/
+│   │   │       └── search.store.ts
+│   │   └── wishlist/
 │   │       ├── components/
-│   │       │   ├── SignInForm.tsx
-│   │       │   ├── SignUpForm.tsx
-│   │       │   └── ForgotPasswordForm.tsx
+│   │       │   ├── WishlistButton.tsx
+│   │       │   └── WishlistExperience.tsx
+│   │       ├── store/
+│   │       │   └── wishlist.store.ts
 │   │       └── types/
-│   │           └── auth.types.ts
+│   │           └── wishlist.types.ts
 │   ├── layouts/
-│   │   ├── BaseLayout.astro
-│   │   ├── StorefrontLayout.astro
 │   │   ├── AuthLayout.astro
-│   │   └── Layout.astro
+│   │   ├── BaseLayout.astro
+│   │   ├── Layout.astro
+│   │   └── StorefrontLayout.astro
+│   ├── lib/
+│   │   └── api/
+│   │       └── client.ts
 │   ├── pages/
-│   │   ├── index.astro
-│   │   ├── wishlist.astro
-│   │   ├── login.astro
-│   │   ├── signup.astro
 │   │   ├── account/
+│   │   │   ├── forgot-password.astro
 │   │   │   ├── sign-in.astro
-│   │   │   ├── sign-up.astro
-│   │   │   └── forgot-password.astro
-│   │   └── products/
-│   │       └── [slug].astro
+│   │   │   └── sign-up.astro
+│   │   ├── legal/
+│   │   │   ├── privacy-policy.astro
+│   │   │   ├── shipping-returns.astro
+│   │   │   └── terms.astro
+│   │   ├── products/
+│   │   │   └── [slug].astro
+│   │   ├── cart.astro
+│   │   ├── checkout.astro
+│   │   ├── contact.astro
+│   │   ├── index.astro
+│   │   ├── login.astro
+│   │   ├── search.astro
+│   │   ├── signup.astro
+│   │   └── wishlist.astro
+│   ├── stores/
+│   │   └── cartStore.ts
 │   ├── styles/
 │   │   ├── global.css
-│   │   ├── variables.css
+│   │   ├── luxury-custom.css
 │   │   ├── typography.css
-│   │   └── luxury-custom.css
+│   │   └── variables.css
+│   ├── types/
+│   │   └── ecommerce.ts
 │   └── env.d.ts
 ├── astro.config.mjs
 ├── tailwind.config.mjs
 ├── tsconfig.json
 ├── package.json
 ├── package-lock.json
+├── README.md
 ├── AGENTS.md
 └── GEMINI.md
 ```
@@ -726,6 +765,17 @@ deynold-danny-ecommerce/
   - **Files Modified:** `src/features/catalog/components/ProductDetailExperience.tsx`.
   - **Structural change summary:** No architecture or directory-structure change in this task.
   - **Validation:** `npx astro check` (PASS: 74 files, 0 errors, 0 warnings, 0 hints), `npm run build` (PASS: 40 static pages built in 4.38s).
+  - **Blockers:** None.
+
+- **2026-11-11 — Removal of Floating Contact Concierge Chat Bubble from Product Detail Page**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the floating concierge chat bubble link (`<div className="fixed bottom-6 right-6 z-40">`, `a[aria-label="Contact Concierge"]`, `48 × 48` `w-12 h-12 rounded-full bg-neutral-900`) from `src/features/catalog/components/ProductDetailExperience.tsx` as requested in user-provided DevTools screenshot `media_1794384343984_8b00b180.png`. Client concierge access remains available via `/contact`, `Header.astro`, and `AuthLayout.astro`. Also deduplicated accidental uncommitted trailing log duplication from 2026-11-10 and refreshed the repository structure snapshot.
+  - **Files Modified:** `src/features/catalog/components/ProductDetailExperience.tsx`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `Get-ChildItem -Path "src" -Recurse -File | Select-String -Pattern "Contact Concierge","Concierge Chat Bubble"`: PASS (0 matches remaining in `src/`).
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 static pages built in 3.26s).
   - **Blockers:** None.
 
 ## 9. Required final response
