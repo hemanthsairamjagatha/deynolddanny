@@ -137,10 +137,10 @@ export const bordeauxSheathDressProduct: ProductCardData = {
   defaultImg: "/images/bordeaux-dress-model.jpg",
   hoverImg: "/images/bordeaux-dress-detail.jpg",
   images: [
-    "/images/bordeaux-dress-back.jpg",
+    "/images/bordeaux-dress-front.jpg",
     "/images/bordeaux-dress-detail.jpg",
     "/images/bordeaux-dress-model.jpg",
-    "/images/bordeaux-dress-side.jpg"
+    "/images/bordeaux-dress-back.jpg"
   ],
   sizes: ["IT 38", "IT 40", "IT 42", "IT 44", "IT 46"],
   link: "/products/bordeaux-sheath-dress-with-asymmetrical-draping",
@@ -157,10 +157,10 @@ export const bordeauxSheathDressProduct: ProductCardData = {
       swatchImg: "/images/bordeaux-dress-detail.jpg",
       img: "/images/bordeaux-dress-model.jpg",
       images: [
-        "/images/bordeaux-dress-back.jpg",
+        "/images/bordeaux-dress-front.jpg",
         "/images/bordeaux-dress-detail.jpg",
         "/images/bordeaux-dress-model.jpg",
-        "/images/bordeaux-dress-side.jpg"
+        "/images/bordeaux-dress-back.jpg"
       ]
     },
     {

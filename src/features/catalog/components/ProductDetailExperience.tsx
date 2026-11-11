@@ -517,11 +517,11 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       {/* ============================================================ */}
       <section
         aria-label="Product editorial lookbook and specifications"
-        className="w-full max-w-[1480px] mx-auto px-4 sm:px-6 pt-6 pb-14 lg:pt-8 lg:pb-20 bg-white text-black"
+        className="w-full max-w-[1452px] mx-auto px-4 pt-6 pb-14 lg:pt-8 lg:pb-20 bg-white text-black"
       >
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] min-[1380px]:grid-cols-[946.8px_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
           {/* Left Column: Shipping Notice + 2:1 Editorial Image Mosaic */}
-          <div className="lg:col-span-8">
+          <div className="min-w-0 w-full">
             <div className="mb-5 space-y-1 text-[13px] leading-[1.6] text-black">
               <p>
                 <strong className="font-semibold">Free shipping</strong>{' '}
@@ -532,28 +532,34 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             </div>
 
             {galleryImages.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-2 sm:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-0 bg-[#f1f1f1]">
                 {[
                   {
                     src: galleryImages[primaryMosaicIdx],
                     lightboxIndex: primaryMosaicIdx,
                     alt: `${product.title} - editorial view`,
                     label: `Zoom editorial image of ${product.title}`,
-                    layoutClass: 'sm:row-span-2 aspect-[3/4] sm:aspect-auto sm:h-full'
+                    layoutClass: 'sm:row-span-2 aspect-[3/4] sm:h-full',
+                    width: 631,
+                    height: 842
                   },
                   {
                     src: galleryImages[topRightMosaicIdx],
                     lightboxIndex: topRightMosaicIdx,
                     alt: `${product.title} - detail view`,
                     label: `Zoom detail view of ${product.title}`,
-                    layoutClass: 'aspect-[3/4]'
+                    layoutClass: 'aspect-[3/4]',
+                    width: 316,
+                    height: 421
                   },
                   {
                     src: galleryImages[bottomRightMosaicIdx],
                     lightboxIndex: bottomRightMosaicIdx,
                     alt: `${product.title} - studio view`,
                     label: `Zoom studio view of ${product.title}`,
-                    layoutClass: 'aspect-[3/4]'
+                    layoutClass: 'aspect-[3/4]',
+                    width: 316,
+                    height: 421
                   }
                 ].map((tile, idx) => (
                   <button
@@ -561,12 +567,14 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                     type="button"
                     onClick={() => handleOpenLightbox(tile.lightboxIndex)}
                     aria-label={tile.label}
-                    className={`${tile.layoutClass} block w-full overflow-hidden bg-[#f7f7f7] p-0 border-0 cursor-pointer group focus:outline-none focus-visible:ring-1 focus-visible:ring-black`}
+                    className={`${tile.layoutClass} block leading-none w-full overflow-hidden bg-[#f1f1f1] p-0 border-0 cursor-pointer group focus:outline-none focus-visible:ring-1 focus-visible:ring-black`}
                   >
                     <img
                       src={tile.src}
                       alt={tile.alt}
-                      className="gallery-image-zoom cursor-pointer w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
+                      width={tile.width}
+                      height={tile.height}
+                      className="gallery-image-zoom cursor-pointer block w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
                       loading="lazy"
                     />
                   </button>
@@ -576,7 +584,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
           </div>
 
           {/* Right Column: Description details & Composition Accordions, Merchandising Banner & Discovery */}
-          <div className="lg:col-span-4 w-full">
+          <div className="min-w-0 w-full">
             <DetailAccordion
               id="pdp-description-details-panel"
               title="Description details"

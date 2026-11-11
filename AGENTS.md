@@ -1220,7 +1220,7 @@ deynold-danny-ecommerce/
 │   ├── logo.png
 │   └── images/
 │       ├── autumn-product-[1..5].jpg
-│       ├── bordeaux-dress-[back,detail,model,side].jpg
+│       ├── bordeaux-dress-[back,detail,front,model,side].jpg
 │       ├── cady-trousers-[back,detail,fabric,model,model-3,model-4,product,swatch,waist].jpg
 │       ├── cady-vest.jpg
 │       ├── categories/[abiti,accessori,borse,camicie,capispalla,maglieria,pantaloni,scarpe].jpg
@@ -1794,6 +1794,17 @@ deynold-danny-ecommerce/
   - **Validation:**
     - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
     - `npm run build`: PASS (40 page(s) built in 4.44s).
+  - **Blockers:** None.
+
+- **2026-11-11 — Editorial Mosaic Dimensions, Zero-Seam Grid & Clean Bordeaux Lookbook Crops**:
+  - **Status:** COMPLETE
+  - **Summary:** Enforced exact desktop dimensions (`631.2 × 841.6` for the primary left tile and `315.6 × 420.8` for both stacked right tiles) and zero internal seams (`gap-0`, `bg-[#f1f1f1]`) on the under-gallery editorial lookbook mosaic in `src/features/catalog/components/ProductDetailExperience.tsx` (`max-w-[1452px]`, `min-[1380px]:grid-cols-[946.8px_minmax(0,1fr)]`, explicit `width`/`height` HTML attributes and `block w-full h-full object-cover object-top`), matching user-uploaded screenshots `media_1794388261040_e9e16e81.jpg`, `media_1794388331770_68a8b363.jpg`, `media_1794388351990_03b6ba4f.jpg`, and `media_1794388366788_d0de2dc4.jpg`. Re-cropped `public/images/bordeaux-dress-model.jpg` (`411×548`) and added `public/images/bordeaux-dress-front.jpg` (`204×272`) from clean un-obscured frames in `media_1794388261040_e9e16e81.jpg`, and updated `bordeauxSheathDressProduct` in `src/features/catalog/data/products.ts` so all Bordeaux gallery and mosaic slots show un-obscured imagery without baked-in card overlays.
+  - **Files Added:** `public/images/bordeaux-dress-front.jpg`.
+  - **Files Modified:** `public/images/bordeaux-dress-model.jpg`, `src/features/catalog/data/products.ts`, `src/features/catalog/components/ProductDetailExperience.tsx`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** Added `public/images/bordeaux-dress-front.jpg` static product image asset; no application architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built cleanly in 9.45s).
   - **Blockers:** None.
 
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
