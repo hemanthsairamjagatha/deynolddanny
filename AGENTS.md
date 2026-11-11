@@ -1807,4 +1807,14 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built cleanly in 9.45s).
   - **Blockers:** None.
 
+- **2026-11-11 — Remove Horizontal Margin on Under-Gallery Editorial Lookbook Section**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed `max-w-[1452px] mx-auto` and added explicit `m-0` on the under-gallery editorial lookbook `<section>` (`w-full m-0 px-4 pt-6 pb-14 lg:pt-8 lg:pb-20 bg-white text-black`) in `src/features/catalog/components/ProductDetailExperience.tsx` to eliminate the horizontal `0px 34.4px` outer margin reported in DevTools (`media_1794390976371_ae39fbad.png`) while keeping the `631.2 × 841.6` and `315.6 × 420.8` mosaic grid dimensions intact.
+  - **Files Modified:** `src/features/catalog/components/ProductDetailExperience.tsx`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 9.60s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**

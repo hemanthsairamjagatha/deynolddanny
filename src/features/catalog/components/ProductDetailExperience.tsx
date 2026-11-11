@@ -517,7 +517,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       {/* ============================================================ */}
       <section
         aria-label="Product editorial lookbook and specifications"
-        className="w-full max-w-[1452px] mx-auto px-4 pt-6 pb-14 lg:pt-8 lg:pb-20 bg-white text-black"
+        className="w-full m-0 px-4 pt-6 pb-14 lg:pt-8 lg:pb-20 bg-white text-black"
       >
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] min-[1380px]:grid-cols-[946.8px_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
           {/* Left Column: Shipping Notice + 2:1 Editorial Image Mosaic */}
