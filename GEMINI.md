@@ -205,7 +205,7 @@ implementation record accurate, not to rewrite standing rules.
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3
 - **Active Routes (`src/pages/`):**
   - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, editorial duo, and product carousels)
-  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with horizontal gallery, floating info card, lightbox, fit finder, size guide, style-it-with, and related suggestions)
+  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with horizontal gallery, floating info card, under-gallery editorial mosaic and specification accordions, lightbox, fit finder, size guide, style-it-with, and related suggestions)
   - `/search` -> `src/pages/search.astro` (Storefront search results page)
   - `/cart` -> `src/pages/cart.astro` (Shopping bag page)
   - `/checkout` -> `src/pages/checkout.astro` (Multi-step checkout page)
@@ -787,6 +787,18 @@ deynold-danny-ecommerce/
     - `$matches = Get-ChildItem -Path "src" -Recurse -File | Select-String -Pattern "Description & Craftsmanship","Luxury Editorial Description"; if ($matches) { $matches; exit 1 } else { Write-Output "0 matches" }`: PASS (0 matches remaining in `src/`).
     - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
     - `npm run build`: PASS (40 static pages built in 9.23s).
+  - **Blockers:** None.
+
+- **2026-11-11 — Under-Gallery Editorial Mosaic, Details Accordions & Swatch Refinement on Product Detail Page**:
+  - **Status:** COMPLETE
+  - **Summary:** Added the two-column under-gallery editorial lookbook mosaic and product details section to `src/features/catalog/components/ProductDetailExperience.tsx` beneath the horizontal scrolling image track and floating info card (`media_1794385060809_95f81129.jpg`, `media_1794385220736_fb15dd25.png`, `media_1794385278908_3bf4502c.jpg`, `media_1794385307539_9a30ffaa.png`), and refined the square color swatches (`color-badge-link` / `variant-color`, `40 × 40`, sharp `0px` corners, `0px 17px 0px 0px` spacing) to match `media_1794384890572_1602321d.png` and `media_1794384935482_cf380aa5.png`:
+    - Left column (`lg:col-span-8`): shipping and free-return notice (`₹10,000` / `€200`), followed by a `2:1` 3-image portrait editorial mosaic (`aspect-[3/4]`, large left tile spanning two rows + two stacked right tiles) opening `ProductLightbox` on click.
+    - Right column (`lg:col-span-4`): accessible `DetailAccordion` rows for `Description details` (expanded by default with description, `- Made in India` provenance, and size/fit details) and `Composition` (collapsed by default), soft blush `#f3e5e5` `Online exclusive` banner, `Find this product in:` discovery links, and Indian client concierge contact block plus SKU reference.
+  - **Files Modified:** `src/features/catalog/components/ProductDetailExperience.tsx`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 4.44s).
   - **Blockers:** None.
 
 ## 9. Required final response

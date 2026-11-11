@@ -9,6 +9,45 @@ interface ProductDetailExperienceProps {
   product: ProductCardData;
 }
 
+interface DetailAccordionProps {
+  id: string;
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+/**
+ * Reusable accessible accordion row for under-gallery product specifications.
+ */
+const DetailAccordion: React.FC<DetailAccordionProps> = ({ id, title, isOpen, onToggle, children }) => (
+  <div className="border-b border-neutral-200">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isOpen}
+      aria-controls={id}
+      className="w-full py-3.5 flex items-center justify-between text-left text-[14px] font-semibold text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-black"
+    >
+      <span>{title}</span>
+      <svg
+        className={`w-4 h-4 text-black transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M6 9l6 6 6-6" />
+      </svg>
+    </button>
+    {isOpen && (
+      <div id={id} className="pb-4 space-y-2 text-[12px] leading-[1.65] text-neutral-800">
+        {children}
+      </div>
+    )}
+  </div>
+);
+
 export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = ({ product }) => {
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -20,6 +59,8 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
+  const [isCompositionOpen, setIsCompositionOpen] = useState(false);
   const galleryScrollRef = useRef<HTMLDivElement>(null);
 
   // Compute active images based on color or product default images
@@ -38,6 +79,23 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
     : (product.images && product.images.length > 0)
     ? product.images
     : [product.defaultImg, product.hoverImg].filter(Boolean);
+
+  const totalGallery = galleryImages.length;
+  const primaryMosaicIdx = totalGallery >= 3 ? 2 : 0;
+  const topRightMosaicIdx = totalGallery >= 2 ? 1 : 0;
+  const bottomRightMosaicIdx = totalGallery >= 3 ? 0 : (totalGallery >= 2 ? 1 : 0);
+
+  const productDiscoveryTags = Array.from(
+    new Set(
+      [
+        product.gender ? `${product.gender}'s Collection` : null,
+        product.category,
+        product.subCategory,
+        product.tag,
+        product.title
+      ].filter((value): value is string => Boolean(value && value.trim()))
+    )
+  );
 
   const isSoldOut = product.badge === 'SOLD OUT' || (product.sizes && product.sizes.length === 0);
 
@@ -305,18 +363,24 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                   aria-checked={isSelected}
                   aria-label={`Select color ${c.name}`}
                   onClick={() => setSelectedColorIndex(idx)}
-                  className={`variant-color d-inline-block rounded-[2px] transition-all focus:outline-none flex-shrink-0 ${
-                    isSelected
-                      ? 'ring-2 ring-offset-2 ring-black border border-black'
-                      : 'border border-neutral-300 hover:border-black'
-                  }`}
+                  className="text-decoration-none color-badge-link inline-flex items-center p-0 border-0 bg-transparent text-[14px] text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-black flex-shrink-0"
                   style={{
-                    width: '40px',
-                    height: '40px',
-                    marginRight: idx === colors.length - 1 ? '0px' : '17px',
-                    backgroundColor: c.hex
+                    margin: idx === colors.length - 1 ? '0px' : '0px 17px 0px 0px'
                   }}
-                />
+                >
+                  <span
+                    className={`variant-color d-inline-block block rounded-none transition-colors ${
+                      isSelected
+                        ? 'border border-black shadow-[inset_0_-2px_0_#000000]'
+                        : 'border border-neutral-300 hover:border-black'
+                    }`}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: c.hex
+                    }}
+                  />
+                </button>
               );
             })}
           </div>
@@ -447,6 +511,160 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
           </div>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* 2. Under-Gallery Editorial Mosaic & Details Accordion Section */}
+      {/* ============================================================ */}
+      <section
+        aria-label="Product editorial lookbook and specifications"
+        className="w-full max-w-[1480px] mx-auto px-4 sm:px-6 pt-6 pb-14 lg:pt-8 lg:pb-20 bg-white text-black"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+          {/* Left Column: Shipping Notice + 2:1 Editorial Image Mosaic */}
+          <div className="lg:col-span-8">
+            <div className="mb-5 space-y-1 text-[13px] leading-[1.6] text-black">
+              <p>
+                <strong className="font-semibold">Free shipping</strong>{' '}
+                on orders with minimum amount of{' '}
+                {product.price.includes('€') ? '€200' : '₹10,000'}.
+              </p>
+              <p className="font-semibold">Free return</p>
+            </div>
+
+            {galleryImages.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-2 sm:gap-3">
+                {[
+                  {
+                    src: galleryImages[primaryMosaicIdx],
+                    lightboxIndex: primaryMosaicIdx,
+                    alt: `${product.title} - editorial view`,
+                    label: `Zoom editorial image of ${product.title}`,
+                    layoutClass: 'sm:row-span-2 aspect-[3/4] sm:aspect-auto sm:h-full'
+                  },
+                  {
+                    src: galleryImages[topRightMosaicIdx],
+                    lightboxIndex: topRightMosaicIdx,
+                    alt: `${product.title} - detail view`,
+                    label: `Zoom detail view of ${product.title}`,
+                    layoutClass: 'aspect-[3/4]'
+                  },
+                  {
+                    src: galleryImages[bottomRightMosaicIdx],
+                    lightboxIndex: bottomRightMosaicIdx,
+                    alt: `${product.title} - studio view`,
+                    label: `Zoom studio view of ${product.title}`,
+                    layoutClass: 'aspect-[3/4]'
+                  }
+                ].map((tile, idx) => (
+                  <button
+                    key={`${tile.src}-${idx}`}
+                    type="button"
+                    onClick={() => handleOpenLightbox(tile.lightboxIndex)}
+                    aria-label={tile.label}
+                    className={`${tile.layoutClass} block w-full overflow-hidden bg-[#f7f7f7] p-0 border-0 cursor-pointer group focus:outline-none focus-visible:ring-1 focus-visible:ring-black`}
+                  >
+                    <img
+                      src={tile.src}
+                      alt={tile.alt}
+                      className="gallery-image-zoom cursor-pointer w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Description details & Composition Accordions, Merchandising Banner & Discovery */}
+          <div className="lg:col-span-4 w-full">
+            <DetailAccordion
+              id="pdp-description-details-panel"
+              title="Description details"
+              isOpen={isDescriptionOpen}
+              onToggle={() => setIsDescriptionOpen((prev) => !prev)}
+            >
+              <p>
+                {product.description ||
+                  'Tailored garment designed for effortless elegance and refined movement. Made in India through sustainable artisanal processes.'}
+              </p>
+              <p>- Made in India</p>
+              {product.sizeAndFit && product.sizeAndFit.length > 0 && (
+                <div className="space-y-1">
+                  {product.sizeAndFit.map((item, idx) => (
+                    <p key={idx}>{idx === 0 ? `* ${item}` : item}</p>
+                  ))}
+                </div>
+              )}
+            </DetailAccordion>
+
+            <DetailAccordion
+              id="pdp-composition-panel"
+              title="Composition"
+              isOpen={isCompositionOpen}
+              onToggle={() => setIsCompositionOpen((prev) => !prev)}
+            >
+              {product.compositionAndCare && product.compositionAndCare.length > 0 ? (
+                product.compositionAndCare.map((line, idx) => <p key={idx}>{line}</p>)
+              ) : (
+                <p>Carefully crafted in India. Specialist dry clean recommended.</p>
+              )}
+            </DetailAccordion>
+
+            {/* Soft Blush Online Exclusive Banner */}
+            <div
+              className="my-5 py-3 px-4 text-center text-[13px] font-semibold text-black tracking-wide"
+              style={{ backgroundColor: '#f3e5e5' }}
+            >
+              Online exclusive
+            </div>
+
+            {/* Find this product in */}
+            {productDiscoveryTags.length > 0 && (
+              <div className="mt-5 text-[11px] leading-[1.7] text-neutral-700">
+                <p className="text-[12px] font-semibold text-black mb-1">Find this product in:</p>
+                <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                  {productDiscoveryTags.map((label, idx) => (
+                    <React.Fragment key={label}>
+                      <a
+                        href={idx === 0 ? '/' : `/search?q=${encodeURIComponent(label)}`}
+                        className="hover:underline text-neutral-700 hover:text-black transition-colors"
+                      >
+                        {label}
+                      </a>
+                      {idx < productDiscoveryTags.length - 1 && (
+                        <span className="text-neutral-500 mr-0.5" aria-hidden="true">,</span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Client Service & SKU Reference */}
+            <div className="mt-8 space-y-1 text-[11px] leading-[1.6] text-neutral-600">
+              <p>
+                For more information, contact us at{' '}
+                <a
+                  href="/contact"
+                  className="underline text-black hover:opacity-75 transition-opacity"
+                >
+                  concierge@deynolddanny.com
+                </a>
+              </p>
+              <p>Our customer service is available Monday to Saturday, 10:00 – 19:00 IST</p>
+              <p>
+                Telephone assistance:{' '}
+                <a href="tel:+911148209000" className="hover:underline text-neutral-800">
+                  +91 11 4820 9000
+                </a>
+              </p>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-500 pt-1">
+                SKU {product.sku || 'CFC0130327003B098'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Lightbox Modal */}
       <ProductLightbox
