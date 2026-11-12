@@ -278,12 +278,12 @@ label:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 0;
-  width: 95px;
+  width: 100px;
   height: 88px;
 }
 
 .brand-logo-img {
-  width: 95px;
+  width: 100px;
   height: 88px;
   max-width: none;
   object-fit: contain;

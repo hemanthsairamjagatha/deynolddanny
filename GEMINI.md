@@ -884,6 +884,16 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 4.68s).
   - **Blockers:** None.
 
+- **2026-11-12 — Header Brand Logo Width Updated to 100px (100×88)**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated `.brand-logo` and `.brand-logo-img` width from `95px` to `100px` (`100 × 88`) in `src/styles/luxury-custom.css` and updated explicit `width="100" height="88"` attributes on `<img class="brand-logo-img">` in `src/components/layout/Header.astro`, matching DevTools screenshot `media_1794486442755_06f80153.png`.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `src/components/layout/Header.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 7.12s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:
