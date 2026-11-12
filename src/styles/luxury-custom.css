@@ -280,6 +280,7 @@ label:focus-visible {
   padding: 0;
   width: 100px;
   height: 88px;
+  transition: none;
 }
 
 .brand-logo-img {
@@ -288,11 +289,6 @@ label:focus-visible {
   max-width: none;
   object-fit: contain;
   display: block;
-  transition: opacity var(--transition-fast);
-}
-
-.brand-logo:hover .brand-logo-img {
-  opacity: 0.85;
 }
 
 /* Top Tier Right: 4 Utility Icons */

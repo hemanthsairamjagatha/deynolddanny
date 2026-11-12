@@ -894,6 +894,16 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 7.12s).
   - **Blockers:** None.
 
+- **2026-11-12 — Remove All Hover Effects & Transitions from Header Brand Logo**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed `.brand-logo:hover .brand-logo-img { opacity: 0.85; }` and `transition: opacity var(--transition-fast);` from `.brand-logo-img`, and set `transition: none;` on `.brand-logo` in `src/styles/luxury-custom.css` so hovering over the header logo triggers zero visual effects or animations.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 6.75s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:
