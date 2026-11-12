@@ -45,7 +45,7 @@
   /* Layout Containers */
   --max-width-site: 1520.8px;
   --topbar-height: 36px;
-  --header-tier-top-height: 92px;
+  --header-tier-top-height: 100px;
   --header-tier-nav-height: 52px;
 
   /* Transitions */
@@ -198,6 +198,7 @@ label:focus-visible {
 /* Header Top Tier (Menu, Logo, Icons) */
 .header-top-tier {
   width: 100%;
+  box-sizing: content-box;
   height: var(--header-tier-top-height);
   border-bottom: 1px solid var(--color-border);
   display: flex;

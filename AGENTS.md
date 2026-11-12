@@ -1859,4 +1859,14 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 3.23s).
   - **Blockers:** None.
 
+- **2026-11-12 — Header Top Tier Height Updated to Exact 100px**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated `--header-tier-top-height` from `92px` to `100px` in `src/styles/variables.css` and `src/styles/luxury-custom.css`, and set `box-sizing: content-box` on `.header-top-tier` in `src/styles/luxury-custom.css` so `.header-top-inner` renders at an exact `100px` height (`1520.8 × 100` rather than `91.2px` after the `border-bottom`), matching DevTools screenshot `media_1794486042941_896fc631.png`.
+  - **Files Modified:** `src/styles/variables.css`, `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 8.29s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
