@@ -964,6 +964,16 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 7.45s).
   - **Blockers:** None.
 
+- **2026-11-12 — Update Hero Banner to Clean-Lapel Original Image (`1024×571`) with Native 1:1 Container Sizing & Reduced Scrim**:
+  - **Status:** COMPLETE
+  - **Summary:** Replaced `public/hero-banner.jpg` with the clean-lapel `1024×571` (`30,875` bytes) studio editorial image, capped `.hero-banner-container` to `max-width: 1024px; aspect-ratio: 1024 / 571;` (`height: auto`) across `src/features/home/components/HeroBanner.astro` and `src/styles/luxury-custom.css` so the image renders at native `1:1` sharpness without upscaling blur, updated `width="1024" height="571" decoding="sync" fetchpriority="high"` and `#ffffff` section backdrop in `HeroBanner.astro`, and reduced `.hero-banner-container::after` in `src/styles/luxury-custom.css` to a subtle bottom-24% gradient so the suit and studio remain crystal clear.
+  - **Files Modified:** `public/hero-banner.jpg`, `src/features/home/components/HeroBanner.astro`, `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `.\node_modules\.bin\astro.cmd check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `.\node_modules\.bin\astro.cmd build`: PASS (40 page(s) built in 6.86s). (Direct `astro.cmd` invocation used because `C:` drive had ~60 MB free for npm logs.)
+  - **Blockers:** Low free disk space (~0.06 GB) on `C:` drive caused `npm` log/cache writes to hit `ENOSPC`; direct Astro CLI build on `D:` succeeded cleanly.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:

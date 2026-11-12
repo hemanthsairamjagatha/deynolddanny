@@ -671,11 +671,12 @@ label:focus-visible {
   transform: translateX(4px);
 }
 
-/* Exact 1520.8 x 855 Hero Banner Container */
+/* Native 1024 x 571 Hero Banner Container */
 .hero-banner-container {
   width: 100%;
-  max-width: 1520.8px;
-  height: 855px;
+  max-width: 1024px;
+  height: auto;
+  aspect-ratio: 1024 / 571;
   position: relative;
   overflow: hidden;
   margin: 0 auto;
@@ -683,17 +684,16 @@ label:focus-visible {
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.04);
 }
 
-/* Subtle gradient overlay to guarantee perfect contrast for #FFFFFF text */
+/* Minimal bottom-edge contrast scrim only; keeps hero suit and studio crystal clear */
 .hero-banner-container::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.62) 0%,
-    rgba(0, 0, 0, 0.35) 28%,
-    rgba(0, 0, 0, 0.08) 55%,
-    rgba(0, 0, 0, 0) 100%
+    rgba(0, 0, 0, 0.36) 0%,
+    rgba(0, 0, 0, 0.14) 12%,
+    rgba(0, 0, 0, 0) 24%
   );
   pointer-events: none;
   z-index: 2;
@@ -791,7 +791,7 @@ label:focus-visible {
   .hero-banner-container {
     width: 100%;
     height: auto;
-    aspect-ratio: 1520.8 / 855.45;
+    aspect-ratio: 1024 / 571;
   }
 }
 
