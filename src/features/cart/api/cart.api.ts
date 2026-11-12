@@ -7,36 +7,48 @@
 import { apiFetch } from '../../../lib/api/client';
 
 export interface BackendCartItem {
-  id: string;
+  cartItemId?: string;
+  id?: string;
   variantId: string;
   productId: string;
   title: string;
   size: string;
-  color: string;
-  quantity: number;
-  unitPricePaise: number;
-  totalPricePaise: number;
-  unitPriceFormatted: string;
-  imageUrl: string;
-  availableStock: number;
+  color?: string;
+  img?: string;
+  imageUrl?: string;
+  qty?: number;
+  quantity?: number;
+  price?: string;
+  unitPriceFormatted?: string;
+  priceNum?: number;
+  pricePaise?: number;
+  unitPricePaise?: number;
+  totalPricePaise?: number;
+  availableStock?: number;
 }
 
 export interface BackendCartSummary {
-  itemCount: number;
+  itemCount?: number;
   subtotalPaise: number;
+  subtotalNum?: number;
   subtotalFormatted: string;
-  shippingPaise: number;
-  shippingFormatted: string;
-  taxPaise: number;
-  taxFormatted: string;
-  totalPaise: number;
-  totalFormatted: string;
-  currency: string;
+  qualifiesFreeShipping?: boolean;
+  shippingPaise?: number;
+  shippingFormatted?: string;
+  taxPaise?: number;
+  taxFormatted?: string;
+  totalPaise?: number;
+  totalFormatted?: string;
+  currency?: string;
 }
 
 export interface BackendCartResponse {
   items: BackendCartItem[];
-  summary: BackendCartSummary;
+  subtotalPaise?: number;
+  subtotalNum?: number;
+  subtotalFormatted?: string;
+  qualifiesFreeShipping?: boolean;
+  summary?: BackendCartSummary;
 }
 
 /**

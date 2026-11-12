@@ -852,6 +852,18 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 5.82s).
   - **Blockers:** None.
 
+- **2026-11-12 — Fix Crushed Cart SVG & Backend Cart Field Mapping (`NaN` Badge)**:
+  - **Status:** COMPLETE
+  - **Summary:** Fixed both root causes behind the tiny squished SVG and `NaN` badge shown in `media_1794485096009_e3f7164a.png`:
+    1. Updated `BackendCartItem` / `BackendCartResponse` (`src/features/cart/api/cart.api.ts`) and `syncCartWithBackend()` + `addToCart()` (`src/features/cart/store/cart.store.ts`) to match the Hono backend `/api/cart` item schema (`cartItemId`, `qty`, `price`, `priceNum`, `pricePaise`, `img`) instead of reading undefined `item.quantity` / `item.unitPricePaise` / `item.imageUrl`, and added finite-number guards to `$totalCount` and `$subtotalNum`.
+    2. Styled `.cart-badge-count` alongside `.cart-badge` (`position: absolute; top: 2px; right: 2px;`) and added `flex-shrink: 0` to `.header-icon-link svg` in `src/styles/luxury-custom.css`, plus updated `CartTrigger.tsx` to apply `cart-badge` and only render the badge when `Number.isFinite(count) && count > 0` so the `24 × 24` `Bag 2 Icon` renders at full size.
+  - **Files Modified:** `src/features/cart/api/cart.api.ts`, `src/features/cart/store/cart.store.ts`, `src/features/cart/components/CartTrigger.tsx`, `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 3.23s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:

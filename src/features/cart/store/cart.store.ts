@@ -19,11 +19,17 @@ export const $cartItems = atom<CartItem[]>(initialCart);
 export const $isCartOpen = atom<boolean>(false);
 
 export const $totalCount = computed($cartItems, items =>
-  items.reduce((sum, item) => sum + item.qty, 0)
+  items.reduce((sum, item) => sum + (Number.isFinite(Number(item.qty)) ? Number(item.qty) : 0), 0)
 );
 
 export const $subtotalNum = computed($cartItems, items =>
-  items.reduce((sum, item) => sum + item.priceNum * item.qty, 0)
+  items.reduce(
+    (sum, item) =>
+      sum +
+      (Number.isFinite(Number(item.priceNum)) ? Number(item.priceNum) : 0) *
+        (Number.isFinite(Number(item.qty)) ? Number(item.qty) : 0),
+    0
+  )
 );
 
 export const $formattedSubtotal = computed($subtotalNum, num => {
@@ -67,17 +73,35 @@ export async function syncCartWithBackend() {
   try {
     const res = await getCartApi();
     if (res.success && res.data?.items && res.data.items.length > 0) {
-      const mapped: CartItem[] = res.data.items.map(item => ({
-        id: item.productId,
-        backendItemId: item.id,
-        variantId: item.variantId,
-        title: item.title,
-        price: item.unitPriceFormatted,
-        priceNum: item.unitPricePaise / 100,
-        size: item.size,
-        img: item.imageUrl,
-        qty: item.quantity,
-      }));
+      const mapped: CartItem[] = res.data.items.map(item => {
+        const rawQty = Number(item.qty ?? item.quantity ?? 1);
+        const qty = Number.isFinite(rawQty) && rawQty > 0 ? rawQty : 1;
+        const rawPricePaise = Number(item.pricePaise ?? item.unitPricePaise ?? 0);
+        const rawPriceNum = Number.isFinite(item.priceNum)
+          ? Number(item.priceNum)
+          : Number.isFinite(rawPricePaise)
+            ? rawPricePaise / 100
+            : 0;
+        const priceNum = Number.isFinite(rawPriceNum) ? rawPriceNum : 0;
+
+        return {
+          id: item.productId,
+          backendItemId: item.cartItemId ?? item.id,
+          variantId: item.variantId,
+          title: item.title,
+          price:
+            item.price ??
+            item.unitPriceFormatted ??
+            `₹ ${priceNum.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`,
+          priceNum,
+          size: item.size,
+          img: item.img ?? item.imageUrl ?? '',
+          qty,
+        };
+      });
       $cartItems.set(mapped);
     }
   } catch {
@@ -126,7 +150,7 @@ export function addToCart(product: {
         if (backendItem) {
           const fresh = $cartItems.get().map(it =>
             it.id === product.id && it.size === product.size
-              ? { ...it, backendItemId: backendItem.id }
+              ? { ...it, backendItemId: backendItem.cartItemId ?? backendItem.id }
               : it
           );
           $cartItems.set(fresh);

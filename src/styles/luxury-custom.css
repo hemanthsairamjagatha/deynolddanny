@@ -322,6 +322,7 @@ label:focus-visible {
 
 .header-icon-link svg {
   display: block;
+  flex-shrink: 0;
   stroke-width: 1.45;
 }
 
@@ -329,7 +330,8 @@ label:focus-visible {
   position: relative;
 }
 
-.cart-badge {
+.cart-badge,
+.cart-badge-count {
   position: absolute;
   top: 2px;
   right: 2px;
@@ -344,6 +346,7 @@ label:focus-visible {
   align-items: center;
   justify-content: center;
   line-height: 1;
+  pointer-events: none;
 }
 
 /* --------------------------------------------------------------------------
