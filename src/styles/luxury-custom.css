@@ -821,6 +821,12 @@ label:focus-visible {
     --header-tier-nav-height: 46px;
   }
 
+  .header-nav-tier,
+  .nav-toggle-checkbox:checked ~ .site-header .header-nav-tier,
+  .nav-toggle-checkbox:checked ~ .header-nav-tier {
+    display: none !important;
+  }
+
   .container {
     padding-left: var(--space-md);
     padding-right: var(--space-md);
