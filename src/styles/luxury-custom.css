@@ -287,11 +287,10 @@ label:focus-visible {
   max-width: none;
   object-fit: contain;
   display: block;
-  transition: transform var(--transition-fast), opacity var(--transition-fast);
+  transition: opacity var(--transition-fast);
 }
 
 .brand-logo:hover .brand-logo-img {
-  transform: translateY(-1px);
   opacity: 0.85;
 }
 

@@ -1827,4 +1827,14 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 7.20s).
   - **Blockers:** None.
 
+- **2026-11-12 — Disable Hover Movement on Header Brand Logo**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed `transform: translateY(-1px)` from `.brand-logo:hover .brand-logo-img` and removed `transform` from `.brand-logo-img`'s transition list in `src/styles/luxury-custom.css` so hovering over the header logo does not shift its position while keeping `opacity: 0.85` hover feedback.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 2.68s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
