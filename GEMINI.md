@@ -944,6 +944,16 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 3.38s).
   - **Blockers:** None.
 
+- **2026-11-12 — Replace Homepage Hero Banner Image**:
+  - **Status:** COMPLETE
+  - **Summary:** Replaced `public/hero-banner.jpg` with the updated full-length 16:9 studio editorial image (`1024×576`, `24,278` bytes) featuring extended top headroom for the fixed transparent header in `HeroBanner.astro`.
+  - **Files Modified:** `public/hero-banner.jpg`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 8.57s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:
