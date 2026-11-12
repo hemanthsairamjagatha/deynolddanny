@@ -1969,4 +1969,14 @@ deynold-danny-ecommerce/
     - `.\node_modules\.bin\astro.cmd build`: PASS (40 page(s) built in 6.86s). (Direct `astro.cmd` invocation used because `C:` drive had ~60 MB free for npm logs.)
   - **Blockers:** Low free disk space (~0.06 GB) on `C:` drive caused `npm` log/cache writes to hit `ENOSPC`; direct Astro CLI build on `D:` succeeded cleanly.
 
+- **2026-11-12 — Desktop-Only Hero Section Background Matched to Studio Swatch (`#D6CAD1`)**:
+  - **Status:** COMPLETE
+  - **Summary:** Added `@media (min-width: 769px) { .hero-section { background-color: #D6CAD1; } }` inside `src/features/home/components/HeroBanner.astro` matching the user's sampled studio wall swatch so desktop sidebands around the `1024×571` hero container blend into the studio backdrop while keeping mobile (`<= 768px`) completely unchanged.
+  - **Files Modified:** `src/features/home/components/HeroBanner.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `.\node_modules\.bin\astro.cmd check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `.\node_modules\.bin\astro.cmd build`: PASS (40 page(s) built in 7.28s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
