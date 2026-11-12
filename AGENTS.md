@@ -1949,4 +1949,14 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 8.57s).
   - **Blockers:** None.
 
+- **2026-11-12 — Restore Solid White (`#FFFFFF`) Sticky Two-Tier Header**:
+  - **Status:** COMPLETE
+  - **Summary:** Restored `.site-header` in `src/styles/luxury-custom.css` from `position: fixed` transparent overlay back to `position: sticky; top: 0; background-color: var(--color-white);`, restored `.header-top-tier` (`border-bottom: 1px solid var(--color-border); background-color: var(--color-white);`) and `.header-nav-tier` (`background-color: var(--color-white);`) to solid white (`#FFFFFF`), removed `mix-blend-mode: multiply;` from `.brand-logo-img`, and removed the fixed-header non-hero `main` top padding offset so the header sits cleanly in sticky flow above the hero banner.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 7.45s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**

@@ -187,18 +187,12 @@ label:focus-visible {
    5. TWO-TIER STICKY HEADER (Referenced Design)
    -------------------------------------------------------------------------- */
 .site-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
   width: 100%;
-  background-color: transparent;
+  background-color: var(--color-white);
   z-index: 1000;
   box-shadow: none;
-}
-
-/* Offset top of main on non-hero pages because .site-header overlays top of viewport */
-body:has(> .site-header):not(:has(.hero-section)) > main {
-  padding-top: var(--header-tier-top-height);
 }
 
 /* Header Top Tier (Menu, Logo, Icons) */
@@ -206,10 +200,10 @@ body:has(> .site-header):not(:has(.hero-section)) > main {
   width: 100%;
   box-sizing: content-box;
   height: var(--header-tier-top-height);
-  border-bottom: none;
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  background-color: transparent;
+  background-color: var(--color-white);
 }
 
 .site-header .container,
@@ -295,7 +289,6 @@ body:has(> .site-header):not(:has(.hero-section)) > main {
   max-width: none;
   object-fit: contain;
   display: block;
-  mix-blend-mode: multiply;
 }
 
 /* Top Tier Right: 4 Utility Icons */
@@ -363,7 +356,7 @@ body:has(> .site-header):not(:has(.hero-section)) > main {
   overflow: hidden;
   visibility: hidden;
   pointer-events: none;
-  background-color: transparent;
+  background-color: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
