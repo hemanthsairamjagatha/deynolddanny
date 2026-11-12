@@ -914,6 +914,16 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 3.32s).
   - **Blockers:** None.
 
+- **2026-11-12 — Header Category Link Bar Hidden Until MENU Click with Smooth Transition**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated `.header-nav-tier` in `src/styles/luxury-custom.css` to remain collapsed by default everywhere (`height: 0; opacity: 0; overflow: hidden; visibility: hidden; pointer-events: none; transform: translateY(-6px);`) and transition smoothly (`var(--transition-base)`) into view (`height: var(--header-tier-nav-height); opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);`) when `#nav-toggle` is checked. Re-enabled `.header-menu-btn` clicks and `X` icon animation on desktop (`>= 769px`) while keeping `.side-drawer` and `.nav-backdrop` hidden on desktop and active on mobile (`<= 768px`), and added `overflow-y: hidden;` in `@media (max-width: 1024px)` for `.header-nav-tier`.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 9.77s).
+  - **Blockers:** None.
+
 ## 9. Required final response
 
 After each coding task, provide a concise completion report that states:
