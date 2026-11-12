@@ -28,17 +28,18 @@ export const CartTrigger: React.FC = () => {
       aria-label="Open Shopping Bag"
     >
       <svg
-        width="20"
-        height="20"
+        xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        width="24"
+        height="24"
+        fill="currentColor"
+        aria-label="Bag 2 Icon"
+        fontSize="medium"
+        className="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-vpzthd"
+        focusable="false"
+        aria-hidden="true"
       >
-        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-        <line x1="3" y1="6" x2="21" y2="6" />
-        <path d="M16 10a4 4 0 0 1-8 0" />
+        <path d="M22.1 7.9c-.2-.2-.5-.4-.8-.4h-3.8V6c0-1.4-1.1-2.5-2.5-2.5H9C7.6 3.5 6.5 4.6 6.5 6v1.5H2.7c-.3 0-.6.1-.8.4-.2.2-.3.6-.3.9l1.8 10.8c.1.5.5.9 1.1.9h15c.5 0 1-.4 1.1-.9l1.8-10.8c0-.3-.1-.7-.3-.9zM7.5 6c0-.8.7-1.5 1.5-1.5h6c.8 0 1.5.7 1.5 1.5v1.5h-9V6zm12.1 13.4c0 .1-.1.1 0 0l-15.1.1s-.1 0-.1-.1L2.6 8.6l.1-.1h18.6l.1.1-1.8 10.8z" />
       </svg>
       <span
         className={`cart-badge-count ${bouncing ? 'bounce' : ''}`}
