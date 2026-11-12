@@ -1929,4 +1929,14 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 2.85s).
   - **Blockers:** None.
 
+- **2026-11-12 — Transparent Fixed Overlay Header Across Storefront**:
+  - **Status:** COMPLETE
+  - **Summary:** Switched `.site-header` in `src/styles/luxury-custom.css` to `position: fixed; top: 0; left: 0; width: 100%; background-color: transparent;`, set `.header-top-tier` (`border-bottom: none; background-color: transparent;`) and `.header-nav-tier` (`background-color: transparent;`) to transparent, added `mix-blend-mode: multiply;` on `.brand-logo-img`, and added `body:has(> .site-header):not(:has(.hero-section)) > main { padding-top: var(--header-tier-top-height); }` so the hero banner and scrolled page content appear cleanly behind the transparent header while non-hero pages maintain top clearance.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 3.38s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
