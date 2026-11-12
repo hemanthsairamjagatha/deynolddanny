@@ -571,6 +571,26 @@ label:focus-visible {
   transform: translateY(-3.25px) rotate(-45deg);
 }
 
+/* Desktop (> 768px): keep MENU button visible without opening the drawer */
+@media (min-width: 769px) {
+  .header-menu-btn {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  .side-drawer,
+  .nav-backdrop {
+    display: none !important;
+  }
+
+  .nav-toggle-checkbox:checked ~ .site-header .menu-line:nth-child(1),
+  .nav-toggle-checkbox:checked ~ * .menu-line:nth-child(1),
+  .nav-toggle-checkbox:checked ~ .site-header .menu-line:nth-child(2),
+  .nav-toggle-checkbox:checked ~ * .menu-line:nth-child(2) {
+    transform: none;
+  }
+}
+
 /* --------------------------------------------------------------------------
    6. HERO SECTION (1520.8 x 855 Referenced Design)
    -------------------------------------------------------------------------- */

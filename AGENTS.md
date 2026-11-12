@@ -1899,4 +1899,14 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (40 page(s) built in 6.75s).
   - **Blockers:** None.
 
+- **2026-11-12 — Desktop MENU Drawer Disabled While Preserving Mobile Category Drawer**:
+  - **Status:** COMPLETE
+  - **Summary:** Added a desktop `@media (min-width: 769px)` rule in `src/styles/luxury-custom.css` setting `.header-menu-btn` to `pointer-events: none; cursor: default;`, hiding `.side-drawer` and `.nav-backdrop` (`display: none !important;`), and keeping `.menu-line` transforms at `none` when checked so clicking `= MENU` on desktop keeps the button visible without opening the drawer. Mobile (`<= 768px`) retains the full slide-out category drawer (`THE COLLECTIONS` + `CLIENT SERVICES`) and horizontal nav tier (`Header.astro`).
+  - **Files Modified:** `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 3.32s).
+  - **Blockers:** None.
+
 **The agent is expected to extend this architecture deliberately, not drift away from it.**
