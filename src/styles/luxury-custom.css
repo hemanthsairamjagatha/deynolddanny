@@ -276,13 +276,15 @@ label:focus-visible {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4px 8px;
+  padding: 0;
+  width: 88px;
+  height: 80px;
 }
 
 .brand-logo-img {
-  height: 72px;
-  width: auto;
-  max-width: 160px;
+  width: 88px;
+  height: 80px;
+  max-width: none;
   object-fit: contain;
   display: block;
   transition: transform var(--transition-fast), opacity var(--transition-fast);
@@ -796,8 +798,14 @@ label:focus-visible {
     gap: var(--space-xs);
   }
 
+  .brand-logo {
+    width: auto;
+    height: auto;
+  }
+
   .brand-logo-img {
     height: 56px;
+    width: auto;
     max-width: 120px;
   }
 

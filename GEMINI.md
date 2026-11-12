@@ -200,7 +200,7 @@ implementation record accurate, not to rewrite standing rules.
 
 ### Current repository structure / implementation snapshot
 
-- **Verification date:** 2026-11-11
+- **Verification date:** 2026-11-12
 - **Verification status:** Verified against active working repository
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3
 - **Active Routes (`src/pages/`):**
@@ -820,6 +820,16 @@ deynold-danny-ecommerce/
   - **Validation:**
     - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
     - `npm run build`: PASS (40 page(s) built in 9.60s).
+  - **Blockers:** None.
+
+- **2026-11-12 — Header Brand Logo Padding Removal & Explicit 88×80 Sizing**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed `padding: 4px 8px` (`padding: 0`) on `.brand-logo` and set explicit `width: 88px; height: 80px;` on both `.brand-logo` and `.brand-logo-img` (`max-width: none; object-fit: contain`) in `src/styles/luxury-custom.css` while preserving the `@media (max-width: 768px)` responsive logo sizing (`width: auto; height: auto` on `.brand-logo` and `height: 56px` on `.brand-logo-img`). Added explicit `width="88" height="80"` attributes on `<img class="brand-logo-img">` in `src/components/layout/Header.astro`. Matches DevTools screenshot `media_1794484157344_ac632b55.png`.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `src/components/layout/Header.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (74 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (40 page(s) built in 7.20s).
   - **Blockers:** None.
 
 ## 9. Required final response
