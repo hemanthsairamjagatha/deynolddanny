@@ -150,8 +150,25 @@ export interface DbOrder {
   delivered_at: string | null;
   coupon_code: string | null;
   customer_notes: string | null;
+  shiprocket_order_id?: string | null;
+  shiprocket_awb?: string | null;
+  shiprocket_courier?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbRefreshToken {
+  token_hash: string;
+  user_id: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface DbPincodeCache {
+  pincode: string;
+  serviceable: number;
+  courier_data: string | null;
+  cached_at: string;
 }
 
 export interface DbOrderItem {

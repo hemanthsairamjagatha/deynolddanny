@@ -124,8 +124,41 @@ export interface ApiCheckoutResponse {
   orderId: string;
   orderNumber: string;
   totalPaise: number;
-  cfOrderId: string;
-  paymentSessionId: string;
+  totalFormatted?: string;
+  // Razorpay integration
+  razorpayOrderId?: string;
+  razorpayKeyId?: string;
+  amount?: number; // in paise for Razorpay Checkout
+  currency?: string;
+  // Cashfree legacy fallback
+  cfOrderId?: string;
+  paymentSessionId?: string;
+}
+
+// ─── Logistics / Shiprocket ──────────────────────────────────────────────────
+
+export interface ApiShiprocketTracking {
+  orderId: string;
+  awbCode: string;
+  courierName: string;
+  currentStatus: string;
+  estimatedDeliveryDate: string | null;
+  deliveredAt: string | null;
+  activityHistory: Array<{
+    date: string;
+    status: string;
+    activity: string;
+    location: string;
+  }>;
+}
+
+export interface ApiPincodeServiceability {
+  pincode: string;
+  serviceable: boolean;
+  courierName?: string;
+  courierCompanyId?: number;
+  estimatedDeliveryDays?: number;
+  codAvailable?: boolean;
 }
 
 // ─── Orders ─────────────────────────────────────────────────────────────────
@@ -167,6 +200,8 @@ export interface ApiOrder {
   couponCode: string | null;
   courierPartner: string | null;
   trackingNumber: string | null;
+  shiprocketOrderId?: string | null;
+  shiprocketAwb?: string | null;
   createdAt: string;
   paidAt: string | null;
   shippedAt: string | null;

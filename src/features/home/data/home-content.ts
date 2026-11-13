@@ -7,7 +7,7 @@ export const mainCategories: CategoryCardData[] = [
     subtitle: 'Collezione Denim Sweat Shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-denim-sweatshirts.jpg',
-    link: '#denim-sweat-shirts'
+    link: '/categories/denim-sweatshirts'
   },
   {
     id: 'cat-pantaloni',
@@ -15,7 +15,7 @@ export const mainCategories: CategoryCardData[] = [
     subtitle: 'Collezione Shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-shirts.jpg',
-    link: '#shirts'
+    link: '/categories/shirts'
   },
   {
     id: 'cat-maglieria',
@@ -23,7 +23,7 @@ export const mainCategories: CategoryCardData[] = [
     subtitle: 'Collezione Polo T-shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-polo-t-shirts.jpg',
-    link: '#polo-t-shirts'
+    link: '/categories/polo-t-shirts'
   },
   {
     id: 'cat-camicie',
@@ -31,7 +31,7 @@ export const mainCategories: CategoryCardData[] = [
     subtitle: 'Collezione Hoodies Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-hoodies.jpg',
-    link: '#hoodies'
+    link: '/categories/hoodies'
   },
   {
     id: 'cat-cappotti',
@@ -39,7 +39,7 @@ export const mainCategories: CategoryCardData[] = [
     subtitle: 'Collezione Denim Shirts Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-denim-shirts.jpg',
-    link: '#denim-shirts'
+    link: '/categories/denim-shirts'
   },
   {
     id: 'cat-felpe',
@@ -47,7 +47,7 @@ export const mainCategories: CategoryCardData[] = [
     subtitle: 'Collezione Felpe Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-felpe.jpg',
-    link: '#felpe'
+    link: '/categories/felpe'
   }
 ];
 
@@ -58,7 +58,7 @@ export const bottomCategories: CategoryCardData[] = [
     subtitle: 'Collezione Scarpe Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-scarpe.jpg',
-    link: '#scarpe'
+    link: '/categories/scarpe'
   },
   {
     id: 'cat-accessori',
@@ -66,7 +66,7 @@ export const bottomCategories: CategoryCardData[] = [
     subtitle: 'Collezione Accessori Uomo - DEYNOLD DANNY',
     tagline: 'SCOPRI ORA',
     image: '/images/category-accessori.jpg',
-    link: '#accessori'
+    link: '/categories/accessori'
   }
 ];
 

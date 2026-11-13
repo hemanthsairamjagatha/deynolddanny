@@ -42,9 +42,6 @@ export const ForgotPasswordForm: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-neutral-900 font-serif">
           Reset Password
         </h1>
-        <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
-          Enter the email address registered with your DEYNOLD DANNY profile. We will dispatch an encrypted reset link.
-        </p>
       </div>
 
       {errorMessage && (

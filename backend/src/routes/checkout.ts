@@ -7,8 +7,7 @@ import { authRequired } from '../middleware/auth.js';
 import { getOrCreateCart, getCartWithItems, clearCart } from '../db/queries/cart.js';
 import { createOrder, createOrderItems } from '../db/queries/orders.js';
 import { holdStock } from '../services/stockEngine.js';
-import { createCashfreeOrder } from '../services/cashfree.js';
-import { paiseToRupeesFloat } from '../services/money.js';
+import { createRazorpayOrder } from '../services/razorpay.js';
 import {
   FREE_SHIPPING_THRESHOLD_PAISE,
   STANDARD_SHIPPING_PAISE,
@@ -66,7 +65,7 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
 
   const shippingPaise = subtotalPaise >= FREE_SHIPPING_THRESHOLD_PAISE ? 0 : STANDARD_SHIPPING_PAISE;
 
-  // 3. Coupon validation (if provided)
+  // 3. Coupon validation (if provided) — Atomic update to prevent race conditions
   let discountPaise = 0;
   let resolvedCouponCode: string | undefined;
 
@@ -90,21 +89,28 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
       }>();
 
     if (coupon && subtotalPaise >= coupon.min_order_paise) {
-      if (coupon.discount_type === 'percentage') {
-        discountPaise = Math.round(subtotalPaise * (coupon.discount_value / 100));
-        if (coupon.max_discount_paise) {
-          discountPaise = Math.min(discountPaise, coupon.max_discount_paise);
-        }
-      } else {
-        discountPaise = Math.min(coupon.discount_value, subtotalPaise);
-      }
-      resolvedCouponCode = coupon.code;
-
-      // Increment coupon usage
-      await env.DB
-        .prepare(`UPDATE coupons SET used_count = used_count + 1 WHERE id = ?1`)
+      // Atomic increment with condition to guarantee concurrency safety
+      const couponUsageResult = await env.DB
+        .prepare(
+          `UPDATE coupons
+           SET used_count = used_count + 1
+           WHERE id = ?1
+             AND (usage_limit IS NULL OR used_count < usage_limit)`,
+        )
         .bind(coupon.id)
         .run();
+
+      if ((couponUsageResult.meta.changes ?? 0) > 0) {
+        if (coupon.discount_type === 'percentage') {
+          discountPaise = Math.round(subtotalPaise * (coupon.discount_value / 100));
+          if (coupon.max_discount_paise) {
+            discountPaise = Math.min(discountPaise, coupon.max_discount_paise);
+          }
+        } else {
+          discountPaise = Math.min(coupon.discount_value, subtotalPaise);
+        }
+        resolvedCouponCode = coupon.code;
+      }
     }
   }
 
@@ -148,13 +154,8 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     }
   }
 
-  // 5. Create Cashfree order (use internal order ID as CF reference)
-  const user = await env.DB
-    .prepare(`SELECT full_name, phone FROM users WHERE id = ?1`)
-    .bind(userId)
-    .first<{ full_name: string | null; phone: string | null }>();
-
-  // Create pending DB order first (we need the order ID)
+  // 5. Create Razorpay order (use internal order ID as receipt reference)
+  // Create pending DB order first (we need the order ID for the Razorpay receipt)
   const order = await createOrder(env.DB, {
     userId,
     subtotalPaise,
@@ -162,7 +163,7 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     discountPaise,
     taxPaise,
     totalPaise,
-    cfOrderId: `cf_pending_${Date.now()}`, // placeholder until we get real CF ID
+    cfOrderId: `rzp_pending_${Date.now()}`, // placeholder until we get real Razorpay order ID
     shippingName: body.shippingName,
     shippingPhone: body.shippingPhone,
     shippingLine1: body.shippingLine1,
@@ -175,29 +176,26 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     customerNotes: body.customerNotes,
   });
 
-  // Create Cashfree order
-  let cfOrderId: string;
-  let paymentSessionId: string;
+  // Create Razorpay order and get the razorpayOrderId
+  let razorpayOrderId: string;
+  let razorpayAmount: number;
   try {
-    const cfResult = await createCashfreeOrder(
+    const rzpResult = await createRazorpayOrder(
       {
         orderId: order.id,
-        orderAmount: parseFloat(paiseToRupeesFloat(totalPaise)),
-        customerPhone: body.shippingPhone,
-        customerEmail: userEmail,
+        orderNumber: order.order_number,
+        amountPaise: totalPaise,
         customerName: body.shippingName,
-        returnUrl: `${env.FRONTEND_URL}/checkout/confirmation/${order.id}`,
-        notifyUrl: `${env.BACKEND_URL}/api/payments/webhook`,
+        customerEmail: userEmail || '',
+        customerPhone: body.shippingPhone,
       },
-      env.CASHFREE_APP_ID,
-      env.CASHFREE_SECRET_KEY,
-      env.CASHFREE_API_URL,
-      env.CASHFREE_API_VERSION,
+      env.RAZORPAY_KEY_ID,
+      env.RAZORPAY_KEY_SECRET,
     );
-    cfOrderId = cfResult.cfOrderId;
-    paymentSessionId = cfResult.paymentSessionId;
+    razorpayOrderId = rzpResult.razorpayOrderId;
+    razorpayAmount = rzpResult.amount;
   } catch (err) {
-    // Rollback all stock holds on CF failure
+    // Rollback all stock holds on Razorpay failure
     await Promise.all(
       cartData.items.map((item) =>
         env.DB
@@ -214,10 +212,10 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     throw err;
   }
 
-  // Update order with real CF order ID
+  // Store Razorpay order ID in cf_order_id column (column rename deferred to future migration)
   await env.DB
     .prepare(`UPDATE orders SET cf_order_id = ?1, updated_at = ?2 WHERE id = ?3`)
-    .bind(cfOrderId, new Date().toISOString(), order.id)
+    .bind(razorpayOrderId, new Date().toISOString(), order.id)
     .run();
 
   // 6. Create order items (snapshot of product data at time of purchase)
@@ -240,16 +238,18 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
   // 7. Clear the user's cart
   await clearCart(env.DB, cartRecord.id);
 
+  // The frontend needs razorpayOrderId, razorpayKeyId, and amount (paise)
+  // to open the Razorpay checkout modal.
   const response: ApiCheckoutResponse = {
     orderId: order.id,
     orderNumber: order.order_number,
     totalPaise,
-    cfOrderId,
-    paymentSessionId,
+    razorpayOrderId,
+    razorpayKeyId: env.RAZORPAY_KEY_ID,
+    amount: razorpayAmount,
   };
 
   return c.json({ success: true, data: response }, 201);
 });
 
 export default checkout;
-

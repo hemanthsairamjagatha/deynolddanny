@@ -123,11 +123,11 @@ export const SignUpForm: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-neutral-900 font-serif">
           {step === 'details' ? 'Create Your Profile' : 'Verify Email'}
         </h1>
-        <p className="text-xs text-neutral-500 mt-2 leading-relaxed max-w-sm mx-auto">
-          {step === 'details'
-            ? 'Enjoy bespoke atelier services, archival receipt tracking, and invitations to private seasonal salons.'
-            : `Enter the 6-digit verification code dispatched to ${formData.email}.`}
-        </p>
+        {step !== 'details' && (
+          <p className="text-xs text-neutral-500 mt-2 leading-relaxed max-w-sm mx-auto">
+            Enter the 6-digit verification code dispatched to {formData.email}.
+          </p>
+        )}
       </div>
 
       {/* Status Messages */}

@@ -1,0 +1,510 @@
+---
+// src/pages/categories/[slug].astro
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+import { fetchProducts } from '../../features/catalog/api/catalog.api';
+import { ProductCard } from '../../features/catalog/components/ProductCard';
+import type { ProductCardData } from '../../features/catalog/types/product.types';
+
+export interface CategoryMeta {
+  slug: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  heroEditorialImg: string;
+  heroEditorialTitle: string;
+  heroEditorialSubtitle: string;
+  duoEditorialLeftImg: string;
+  duoEditorialLeftTitle: string;
+  duoEditorialRightImg: string;
+  duoEditorialRightTitle: string;
+  matcher: (p: ProductCardData) => boolean;
+}
+
+export const CATEGORIES: CategoryMeta[] = [
+  {
+    slug: 'shirts',
+    title: 'Shirts',
+    subtitle: 'Collezione Camicie & Shirts Uomo',
+    description: 'Explore artisanal dress shirts and button-down shirts in luxury poplin, washed linen, and bespoke twill.',
+    heroEditorialImg: '/images/category-shirts.jpg',
+    heroEditorialTitle: 'Sartorial Linen & Poplin Atelier',
+    heroEditorialSubtitle: 'Collezione Camicie Uomo',
+    duoEditorialLeftImg: '/images/style-space-1.jpg',
+    duoEditorialLeftTitle: 'Pure Normandy Flax',
+    duoEditorialRightImg: '/images/style-space-2.jpg',
+    duoEditorialRightTitle: 'Relaxed Poise & Cut',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'shirts' ||
+      p.category?.toLowerCase() === 'camicie' ||
+      p.title.toLowerCase().includes('shirt')
+  },
+  {
+    slug: 'trousers',
+    title: 'Trousers',
+    subtitle: 'Collezione Pantaloni & Trousers',
+    description: 'Impeccable tailoring, pleated silhouettes, and refined drape in luxury wool, cady, and satin blends.',
+    heroEditorialImg: '/images/category-pantaloni.jpg',
+    heroEditorialTitle: 'Impeccable Pleats & Drape',
+    heroEditorialSubtitle: 'Collezione Pantaloni Uomo',
+    duoEditorialLeftImg: '/images/cady-trousers-model-3.jpg',
+    duoEditorialLeftTitle: 'Refined Tailored Silhouette',
+    duoEditorialRightImg: '/images/cady-trousers-model-4.jpg',
+    duoEditorialRightTitle: 'Comfort in Motion',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'trousers' ||
+      p.category?.toLowerCase() === 'pantaloni' ||
+      p.title.toLowerCase().includes('trouser') ||
+      p.title.toLowerCase().includes('pant')
+  },
+  {
+    slug: 'knitwear',
+    title: 'Knitwear',
+    subtitle: 'Collezione Maglieria di Lusso',
+    description: 'Ribbed cashmere and superfine virgin wool knitwear handcrafted in India through sustainable processes.',
+    heroEditorialImg: '/images/category-maglieria.jpg',
+    heroEditorialTitle: 'Artisanal Mongolian Cashmere',
+    heroEditorialSubtitle: 'Collezione Maglieria di Lusso',
+    duoEditorialLeftImg: '/images/mastery-1-model.jpg',
+    duoEditorialLeftTitle: 'English Rib Knitwear',
+    duoEditorialRightImg: '/images/mastery-3-model.jpg',
+    duoEditorialRightTitle: 'Tactile Warmth & Softness',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'knitwear' ||
+      p.category?.toLowerCase() === 'maglieria' ||
+      p.title.toLowerCase().includes('sweater') ||
+      p.title.toLowerCase().includes('knit') ||
+      p.title.toLowerCase().includes('turtleneck')
+  },
+  {
+    slug: 'overcoats',
+    title: 'Overcoats',
+    subtitle: 'Collezione Capispalla Sartoriali',
+    description: 'Architectural outerwear, stand-collar car coats, and virgin wool tailored overcoats with cashmere accents.',
+    heroEditorialImg: '/images/category-cappotti.jpg',
+    heroEditorialTitle: 'Architectural Virgin Wool Coats',
+    heroEditorialSubtitle: 'Collezione Capispalla Sartoriali',
+    duoEditorialLeftImg: '/images/news-1-model.jpg',
+    duoEditorialLeftTitle: 'Structured Outerwear',
+    duoEditorialRightImg: '/images/news-4-model.jpg',
+    duoEditorialRightTitle: 'Cashmere Lining Accents',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'overcoats' ||
+      p.category?.toLowerCase() === 'outerwear' ||
+      p.category?.toLowerCase() === 'capispalla' ||
+      p.title.toLowerCase().includes('coat') ||
+      p.title.toLowerCase().includes('trench')
+  },
+  {
+    slug: 'footwear',
+    title: 'Footwear',
+    subtitle: 'Collezione Calzature & Scarpe',
+    description: 'Hand-burnished artisanal calfskin oxford shoes, ankle boots, and hand-stitched suede loafers.',
+    heroEditorialImg: '/images/category-scarpe.jpg',
+    heroEditorialTitle: 'Artisanal Burnished Footwear',
+    heroEditorialSubtitle: 'Collezione Calzature & Scarpe',
+    duoEditorialLeftImg: '/images/mastery-4-model.jpg',
+    duoEditorialLeftTitle: 'Hand-Stitched Suede',
+    duoEditorialRightImg: '/images/style-4-model.jpg',
+    duoEditorialRightTitle: 'Tuscan Leather Tanneries',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'footwear' ||
+      p.category?.toLowerCase() === 'scarpe' ||
+      p.title.toLowerCase().includes('shoe') ||
+      p.title.toLowerCase().includes('oxford') ||
+      p.title.toLowerCase().includes('boot') ||
+      p.title.toLowerCase().includes('loafer') ||
+      p.title.toLowerCase().includes('flat')
+  },
+  {
+    slug: 'accessories',
+    title: 'Accessories',
+    subtitle: 'Collezione Accessori Esclusivi',
+    description: 'Fringed cashmere scarves, polarized sunglasses on Carrara marble, and handcrafted Tuscan leather luggage.',
+    heroEditorialImg: '/images/category-accessori.jpg',
+    heroEditorialTitle: 'Finishing Accents of Distinction',
+    heroEditorialSubtitle: 'Collezione Accessori Esclusivi',
+    duoEditorialLeftImg: '/images/style-5-model.jpg',
+    duoEditorialLeftTitle: 'Fringed Cashmere Stoles',
+    duoEditorialRightImg: '/images/news-5-model.jpg',
+    duoEditorialRightTitle: 'Horological Chronographs',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'accessories' ||
+      p.category?.toLowerCase() === 'accessori' ||
+      p.category?.toLowerCase() === 'timepieces' ||
+      p.title.toLowerCase().includes('scarf') ||
+      p.title.toLowerCase().includes('sunglasses') ||
+      p.title.toLowerCase().includes('weekender') ||
+      p.title.toLowerCase().includes('beanie') ||
+      p.title.toLowerCase().includes('timepiece')
+  },
+  {
+    slug: 'clothing',
+    title: 'Clothing & Dresses',
+    subtitle: 'Collezione Abiti & Eveningwear',
+    description: 'Sculptural elegance, asymmetrical draping, and bias-cut silk satin slip dresses.',
+    heroEditorialImg: '/images/category-abiti.jpg',
+    heroEditorialTitle: 'Eveningwear & Liquid Silk',
+    heroEditorialSubtitle: 'Collezione Abiti & Eveningwear',
+    duoEditorialLeftImg: '/images/bordeaux-dress-model.jpg',
+    duoEditorialLeftTitle: 'Asymmetrical Draping',
+    duoEditorialRightImg: '/images/bordeaux-dress-side.jpg',
+    duoEditorialRightTitle: 'Sculptural Fluidity',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'clothing' ||
+      p.category?.toLowerCase() === 'abiti' ||
+      p.title.toLowerCase().includes('dress') ||
+      p.title.toLowerCase().includes('sheath')
+  },
+  {
+    slug: 'denim-sweatshirts',
+    title: 'Denim Sweat Shirts',
+    subtitle: 'Collezione Denim Sweat Shirts Uomo',
+    description: 'Artisanal denim sweatshirt silhouettes blending relaxed luxury with architectural tailoring.',
+    heroEditorialImg: '/images/category-denim-sweatshirts.jpg',
+    heroEditorialTitle: 'Relaxed Architectural Denim',
+    heroEditorialSubtitle: 'Collezione Denim Sweat Shirts',
+    duoEditorialLeftImg: '/images/style-space-3.jpg',
+    duoEditorialLeftTitle: 'Artisanal Washed Twill',
+    duoEditorialRightImg: '/images/style-space-4.jpg',
+    duoEditorialRightTitle: 'Casual Elegance',
+    matcher: (p) =>
+      p.title.toLowerCase().includes('denim') ||
+      p.title.toLowerCase().includes('sweat') ||
+      p.category?.toLowerCase() === 'shirts'
+  },
+  {
+    slug: 'polo-t-shirts',
+    title: 'Polo T-shirts',
+    subtitle: 'Collezione Polo T-shirts Uomo',
+    description: 'Refined pique and silk-cotton knit polo t-shirts tailored for effortless modern sophistication.',
+    heroEditorialImg: '/images/category-polo-t-shirts.jpg',
+    heroEditorialTitle: 'Silk-Cotton Pique Knitwear',
+    heroEditorialSubtitle: 'Collezione Polo T-shirts Uomo',
+    duoEditorialLeftImg: '/images/style-space-1.jpg',
+    duoEditorialLeftTitle: 'Summer Knits',
+    duoEditorialRightImg: '/images/mastery-5-model.jpg',
+    duoEditorialRightTitle: 'Effortless Poise',
+    matcher: (p) =>
+      p.title.toLowerCase().includes('polo') ||
+      p.category?.toLowerCase() === 'shirts' ||
+      p.category?.toLowerCase() === 'knitwear'
+  },
+  {
+    slug: 'hoodies',
+    title: 'Hoodies',
+    subtitle: 'Collezione Hoodies & Sweatshirts Uomo',
+    description: 'Minimalist luxury fleece and structured hoodies in quiet luxury neutral palettes.',
+    heroEditorialImg: '/images/category-hoodies.jpg',
+    heroEditorialTitle: 'Minimalist Luxury Fleece',
+    heroEditorialSubtitle: 'Collezione Hoodies Uomo',
+    duoEditorialLeftImg: '/images/style-space-3.jpg',
+    duoEditorialLeftTitle: 'Quiet Luxury Essentials',
+    duoEditorialRightImg: '/images/mastery-3-model.jpg',
+    duoEditorialRightTitle: 'Refined Combed Cotton',
+    matcher: (p) =>
+      p.title.toLowerCase().includes('hoodie') ||
+      p.title.toLowerCase().includes('sweater') ||
+      p.category?.toLowerCase() === 'knitwear'
+  },
+  {
+    slug: 'denim-shirts',
+    title: 'Denim Shirts',
+    subtitle: 'Collezione Denim Shirts Uomo',
+    description: 'Premium washed indigo and tailored denim shirts finished with sartorial stitching.',
+    heroEditorialImg: '/images/category-denim-shirts.jpg',
+    heroEditorialTitle: 'Tailored Japanese & Italian Denim',
+    heroEditorialSubtitle: 'Collezione Denim Shirts Uomo',
+    duoEditorialLeftImg: '/images/style-space-1.jpg',
+    duoEditorialLeftTitle: 'Sartorial Stitching',
+    duoEditorialRightImg: '/images/category-camicie.jpg',
+    duoEditorialRightTitle: 'Indigo Drapes',
+    matcher: (p) =>
+      p.title.toLowerCase().includes('denim') ||
+      p.title.toLowerCase().includes('shirt') ||
+      p.category?.toLowerCase() === 'shirts'
+  },
+  {
+    slug: 'felpe',
+    title: 'FELPE',
+    subtitle: 'Collezione Felpe & Knitwear Uomo',
+    description: 'Artisanal Italian-cut zip sweaters and crewneck knits in superfine cashmere and combed cotton.',
+    heroEditorialImg: '/images/category-felpe.jpg',
+    heroEditorialTitle: 'Zip Sweaters & Sportivo Knits',
+    heroEditorialSubtitle: 'Collezione Felpe & Sportivo',
+    duoEditorialLeftImg: '/images/mastery-1-detail.jpg',
+    duoEditorialLeftTitle: 'Calfskin Zip Hardware',
+    duoEditorialRightImg: '/images/mastery-2-model.jpg',
+    duoEditorialRightTitle: 'Cashmere Warmth',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'knitwear' ||
+      p.title.toLowerCase().includes('sweater') ||
+      p.title.toLowerCase().includes('zip')
+  },
+  {
+    slug: 'scarpe',
+    title: 'Scarpe',
+    subtitle: 'Calzature su Misura — Footwear',
+    description: 'Handcrafted calfskin oxfords, leather flats, and burnished leather ankle boots.',
+    heroEditorialImg: '/images/category-scarpe.jpg',
+    heroEditorialTitle: 'Calzature su Misura',
+    heroEditorialSubtitle: 'Collezione Scarpe Artigianali',
+    duoEditorialLeftImg: '/images/mastery-4-model.jpg',
+    duoEditorialLeftTitle: 'Hand-Burnished Patina',
+    duoEditorialRightImg: '/images/style-4-model.jpg',
+    duoEditorialRightTitle: 'Ankle Boot Silhouettes',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'footwear' ||
+      p.category?.toLowerCase() === 'scarpe' ||
+      p.title.toLowerCase().includes('shoe') ||
+      p.title.toLowerCase().includes('boot') ||
+      p.title.toLowerCase().includes('flat')
+  },
+  {
+    slug: 'accessori',
+    title: 'Accessori',
+    subtitle: 'Dettagli di Lusso — Accessories',
+    description: 'Handcrafted leather travel weekenders, cashmere artisanal scarves, and polarized sunglasses.',
+    heroEditorialImg: '/images/category-accessori.jpg',
+    heroEditorialTitle: 'Dettagli di Lusso',
+    heroEditorialSubtitle: 'Collezione Accessori Esclusivi',
+    duoEditorialLeftImg: '/images/style-5-model.jpg',
+    duoEditorialLeftTitle: 'Handcrafted Leather Goods',
+    duoEditorialRightImg: '/images/news-5-model.jpg',
+    duoEditorialRightTitle: 'Curated Keepsakes',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'accessories' ||
+      p.category?.toLowerCase() === 'accessori' ||
+      p.category?.toLowerCase() === 'timepieces' ||
+      p.title.toLowerCase().includes('scarf') ||
+      p.title.toLowerCase().includes('sunglasses') ||
+      p.title.toLowerCase().includes('weekender')
+  },
+  {
+    slug: 'outerwear',
+    title: 'Outerwear',
+    subtitle: 'Collezione Capispalla & Jackets',
+    description: 'Suede and calfskin zip biker jackets, minimalist trench coats, and luxury outerwear.',
+    heroEditorialImg: '/images/category-giubbini.jpg',
+    heroEditorialTitle: 'Suede & Calfskin Outerwear',
+    heroEditorialSubtitle: 'Collezione Capispalla & Giubbini',
+    duoEditorialLeftImg: '/images/news-1-model.jpg',
+    duoEditorialLeftTitle: 'Leather Biker Cuts',
+    duoEditorialRightImg: '/images/news-4-model.jpg',
+    duoEditorialRightTitle: 'All-Season Resilience',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'outerwear' ||
+      p.category?.toLowerCase() === 'overcoats' ||
+      p.title.toLowerCase().includes('jacket') ||
+      p.title.toLowerCase().includes('coat')
+  },
+  {
+    slug: 'tailoring',
+    title: 'Tailoring',
+    subtitle: 'Collezione Abiti & Tailored Suits',
+    description: 'Deconstructed tailored wool-silk blazers and virgin wool tailored eveningwear.',
+    heroEditorialImg: '/images/news-1-model.jpg',
+    heroEditorialTitle: 'Deconstructed Eveningwear',
+    heroEditorialSubtitle: 'Collezione Abiti & Tailored Suits',
+    duoEditorialLeftImg: '/images/news-3-model.jpg',
+    duoEditorialLeftTitle: 'Wool-Silk Blend Evening Blazers',
+    duoEditorialRightImg: '/images/mastery-1-model.jpg',
+    duoEditorialRightTitle: 'Pressed Crease Precision',
+    matcher: (p) =>
+      p.category?.toLowerCase() === 'tailoring' ||
+      p.title.toLowerCase().includes('blazer') ||
+      p.title.toLowerCase().includes('suit') ||
+      p.title.toLowerCase().includes('vest')
+  }
+];
+
+export async function getStaticPaths() {
+  const allProducts = await fetchProducts();
+
+  return CATEGORIES.map((cat) => {
+    const catMatched = allProducts.filter(cat.matcher);
+    // Complementary creations to ensure full luxury spread (15-17 items)
+    const complementary = allProducts.filter((p) => !cat.matcher(p));
+    // Category items first, then complementary total-look creations
+    const fullSpread = [...catMatched, ...complementary];
+    const products = fullSpread.length > 0 ? fullSpread : allProducts;
+
+    return {
+      params: { slug: cat.slug },
+      props: {
+        category: cat,
+        products: products,
+        allCategories: CATEGORIES.slice(0, 7) // Primary category filter pills
+      }
+    };
+  });
+}
+
+const { category, products, allCategories } = Astro.props;
+
+const pageTitle = `${category.title} | DEYNOLD DANNY`;
+const pageDescription = category.description;
+
+// Group products for the Brunello Cucinelli signature rhythmic catalog grid:
+// Block 1: Hero Editorial Mosaic (first 4 products + 1 tall campaign card)
+const mosaicProducts = products.slice(0, 4);
+
+// Block 2: 3-column product row (products 4, 5, 6)
+const secondRowProducts = products.slice(4, 7);
+
+// Block 3: Editorial Duo Inset (between product rows)
+
+// Block 4: Continuing 3-column product rows (products 7 onwards)
+const remainingProducts = products.slice(7);
+---
+
+<StorefrontLayout title={pageTitle} description={pageDescription}>
+  <main class="min-h-screen bg-white text-black">
+    <div class="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-12 pt-8 pb-24">
+      <!-- Breadcrumbs -->
+      <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-neutral-400 font-mono">
+          <li>
+            <a href="/" class="hover:text-black transition-colors underline underline-offset-4">Home</a>
+          </li>
+          <li class="select-none text-neutral-300">/</li>
+          <li>
+            <a href="/categories" class="hover:text-black transition-colors">Categories</a>
+          </li>
+          <li class="select-none text-neutral-300">/</li>
+          <li class="text-neutral-900 font-medium" aria-current="page">
+            {category.title}
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Category Heading -->
+      <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+        <h1 class="text-[36px] font-normal tracking-wider text-neutral-900 uppercase font-montserrat">
+          {category.title}
+        </h1>
+      </div>
+
+      <!-- Quick Category Filter Pills -->
+      <div class="flex items-center justify-center flex-wrap gap-2 sm:gap-3 mb-12 border-b border-neutral-200/80 pb-6">
+        <a
+          href="/categories"
+          class="px-4 py-2 text-[11px] font-mono uppercase tracking-wider rounded-full border border-neutral-300 text-neutral-700 hover:border-black hover:text-black transition-colors"
+        >
+          All Collections
+        </a>
+        {allCategories.map((cat) => (
+          <a
+            href={`/categories/${cat.slug}`}
+            class={`px-4 py-2 text-[11px] font-mono uppercase tracking-wider rounded-full transition-all ${
+              cat.slug === category.slug
+                ? 'bg-neutral-900 text-white border border-neutral-900 shadow-sm'
+                : 'border border-neutral-300 text-neutral-700 hover:border-black hover:text-black'
+            }`}
+          >
+            {cat.title}
+          </a>
+        ))}
+      </div>
+
+      <!-- Category Editorial Grid (Brunello Cucinelli Signature Rhythmic Layout) -->
+      <div class="catalog-editorial-grid">
+        <!-- 1. Hero Editorial Mosaic (Block 1: 4 Products in 2x2 + 1 Tall Campaign Feature) -->
+        {mosaicProducts.length > 0 && (
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch mb-10 lg:mb-12">
+            <!-- Left Side: 4 Products arranged in a 2x2 Grid -->
+            <div class="grid grid-cols-2 gap-4 sm:gap-6">
+              {mosaicProducts.map((product) => (
+                <div class="flex justify-center w-full">
+                  <ProductCard client:load product={product} />
+                </div>
+              ))}
+            </div>
+
+            <!-- Right Side: Tall Editorial Campaign Portrait (stretches to match 2 stacked rows) -->
+            <div class="catalog-editorial-hero relative w-full h-full min-h-[460px] lg:min-h-0 bg-neutral-100 overflow-hidden group">
+              <img
+                src={category.heroEditorialImg}
+                alt={category.heroEditorialTitle}
+                class="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-105"
+                loading="eager"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
+              <div class="absolute bottom-6 sm:bottom-8 left-6 sm:left-8 right-6 sm:right-8 text-white">
+                <span class="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.3em] text-white/80 block mb-2">
+                  {category.heroEditorialSubtitle}
+                </span>
+                <h3 class="text-xl sm:text-2xl lg:text-3xl font-serif uppercase tracking-wide text-white mb-2 font-normal">
+                  {category.heroEditorialTitle}
+                </h3>
+                <p class="text-xs text-white/70 max-w-sm line-clamp-2 font-light hidden sm:block">
+                  {category.description}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <!-- 2. 3-Column Product Row (Block 2: Exactly 3 Products Side-by-Side) -->
+        {secondRowProducts.length > 0 && (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-10 lg:mb-12">
+            {secondRowProducts.map((product) => (
+              <div class="flex justify-center w-full">
+                <ProductCard client:load product={product} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <!-- 3. Editorial Duo Inset (Block 3: 2 Landscape Campaign Shots Side-by-Side) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 my-10 lg:my-14">
+          <div class="group relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-neutral-100">
+            <img
+              src={category.duoEditorialLeftImg}
+              alt={category.duoEditorialLeftTitle}
+              class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+              loading="lazy"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
+            <div class="absolute bottom-6 left-6 right-6 text-white">
+              <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-white/80 block mb-1">
+                Sartorial Heritage
+              </span>
+              <h4 class="text-lg sm:text-xl font-serif uppercase tracking-wide text-white font-normal">
+                {category.duoEditorialLeftTitle}
+              </h4>
+            </div>
+          </div>
+
+          <div class="group relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-neutral-100">
+            <img
+              src={category.duoEditorialRightImg}
+              alt={category.duoEditorialRightTitle}
+              class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+              loading="lazy"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
+            <div class="absolute bottom-6 left-6 right-6 text-white">
+              <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-white/80 block mb-1">
+                Atelier Craft
+              </span>
+              <h4 class="text-lg sm:text-xl font-serif uppercase tracking-wide text-white font-normal">
+                {category.duoEditorialRightTitle}
+              </h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Continuing 3-Column Product Rows (Block 4: All Remaining Products in 3 Columns) -->
+        {remainingProducts.length > 0 && (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-10 lg:mb-14">
+            {remainingProducts.map((product) => (
+              <div class="flex justify-center w-full">
+                <ProductCard client:load product={product} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </main>
+</StorefrontLayout>

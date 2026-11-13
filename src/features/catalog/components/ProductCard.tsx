@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ProductCardData } from '../types/product.types';
 import { addToCart, openCart } from '../../cart/store/cart.store';
+import { WishlistButton } from '../../wishlist/components/WishlistButton';
 
 interface ProductCardProps {
   product: ProductCardData;
@@ -74,6 +75,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
         {product.badge && (
           <span className="mastery-badge">{product.badge}</span>
         )}
+
+        {/* Wishlist Heart Button in Top-Right Corner */}
+        <div className="absolute top-2.5 right-2.5 z-10">
+          <WishlistButton
+            item={{
+              id: product.id,
+              slug: product.slug,
+              title: product.title,
+              price: product.price,
+              priceNum: product.priceNum,
+              image: product.defaultImg,
+              link: productHref
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-neutral-600 hover:text-black shadow-xs transition-all p-1.5"
+          />
+        </div>
+
         <a href={productHref} className="mastery-image-link mastery-img-link" tabIndex={-1}>
           <img
             src={isModelView ? product.defaultImg : product.hoverImg}
@@ -143,15 +161,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
         </div>
       </div>
 
-      <div className="mastery-info-box mastery-card-details product-item-meta">
-        <h3 className="mastery-item-title">
-          <a href={productHref} className="product-item-meta__title">{product.title}</a>
+      <div className="mastery-info-box mastery-card-details product-item-meta font-montserrat">
+        <h3 className="mastery-item-title font-montserrat">
+          <a href={productHref} className="product-item-meta__title font-montserrat">{product.title}</a>
         </h3>
 
-        <p className="mastery-item-price product-item-meta__price-list-container price-list">
-          <span className="price product-item-meta__price">
-            <span className="currency-symbol price-currency">₹</span>
-            <span className="price-val">
+        <p className="mastery-item-price product-item-meta__price-list-container price-list font-montserrat">
+          <span className="price product-item-meta__price font-montserrat">
+            <span className="currency-symbol price-currency font-montserrat">₹</span>
+            <span className="price-val font-montserrat">
               {product.priceNum.toLocaleString('en-IN', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2

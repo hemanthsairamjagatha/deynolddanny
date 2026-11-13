@@ -2,18 +2,8 @@ import { atom, computed } from 'nanostores';
 import type { CartItem } from '../types/cart.types';
 import { getCartApi, addToCartApi, updateCartItemApi, removeCartItemApi } from '../api/cart.api';
 
-// Initial state matching the existing project
-const initialCart: CartItem[] = [
-  {
-    id: 'item-1',
-    title: 'Ribbed cashmere crewneck knit sweater',
-    price: '₹ 48,000.00',
-    priceNum: 48000,
-    size: '50',
-    img: '/images/category-maglieria.jpg',
-    qty: 1
-  }
-];
+// Initial state: starts empty, populated dynamically from Cloudflare backend or user interaction
+const initialCart: CartItem[] = [];
 
 export const $cartItems = atom<CartItem[]>(initialCart);
 export const $isCartOpen = atom<boolean>(false);

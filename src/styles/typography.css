@@ -2,22 +2,29 @@
    TYPOGRAPHY RULES & UTILITIES
    -------------------------------------------------------------------------- */
 body {
-  font-family: var(--font-primary);
+  font-family: var(--font-primary) !important;
   color: var(--color-charcoal);
   line-height: 1.5;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-primary);
+  font-family: var(--font-primary) !important;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
 
-.font-serif {
-  font-family: var(--font-serif);
+html, body, button, input, select, textarea, p, span, a, h1, h2, h3, h4, h5, h6, div, label, li, td, th {
+  font-family: var(--font-primary) !important;
 }
 
+.font-serif,
+.font-sans,
+.font-display,
+.font-bodoni,
+.font-manrope,
+.font-mono,
+.font-brand,
 .font-primary {
-  font-family: var(--font-primary);
+  font-family: var(--font-primary) !important;
 }
 

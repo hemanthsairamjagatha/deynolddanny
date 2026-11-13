@@ -1,0 +1,95 @@
+---
+// src/pages/categories/index.astro
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+import { CATEGORIES } from './[slug].astro';
+import { mainCategories, bottomCategories } from '../../features/home/data/home-content';
+
+const allHomeCategories = [...mainCategories, ...bottomCategories];
+
+const title = 'Categories & Collections | DEYNOLD DANNY';
+const description = 'Explore luxury menswear, womenswear, tailoring, knitwear, and accessories from the house of DEYNOLD DANNY.';
+---
+
+<StorefrontLayout title={title} description={description}>
+  <main class="min-h-screen bg-white text-black">
+    <div class="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-12 pt-8 pb-24">
+      <!-- Breadcrumbs -->
+      <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-neutral-400 font-mono">
+          <li>
+            <a href="/" class="hover:text-black transition-colors underline underline-offset-4">Home</a>
+          </li>
+          <li class="select-none text-neutral-300">/</li>
+          <li class="text-neutral-900 font-medium" aria-current="page">
+            Categories
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Section Header -->
+      <div class="text-center max-w-2xl mx-auto mb-14">
+        <span class="text-[11px] uppercase tracking-[0.3em] font-mono text-neutral-500 block mb-2">
+          Atelier Directory
+        </span>
+        <h1 class="text-[36px] font-normal tracking-wider text-neutral-900 uppercase font-montserrat mb-4">
+          All Categories
+        </h1>
+        <p class="text-xs sm:text-sm text-neutral-600 font-light leading-relaxed max-w-lg mx-auto">
+          Explore curated categories spanning architectural tailoring, superfine knitwear, Italian-inspired footwear, and quiet luxury essentials.
+        </p>
+      </div>
+
+      <!-- Editorial Category Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-16">
+        {allHomeCategories.map((cat) => {
+          const catSlug = (cat.link && cat.link.startsWith('/categories/'))
+            ? cat.link.replace('/categories/', '')
+            : cat.title.toLowerCase().replace(/\s+/g, '-');
+
+          return (
+            <a
+              href={`/categories/${catSlug}`}
+              class="group relative block aspect-[4/5] overflow-hidden bg-neutral-100 rounded-sm shadow-sm hover:shadow-md transition-all"
+            >
+              <img
+                src={cat.image.startsWith('/') ? cat.image : `/${cat.image}`}
+                alt={cat.title}
+                class="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
+                loading="lazy"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+              <div class="absolute bottom-6 left-6 right-6 text-white">
+                <span class="text-[10px] uppercase font-mono tracking-[0.25em] text-white/80 block mb-1">
+                  {cat.tagline || 'SCOPRI ORA'}
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-serif font-normal uppercase tracking-wide mb-2 text-white">
+                  {cat.title}
+                </h2>
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-white/90 group-hover:underline">
+                  View Collection &rarr;
+                </span>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+
+      <!-- Quick Text Links Directory -->
+      <div class="border-t border-neutral-200 pt-12">
+        <h3 class="text-xs font-mono uppercase tracking-[0.25em] text-neutral-400 text-center mb-8">
+          Complete Sartorial Taxonomy
+        </h3>
+        <div class="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
+          {CATEGORIES.map((cat) => (
+            <a
+              href={`/categories/${cat.slug}`}
+              class="px-5 py-2.5 rounded-full border border-neutral-200 text-neutral-800 text-xs font-mono uppercase tracking-wider hover:border-black hover:bg-black hover:text-white transition-all"
+            >
+              {cat.title}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </main>
+</StorefrontLayout>

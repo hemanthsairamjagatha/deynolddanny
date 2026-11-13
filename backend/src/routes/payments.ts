@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import type { Env } from '../types/bindings.js';
 import { authRequired } from '../middleware/auth.js';
 import {
@@ -8,176 +10,358 @@ import {
   updateOrderPayment,
 } from '../db/queries/orders.js';
 import { commitStock, rollbackStock } from '../services/stockEngine.js';
+import {
+  verifyRazorpayWebhookSignature,
+  verifyRazorpayPaymentSignature,
+  fetchRazorpayOrder,
+  fetchRazorpayPayment,
+} from '../services/razorpay.js';
 import { verifyCashfreeSignature, fetchCashfreeOrder } from '../services/cashfree.js';
 import { sendOrderConfirmedEmail, type OrderEmailItem } from '../services/resend.js';
 import { formatPaiseToDisplay } from '../services/money.js';
 import { nowIso } from '../db/client.js';
-import type { ApiOrderItem, EmailJob } from '../types/api.js';
 
 const payments = new Hono<{ Bindings: Env }>();
 
-// ─── POST /api/payments/webhook ──────────────────────────────────────────────
-// Cashfree sends PAYMENT_SUCCESS, PAYMENT_FAILED, USER_DROPPED
+/**
+ * Helper to process successful order confirmation, commit stock, and dispatch email
+ */
+async function finalizePaidOrder(
+  db: D1Database,
+  resendApiKey: string,
+  order: { id: string; user_id: string; order_number: string; total_paise: number },
+  paymentId: string,
+  paymentMethod: string | null,
+  executionCtx: { waitUntil(promise: Promise<unknown>): void },
+) {
+  // Commit reserved stock permanently
+  const orderItems = await db
+    .prepare(`SELECT variant_id, quantity FROM order_items WHERE order_id = ?1`)
+    .bind(order.id)
+    .all<{ variant_id: string; quantity: number }>();
 
-payments.post('/webhook', async (c) => {
-  const env = c.env;
-
-  // Read raw body for HMAC verification
-  const rawBody = await c.req.text();
-
-  const timestamp = c.req.header('x-webhook-timestamp') ?? '';
-  const signature = c.req.header('x-webhook-signature') ?? '';
-
-  // Always verify the signature — reject unsigned requests
-  const signatureValid = await verifyCashfreeSignature(
-    rawBody,
-    timestamp,
-    signature,
-    env.CASHFREE_SECRET_KEY,
+  await Promise.all(
+    (orderItems.results ?? []).map((item) =>
+      commitStock(db, item.variant_id, item.quantity),
+    ),
   );
 
-  if (!signatureValid) {
+  // Update order status to confirmed
+  await Promise.all([
+    updateOrderStatus(db, order.id, 'confirmed'),
+    updateOrderPayment(db, order.id, {
+      paymentStatus: 'paid',
+      cfPaymentId: paymentId,
+      paymentMethod: paymentMethod ?? undefined,
+      paidAt: nowIso(),
+    }),
+  ]);
+
+  // Dispatch confirmation email in background
+  const orderItemsForEmail = await db
+    .prepare(`SELECT * FROM order_items WHERE order_id = ?1`)
+    .bind(order.id)
+    .all<{
+      title_snapshot: string;
+      size_snapshot: string;
+      color_snapshot: string;
+      unit_price_paise: number;
+      quantity: number;
+    }>();
+
+  const userRow = await db
+    .prepare(`SELECT email FROM users WHERE id = ?1`)
+    .bind(order.user_id)
+    .first<{ email: string }>();
+
+  if (userRow && resendApiKey) {
+    const emailItems: OrderEmailItem[] = (orderItemsForEmail.results ?? []).map((r) => ({
+      title: r.title_snapshot,
+      size: r.size_snapshot,
+      color: r.color_snapshot,
+      quantity: r.quantity,
+      unitPrice: formatPaiseToDisplay(r.unit_price_paise),
+    }));
+
+    executionCtx.waitUntil(
+      sendOrderConfirmedEmail(
+        resendApiKey,
+        userRow.email,
+        order.order_number,
+        formatPaiseToDisplay(order.total_paise),
+        emailItems,
+      ),
+    );
+  }
+}
+
+// ─── POST /api/payments/verify ──────────────────────────────────────────────
+// Instant Client Verification from Razorpay Checkout Modal
+const verifyClientPaymentSchema = z.object({
+  orderId: z.string().min(1),
+  razorpayOrderId: z.string().min(1),
+  razorpayPaymentId: z.string().min(1),
+  razorpaySignature: z.string().min(1),
+});
+
+payments.post('/verify', authRequired, zValidator('json', verifyClientPaymentSchema), async (c) => {
+  const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = c.req.valid('json');
+  const userId = c.get('userId');
+  const env = c.env;
+
+  const order = await getOrderById(env.DB, orderId);
+  if (!order || order.user_id !== userId) {
     return c.json(
-      { success: false, error: { code: 'FORBIDDEN', message: 'Invalid webhook signature.', status: 403 } },
-      403,
+      { success: false, error: { code: 'NOT_FOUND', message: 'Order not found.', status: 404 } },
+      404,
     );
   }
 
-  let event: Record<string, unknown>;
-  try {
-    event = JSON.parse(rawBody);
-  } catch {
+  // If already marked as paid (e.g. by fast webhook), return immediate success
+  if (order.payment_status === 'paid') {
+    return c.json({
+      success: true,
+      data: {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        status: order.status,
+        paymentStatus: order.payment_status,
+      },
+    });
+  }
+
+  // Cryptographically verify Razorpay signature
+  const isValid = await verifyRazorpayPaymentSignature(
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature,
+    env.RAZORPAY_KEY_SECRET,
+  );
+
+  if (!isValid) {
     return c.json(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON payload.', status: 400 } },
+      { success: false, error: { code: 'INVALID_SIGNATURE', message: 'Payment signature verification failed.', status: 400 } },
       400,
     );
   }
 
-  const eventType = event.type as string;
-  const data = event.data as Record<string, unknown> | undefined;
-  const orderData = data?.order as Record<string, unknown> | undefined;
-  const paymentData = data?.payment as Record<string, unknown> | undefined;
+  // Atomic idempotency lock
+  const lock = await env.DB
+    .prepare(`UPDATE orders SET payment_status = 'paid', updated_at = ?1 WHERE id = ?2 AND payment_status != 'paid'`)
+    .bind(nowIso(), order.id)
+    .run();
 
-  const cfOrderId = (orderData?.cf_order_id ?? orderData?.order_id) as string | undefined;
-  const cfPaymentId = paymentData?.cf_payment_id as string | undefined;
-  const paymentMethod = (() => {
-    const method = paymentData?.payment_method as Record<string, unknown> | undefined;
-    if (!method) return null;
-    return Object.keys(method)[0] ?? null;
-  })();
+  if ((lock.meta.changes ?? 0) > 0) {
+    // Determine payment method if possible
+    let paymentMethod: string | null = 'razorpay';
+    try {
+      const details = await fetchRazorpayPayment(razorpayPaymentId, env.RAZORPAY_KEY_ID, env.RAZORPAY_KEY_SECRET);
+      paymentMethod = details.method || 'razorpay';
+    } catch {
+      // Non-critical: continue with default method
+    }
 
-  if (!cfOrderId) {
-    // Not a known event we can process
-    return c.json({ success: true, data: { received: true } });
+    await finalizePaidOrder(
+      env.DB,
+      env.RESEND_API_KEY,
+      order,
+      razorpayPaymentId,
+      paymentMethod,
+      c.executionCtx,
+    );
   }
 
-  // Look up our order by CF order ID
-  const order = await getOrderByCfOrderId(env.DB, cfOrderId);
-  if (!order) {
-    // Unknown order — acknowledge so CF doesn't retry
-    return c.json({ success: true, data: { received: true } });
-  }
+  return c.json({
+    success: true,
+    data: {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      paymentStatus: 'paid',
+      status: 'confirmed',
+    },
+  });
+});
 
-  // ── Idempotency guard: if order already has final status, do nothing ──
-  if (order.payment_status === 'paid' || order.payment_status === 'refunded') {
-    return c.json({ success: true, data: { received: true, skipped: true } });
-  }
+// ─── POST /api/payments/webhook ──────────────────────────────────────────────
+// Supports both Razorpay (primary) and Cashfree (fallback) webhooks
+payments.post('/webhook', async (c) => {
+  const env = c.env;
+  const rawBody = await c.req.text();
 
-  // ── Handle PAYMENT_SUCCESS ───────────────────────────────────────────────
-  if (eventType === 'PAYMENT_SUCCESS') {
-    // Commit stock for all order items (reduce actual stock)
-    const orderItems = await env.DB
-      .prepare(`SELECT variant_id, quantity FROM order_items WHERE order_id = ?1`)
-      .bind(order.id)
-      .all<{ variant_id: string; quantity: number }>();
-
-    await Promise.all(
-      (orderItems.results ?? []).map((item) =>
-        commitStock(env.DB, item.variant_id, item.quantity),
-      ),
+  // 1. Detect Razorpay Webhook
+  const rzpSignature = c.req.header('x-razorpay-signature');
+  if (rzpSignature) {
+    const isRzpValid = await verifyRazorpayWebhookSignature(
+      rawBody,
+      rzpSignature,
+      env.RAZORPAY_WEBHOOK_SECRET,
     );
 
-    // Update order: confirmed + paid
-    await Promise.all([
-      updateOrderStatus(env.DB, order.id, 'confirmed'),
-      updateOrderPayment(env.DB, order.id, {
-        paymentStatus: 'paid',
-        cfPaymentId: cfPaymentId ?? undefined,
-        paymentMethod: paymentMethod ?? undefined,
-        paidAt: nowIso(),
-      }),
-    ]);
-
-    // Send order confirmation email (via waitUntil — non-blocking)
-    const orderItemsForEmail = await env.DB
-      .prepare(`SELECT * FROM order_items WHERE order_id = ?1`)
-      .bind(order.id)
-      .all<{
-        id: string;
-        title_snapshot: string;
-        sku_snapshot: string;
-        size_snapshot: string;
-        color_snapshot: string;
-        image_snapshot: string;
-        unit_price_paise: number;
-        quantity: number;
-        total_paise: number;
-      }>();
-
-    const userRow = await env.DB
-      .prepare(`SELECT email FROM users WHERE id = ?1`)
-      .bind(order.user_id)
-      .first<{ email: string }>();
-
-    if (userRow) {
-      const emailItems: OrderEmailItem[] = (orderItemsForEmail.results ?? []).map((r) => ({
-        title: r.title_snapshot,
-        size: r.size_snapshot,
-        color: r.color_snapshot,
-        quantity: r.quantity,
-        unitPrice: formatPaiseToDisplay(r.unit_price_paise),
-      }));
-
-      c.executionCtx.waitUntil(
-        sendOrderConfirmedEmail(
-          env.RESEND_API_KEY,
-          userRow.email,
-          order.order_number,
-          formatPaiseToDisplay(order.total_paise),
-          emailItems,
-        ),
+    if (!isRzpValid) {
+      return c.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Invalid Razorpay webhook signature.', status: 403 } },
+        403,
       );
     }
+
+    let rzpEvent: any;
+    try {
+      rzpEvent = JSON.parse(rawBody);
+    } catch {
+      return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON.', status: 400 } }, 400);
+    }
+
+    const eventName = rzpEvent.event as string;
+    const paymentEntity = rzpEvent.payload?.payment?.entity;
+    const rzpOrderId = paymentEntity?.order_id || rzpEvent.payload?.order?.entity?.id;
+    const paymentId = paymentEntity?.id;
+    const paymentMethod = paymentEntity?.method ?? 'razorpay';
+
+    if (!rzpOrderId) {
+      return c.json({ success: true, data: { received: true, ignored: true } });
+    }
+
+    // Lookup order by stored Razorpay order ID (cf_order_id column)
+    const order = await getOrderByCfOrderId(env.DB, rzpOrderId);
+    if (!order) {
+      return c.json({ success: true, data: { received: true, not_found: true } });
+    }
+
+    // ── PAYMENT SUCCESS ────────────────────────────────────────────────────────
+    if (eventName === 'payment.captured' || eventName === 'order.paid') {
+      // Atomic idempotency lock: guarantees stock is deducted exactly once
+      const lock = await env.DB
+        .prepare(`UPDATE orders SET payment_status = 'paid', updated_at = ?1 WHERE id = ?2 AND payment_status != 'paid'`)
+        .bind(nowIso(), order.id)
+        .run();
+
+      if ((lock.meta.changes ?? 0) > 0) {
+        await finalizePaidOrder(
+          env.DB,
+          env.RESEND_API_KEY,
+          order,
+          paymentId ?? rzpOrderId,
+          paymentMethod,
+          c.executionCtx,
+        );
+      }
+      return c.json({ success: true, data: { received: true, processed: true } });
+    }
+
+    // ── PAYMENT FAILED ────────────────────────────────────────────────────────
+    if (eventName === 'payment.failed') {
+      if (order.payment_status !== 'paid') {
+        const orderItems = await env.DB
+          .prepare(`SELECT variant_id, quantity FROM order_items WHERE order_id = ?1`)
+          .bind(order.id)
+          .all<{ variant_id: string; quantity: number }>();
+
+        await Promise.all(
+          (orderItems.results ?? []).map((item) =>
+            rollbackStock(env.DB, item.variant_id, item.quantity),
+          ),
+        );
+
+        await Promise.all([
+          updateOrderStatus(env.DB, order.id, 'cancelled'),
+          updateOrderPayment(env.DB, order.id, {
+            paymentStatus: 'failed',
+            cfPaymentId: paymentId ?? undefined,
+          }),
+        ]);
+      }
+      return c.json({ success: true, data: { received: true, failed: true } });
+    }
+
+    return c.json({ success: true, data: { received: true, event: eventName } });
   }
 
-  // ── Handle PAYMENT_FAILED / USER_DROPPED ────────────────────────────────
-  else if (eventType === 'PAYMENT_FAILED' || eventType === 'USER_DROPPED') {
-    const orderItems = await env.DB
-      .prepare(`SELECT variant_id, quantity FROM order_items WHERE order_id = ?1`)
-      .bind(order.id)
-      .all<{ variant_id: string; quantity: number }>();
+  // 2. Fallback: Cashfree Webhook Check
+  const cfTimestamp = c.req.header('x-webhook-timestamp') ?? '';
+  const cfSignature = c.req.header('x-webhook-signature') ?? '';
 
-    await Promise.all(
-      (orderItems.results ?? []).map((item) =>
-        rollbackStock(env.DB, item.variant_id, item.quantity),
-      ),
+  if (cfSignature && env.CASHFREE_SECRET_KEY) {
+    const signatureValid = await verifyCashfreeSignature(
+      rawBody,
+      cfTimestamp,
+      cfSignature,
+      env.CASHFREE_SECRET_KEY,
     );
 
-    await Promise.all([
-      updateOrderStatus(env.DB, order.id, 'cancelled'),
-      updateOrderPayment(env.DB, order.id, {
-        paymentStatus: eventType === 'USER_DROPPED' ? 'user_dropped' : 'failed',
-        cfPaymentId: cfPaymentId ?? undefined,
-      }),
-    ]);
+    if (!signatureValid) {
+      return c.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Invalid webhook signature.', status: 403 } },
+        403,
+      );
+    }
+
+    let event: any;
+    try {
+      event = JSON.parse(rawBody);
+    } catch {
+      return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON.', status: 400 } }, 400);
+    }
+
+    const eventType = event.type as string;
+    const cfOrderId = event.data?.order?.cf_order_id ?? event.data?.order?.order_id;
+    const cfPaymentId = event.data?.payment?.cf_payment_id;
+
+    if (!cfOrderId) return c.json({ success: true, data: { received: true } });
+
+    const order = await getOrderByCfOrderId(env.DB, cfOrderId);
+    if (!order) return c.json({ success: true, data: { received: true } });
+
+    if (eventType === 'PAYMENT_SUCCESS') {
+      const lock = await env.DB
+        .prepare(`UPDATE orders SET payment_status = 'paid', updated_at = ?1 WHERE id = ?2 AND payment_status != 'paid'`)
+        .bind(nowIso(), order.id)
+        .run();
+
+      if ((lock.meta.changes ?? 0) > 0) {
+        await finalizePaidOrder(
+          env.DB,
+          env.RESEND_API_KEY,
+          order,
+          cfPaymentId ?? cfOrderId,
+          'cashfree',
+          c.executionCtx,
+        );
+      }
+    } else if (eventType === 'PAYMENT_FAILED' || eventType === 'USER_DROPPED') {
+      if (order.payment_status !== 'paid') {
+        const orderItems = await env.DB
+          .prepare(`SELECT variant_id, quantity FROM order_items WHERE order_id = ?1`)
+          .bind(order.id)
+          .all<{ variant_id: string; quantity: number }>();
+
+        await Promise.all(
+          (orderItems.results ?? []).map((item) =>
+            rollbackStock(env.DB, item.variant_id, item.quantity),
+          ),
+        );
+
+        await Promise.all([
+          updateOrderStatus(env.DB, order.id, 'cancelled'),
+          updateOrderPayment(env.DB, order.id, {
+            paymentStatus: eventType === 'USER_DROPPED' ? 'user_dropped' : 'failed',
+            cfPaymentId: cfPaymentId ?? undefined,
+          }),
+        ]);
+      }
+    }
+
+    return c.json({ success: true, data: { received: true } });
   }
 
-  return c.json({ success: true, data: { received: true } });
+  // Neither signature header present
+  return c.json(
+    { success: false, error: { code: 'BAD_REQUEST', message: 'Unrecognized webhook request.', status: 400 } },
+    400,
+  );
 });
 
 // ─── GET /api/payments/verify/:orderId ──────────────────────────────────────
-// Called by frontend after payment redirect to get final status
-
+// Query order verification status
 payments.get('/verify/:orderId', authRequired, async (c) => {
   const orderId = c.req.param('orderId');
   const userId = c.get('userId');
@@ -192,7 +376,7 @@ payments.get('/verify/:orderId', authRequired, async (c) => {
     );
   }
 
-  // If the webhook already processed this, return current state immediately
+  // If already paid, return immediately
   if (order.payment_status === 'paid') {
     return c.json({
       success: true,
@@ -207,31 +391,46 @@ payments.get('/verify/:orderId', authRequired, async (c) => {
     });
   }
 
-  // Fallback: query Cashfree directly for real-time status
-  if (order.cf_order_id && !order.cf_order_id.startsWith('cf_pending_')) {
+  // Fallback check against Razorpay API directly
+  if (order.cf_order_id && order.cf_order_id.startsWith('order_')) {
     try {
-      const cfStatus = await fetchCashfreeOrder(
+      const rzpStatus = await fetchRazorpayOrder(
         order.cf_order_id,
-        env.CASHFREE_APP_ID,
-        env.CASHFREE_SECRET_KEY,
-        env.CASHFREE_API_URL,
-        env.CASHFREE_API_VERSION,
+        env.RAZORPAY_KEY_ID,
+        env.RAZORPAY_KEY_SECRET,
       );
 
-      return c.json({
-        success: true,
-        data: {
-          orderId: order.id,
-          orderNumber: order.order_number,
-          paymentStatus: order.payment_status,
-          cfStatus: cfStatus.status,
-          status: order.status,
-          totalPaise: order.total_paise,
-          totalFormatted: formatPaiseToDisplay(order.total_paise),
-        },
-      });
+      if (rzpStatus.status === 'paid') {
+        const lock = await env.DB
+          .prepare(`UPDATE orders SET payment_status = 'paid', updated_at = ?1 WHERE id = ?2 AND payment_status != 'paid'`)
+          .bind(nowIso(), order.id)
+          .run();
+
+        if ((lock.meta.changes ?? 0) > 0) {
+          await finalizePaidOrder(
+            env.DB,
+            env.RESEND_API_KEY,
+            order,
+            order.cf_order_id,
+            'razorpay',
+            c.executionCtx,
+          );
+        }
+
+        return c.json({
+          success: true,
+          data: {
+            orderId: order.id,
+            orderNumber: order.order_number,
+            paymentStatus: 'paid',
+            status: 'confirmed',
+            totalPaise: order.total_paise,
+            totalFormatted: formatPaiseToDisplay(order.total_paise),
+          },
+        });
+      }
     } catch {
-      // Fall through to return DB state
+      // Continue to default DB response
     }
   }
 
@@ -249,4 +448,3 @@ payments.get('/verify/:orderId', authRequired, async (c) => {
 });
 
 export default payments;
-

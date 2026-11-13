@@ -2,7 +2,8 @@
  * src/lib/api/client.ts
  *
  * Core HTTP Client for DEYNOLD DANNY Frontend
- * Connects to the Cloudflare Worker API with session management, credentials, and error normalization.
+ * Connects to the Cloudflare Worker API with session management, HttpOnly credentials,
+ * automatic token refresh interceptor, and unified error normalization.
  */
 
 export const BACKEND_URL =
@@ -22,7 +23,7 @@ export interface ApiResponse<T = unknown> {
 
 /**
  * Get or create an anonymous session ID for guest carts.
- * Persists in localStorage for continuous shopping across tabs/reloads.
+ * Persists in sessionStorage / localStorage for continuous shopping across reloads.
  */
 export function getSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -36,35 +37,64 @@ export function getSessionId(): string {
 }
 
 /**
- * Access token memory / localStorage storage
+ * In-memory access token storage (Complies with AGENTS.md §6: never store session JWT in localStorage)
  */
-let inMemoryToken: string | null = null;
+let inMemoryAccessToken: string | null = null;
+let isRefreshingPromise: Promise<string | null> | null = null;
 
-export function setAccessToken(token: string | null) {
-  inMemoryToken = token;
-  if (typeof window !== 'undefined') {
-    if (token) {
-      localStorage.setItem('dd_access_token', token);
-    } else {
-      localStorage.removeItem('dd_access_token');
-    }
-  }
+export function setAccessToken(token: string | null): void {
+  inMemoryAccessToken = token;
 }
 
 export function getAccessToken(): string | null {
-  if (inMemoryToken) return inMemoryToken;
-  if (typeof window !== 'undefined') {
-    inMemoryToken = localStorage.getItem('dd_access_token');
-  }
-  return inMemoryToken;
+  return inMemoryAccessToken;
 }
 
 /**
- * Universal fetch wrapper
+ * Silently refreshes access token using the HttpOnly refresh token cookie
+ */
+export async function refreshAccessToken(): Promise<string | null> {
+  if (isRefreshingPromise) return isRefreshingPromise;
+
+  isRefreshingPromise = (async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // sends HttpOnly refresh-token cookie
+      });
+
+      if (!res.ok) {
+        setAccessToken(null);
+        return null;
+      }
+
+      const json = (await res.json()) as ApiResponse<{ accessToken: string }>;
+      if (json.success && json.data?.accessToken) {
+        setAccessToken(json.data.accessToken);
+        return json.data.accessToken;
+      }
+
+      setAccessToken(null);
+      return null;
+    } catch {
+      setAccessToken(null);
+      return null;
+    } finally {
+      isRefreshingPromise = null;
+    }
+  })();
+
+  return isRefreshingPromise;
+}
+
+/**
+ * Universal fetch wrapper with automatic session routing and 401 silent token refresh
  */
 export async function apiFetch<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  isRetry = false,
 ): Promise<ApiResponse<T>> {
   const url = endpoint.startsWith('http') ? endpoint : `${BACKEND_URL}${endpoint}`;
 
@@ -80,7 +110,13 @@ export async function apiFetch<T>(
   }
 
   // Auth Bearer token if logged in
-  const token = getAccessToken();
+  let token = getAccessToken();
+
+  // If no token in memory on fresh browser load, try silent refresh once for protected endpoints
+  if (!token && typeof window !== 'undefined' && !endpoint.includes('/api/auth/')) {
+    token = await refreshAccessToken();
+  }
+
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -91,6 +127,14 @@ export async function apiFetch<T>(
       headers,
       credentials: 'include', // Needed for HttpOnly refresh-token cookies
     });
+
+    // Handle 401 Unauthorized by attempting a single silent refresh
+    if (res.status === 401 && !isRetry && !endpoint.includes('/api/auth/')) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return apiFetch<T>(endpoint, options, true);
+      }
+    }
 
     const json = (await res.json().catch(() => ({}))) as ApiResponse<T>;
 
@@ -118,4 +162,3 @@ export async function apiFetch<T>(
     };
   }
 }
-

@@ -9,6 +9,9 @@ FRONTEND_URL = "http://localhost:4321"
 BACKEND_URL = "http://localhost:8787"
 ADMIN_URL = "http://localhost:4321"
 MEDIA_BUCKET_PUBLIC_URL = "http://localhost:8787/media"
+RAZORPAY_KEY_ID = "rzp_test_placeholder"
+SHIPROCKET_PICKUP_PINCODE = "400001"
+SHIPROCKET_CHANNEL_ID = ""
 CASHFREE_API_URL = "https://sandbox.cashfree.com/pg"
 CASHFREE_API_VERSION = "2023-08-01"
 
@@ -50,5 +53,15 @@ FRONTEND_URL = "https://deynolddanny.com"
 BACKEND_URL = "https://api.deynolddanny.com"
 ADMIN_URL = "https://admin.deynolddanny.com"
 MEDIA_BUCKET_PUBLIC_URL = "https://media.deynolddanny.com"
-CASHFREE_API_URL = "https://api.cashfree.com/pg"
-CASHFREE_API_VERSION = "2023-08-01"
+SHIPROCKET_PICKUP_PINCODE = "400001"
+SHIPROCKET_CHANNEL_ID = ""
+
+# Secrets to be configured via `wrangler secret put <KEY>`:
+# - JWT_SECRET
+# - RESEND_API_KEY
+# - RAZORPAY_KEY_ID
+# - RAZORPAY_KEY_SECRET
+# - RAZORPAY_WEBHOOK_SECRET
+# - SHIPROCKET_EMAIL
+# - SHIPROCKET_PASSWORD
+# - ADMIN_EMAILS

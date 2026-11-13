@@ -1,24 +1,49 @@
 # ==============================================================================
 # DEYNOLD DANNY — Backend Local Development Secrets
 # ==============================================================================
-# Copy this file to `backend/.dev.vars` for local development with `wrangler dev`.
-# Note: `.dev.vars` is git-ignored and must NEVER be committed to version control.
+# Copy this file to `backend/.dev.vars` and fill in your real values.
+# `.dev.vars` is git-ignored — NEVER commit it.
 #
-# For production deployment on Cloudflare, set these using:
-#   npx wrangler secret put <SECRET_NAME>
+# Production: set secrets via `wrangler secret put <NAME> --env production`
+# See backend/SETUP.md for the full production deployment guide.
 # ==============================================================================
 
-# 1. JWT Signing Secret (minimum 32-64 random characters for HS256 token signing)
-JWT_SECRET="your-super-secret-random-jwt-key-min-32-chars-long"
+# ── 1. JWT Signing Secret ─────────────────────────────────────────────────────
+# Generate: openssl rand -hex 32  (outputs 64 hex characters)
+# Minimum: 32 characters. NEVER share or commit this value.
+JWT_SECRET="dev_replace_with_64_char_random_string_before_production_use_openssl"
 
-# 2. Resend API Key (for transactional OTP and order emails, from https://resend.com)
-RESEND_API_KEY="re_123456789_abcdefghijklmnopqrstuvwxyz"
+# ── 2. Resend Transactional Email ─────────────────────────────────────────────
+# From: resend.com → API Keys → Create API Key
+# Format: re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Emails sent: OTP, order confirmation, dispatch, delivery, contact notification
+RESEND_API_KEY="re_your_resend_api_key_here"
 
-# 3. Cashfree Payment Gateway Credentials (from https://merchant.cashfree.com)
-# For local testing, use your Sandbox credentials:
-CASHFREE_APP_ID="your_cashfree_app_id"
-CASHFREE_SECRET_KEY="your_cashfree_secret_key"
+# ── 3. Razorpay — Indian Payment Gateway ──────────────────────────────────────
+# From: razorpay.com → Settings → API Keys
+# TEST keys:  rzp_test_xxx  (use test card: 4111 1111 1111 1111)
+# LIVE keys:  rzp_live_xxx  (after KYC completion on Razorpay dashboard)
+RAZORPAY_KEY_ID="rzp_test_XXXXXXXXXXXXXXXX"
+RAZORPAY_KEY_SECRET="your_razorpay_key_secret_here"
+# Webhook secret: set in razorpay.com → Settings → Webhooks → Edit → Secret
+RAZORPAY_WEBHOOK_SECRET="your_razorpay_webhook_secret_here"
 
-# 4. Authorized Admin Email Addresses (comma-separated list, lowercase)
+# ── 4. Shiprocket — Courier Aggregator ────────────────────────────────────────
+# Your Shiprocket login credentials (same as app.shiprocket.in login)
+SHIPROCKET_EMAIL="your_shiprocket_account_email@example.com"
+SHIPROCKET_PASSWORD="your_shiprocket_password_here"
+# From: app.shiprocket.in → Settings → Channels → Channel ID (numeric)
+SHIPROCKET_CHANNEL_ID=""
+# Your warehouse/origin pincode (6 digits)
+SHIPROCKET_PICKUP_PINCODE="400001"
+
+# ── 5. Admin Access ───────────────────────────────────────────────────────────
+# Comma-separated list of admin email addresses.
+# Users must have one of these emails to access /api/admin/* routes.
 ADMIN_EMAILS="admin@deynolddanny.com,director@deynolddanny.com"
 
+# ── 6. Cashfree (Optional Legacy Fallback) ────────────────────────────────────
+# Only needed if you are still processing some legacy Cashfree orders.
+# Leave blank if using Razorpay only (recommended).
+CASHFREE_APP_ID=""
+CASHFREE_SECRET_KEY=""

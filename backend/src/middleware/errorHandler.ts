@@ -5,18 +5,23 @@ import type { Env } from '../types/bindings.js';
  * Registers a global onError handler and a 404 notFound handler on the
  * provided Hono app instance.
  *
- * Always call this AFTER all routes have been registered so the handlers
- * apply to every route uniformly.
+ * Catches unhandled exceptions, records structured logs with method and path,
+ * and guarantees a consistent, safe JSON error envelope.
  */
 export function setupErrorHandler(app: Hono<{ Bindings: Env }>): void {
   app.onError((err, c) => {
-    console.error('[Error]', err.message, err.stack);
+    const isDev = c.env?.ENVIRONMENT === 'development';
+    const path = c.req.path;
+    const method = c.req.method;
+
+    console.error(`[Error ${method} ${path}]`, err.message, isDev ? err.stack : '');
+
     return c.json(
       {
         success: false,
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred. Our team has been notified.',
+          message: isDev ? err.message : 'An unexpected error occurred. Our team has been notified.',
           status: 500,
         },
       },
@@ -30,7 +35,7 @@ export function setupErrorHandler(app: Hono<{ Bindings: Env }>): void {
         success: false,
         error: {
           code: 'NOT_FOUND',
-          message: `Route ${c.req.method} ${c.req.path} not found.`,
+          message: `Endpoint ${c.req.method} ${c.req.path} not found.`,
           status: 404,
         },
       },

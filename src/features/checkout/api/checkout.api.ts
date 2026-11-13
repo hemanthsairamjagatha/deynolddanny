@@ -9,6 +9,7 @@ export interface CheckoutPayload {
   shippingState: string;
   shippingPincode: string;
   shippingCountry?: string;
+  couponCode?: string;
   customerNotes?: string;
 }
 
@@ -16,9 +17,28 @@ export interface CheckoutResponse {
   orderId: string;
   orderNumber: string;
   totalPaise: number;
-  totalFormatted: string;
+  totalFormatted?: string;
+  // Razorpay fields
+  razorpayOrderId?: string;
+  razorpayKeyId?: string;
+  amount?: number;
+  // Legacy / fallback fields
   paymentSessionId?: string;
   cashfreeOrderId?: string;
+}
+
+export interface VerifyPaymentPayload {
+  orderId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}
+
+export interface VerifyPaymentResponse {
+  orderId: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
 }
 
 export async function submitCheckoutApi(payload: CheckoutPayload) {
@@ -31,3 +51,9 @@ export async function submitCheckoutApi(payload: CheckoutPayload) {
   });
 }
 
+export async function verifyPaymentApi(payload: VerifyPaymentPayload) {
+  return apiFetch<VerifyPaymentResponse>('/api/payments/verify', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

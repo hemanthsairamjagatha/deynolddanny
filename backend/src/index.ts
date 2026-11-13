@@ -28,6 +28,9 @@ import wishlistRouter from './routes/wishlist.js';
 import usersRouter from './routes/users.js';
 import searchRouter from './routes/search.js';
 import newsletterRouter from './routes/newsletter.js';
+import contactRouter from './routes/contact.js';
+import couponsRouter from './routes/coupons.js';
+import webhooksRouter from './routes/webhooks.js';
 
 // ─── Admin Routes ────────────────────────────────────────────────────────────
 import adminRouter from './routes/admin/index.js';
@@ -68,6 +71,9 @@ app.route('/api/wishlist', wishlistRouter);
 app.route('/api/users', usersRouter);
 app.route('/api/search', searchRouter);
 app.route('/api/newsletter', newsletterRouter);
+app.route('/api/contact', contactRouter);
+app.route('/api/coupons', couponsRouter);
+app.route('/api/webhooks', webhooksRouter);
 
 // ─── Mount admin router (all routes behind adminAuth middleware) ───────────────
 app.route('/api/admin', adminRouter);

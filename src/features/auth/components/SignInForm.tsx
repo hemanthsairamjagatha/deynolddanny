@@ -84,11 +84,11 @@ export const SignInForm: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-neutral-900 font-serif">
           {step === 'credentials' ? 'Sign In' : 'Verify Code'}
         </h1>
-        <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
-          {step === 'credentials'
-            ? 'Access your private wardrobe, orders, and personalized tailoring recommendations.'
-            : `Enter the 6-digit verification code dispatched to ${credentials.email}.`}
-        </p>
+        {step !== 'credentials' && (
+          <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
+            Enter the 6-digit verification code dispatched to {credentials.email}.
+          </p>
+        )}
       </div>
 
       {/* Status Messages */}

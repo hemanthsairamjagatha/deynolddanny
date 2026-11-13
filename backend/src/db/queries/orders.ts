@@ -319,12 +319,24 @@ export async function getAllOrdersAdmin(
   status?: string,
 ): Promise<{ orders: DbOrder[]; total: number }> {
   const offset = (Math.max(page, 1) - 1) * limit;
-  const where = status ? `WHERE status = '${status}'` : '';
+
+  if (status) {
+    const [countRes, dataRes] = await db.batch([
+      db.prepare(`SELECT COUNT(*) as cnt FROM orders WHERE status = ?1`).bind(status),
+      db
+        .prepare(`SELECT * FROM orders WHERE status = ?1 ORDER BY created_at DESC LIMIT ?2 OFFSET ?3`)
+        .bind(status, limit, offset),
+    ]);
+
+    return {
+      orders: (dataRes.results ?? []) as DbOrder[],
+      total: ((countRes.results?.[0] as { cnt: number })?.cnt ?? 0),
+    };
+  }
 
   const [countRes, dataRes] = await db.batch([
-    db.prepare(`SELECT COUNT(*) as cnt FROM orders ${where}`),
-    db.prepare(`SELECT * FROM orders ${where} ORDER BY created_at DESC LIMIT ?1 OFFSET ?2`)
-      .bind(limit, offset),
+    db.prepare(`SELECT COUNT(*) as cnt FROM orders`),
+    db.prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT ?1 OFFSET ?2`).bind(limit, offset),
   ]);
 
   return {

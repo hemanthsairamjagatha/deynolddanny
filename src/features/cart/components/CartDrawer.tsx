@@ -76,8 +76,8 @@ export const CartDrawer: React.FC = () => {
           </div>
 
           {/* Main Title Container */}
-          <div className="cart-drawer__head cart-drawer-title-wrap" id="cart-drawer-head">
-            <p className="cart-drawer-title cart-drawer__title h2" id="cart-drawer-heading">
+          <div className="cart-drawer__head cart-drawer-title-wrap font-montserrat" id="cart-drawer-head">
+            <p className="cart-drawer-title cart-drawer__title h2 font-montserrat" id="cart-drawer-heading">
               {count > 0 ? `My Cart ( ${count} )` : 'My Cart'}
             </p>
           </div>
@@ -117,15 +117,15 @@ export const CartDrawer: React.FC = () => {
                         className="cart-item-img"
                         loading="lazy"
                       />
-                      <div className="cart-item__details cart-item-details">
+                      <div className="cart-item__details cart-item-details font-montserrat">
                         <div className="cart-item-title-row">
-                          <p className="cart-item-title">{item.title}</p>
+                          <p className="cart-item-title font-montserrat">{item.title}</p>
                         </div>
-                        <dl className="cart-item-size">
+                        <dl className="cart-item-size font-montserrat">
                           <dt>SIZE:</dt>
                           <dd>{item.size}</dd>
                         </dl>
-                        <div className="cart-item-price">{item.price}</div>
+                        <div className="cart-item-price font-montserrat">{item.price}</div>
                         <div className="cart-item__quantity">
                           <div className="quantity cart-qty-box">
                             <button

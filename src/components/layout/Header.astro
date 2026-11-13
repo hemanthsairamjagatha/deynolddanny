@@ -59,10 +59,10 @@ import SearchDialog from '../../features/search/components/SearchDialog';
   <nav class="header-nav-tier" aria-label="Primary Navigation">
     <div class="container">
       <ul class="nav-tier-list">
-        <li><a href="/#thread-of-mastery" class="nav-tier-link">Women</a></li>
-        <li><a href="/#thread-of-mastery" class="nav-tier-link">Men</a></li>
+        <li><a href="/categories/clothing" class="nav-tier-link">Women</a></li>
+        <li><a href="/categories/shirts" class="nav-tier-link">Men</a></li>
         <li><a href="/#style-space" class="nav-tier-link">Shop by Occasion</a></li>
-        <li><a href="/#categories" class="nav-tier-link">Shop by Category</a></li>
+        <li><a href="/categories" class="nav-tier-link">Shop by Category</a></li>
         <li><a href="/#thread-of-mastery" class="nav-tier-link">Shop by Fabric</a></li>
         <li><a href="/#latest-news" class="nav-tier-link">Journal</a></li>
       </ul>
@@ -87,14 +87,14 @@ import SearchDialog from '../../features/search/components/SearchDialog';
       <div>
         <span class="drawer-section-title">The Collections</span>
         <div class="drawer-links-main">
-          <a href="/#thread-of-mastery" class="drawer-link-serif">
+          <a href="/categories/clothing" class="drawer-link-serif">
             <span>Women</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <a href="/#thread-of-mastery" class="drawer-link-serif">
+          <a href="/categories/shirts" class="drawer-link-serif">
             <span>Men</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -108,7 +108,7 @@ import SearchDialog from '../../features/search/components/SearchDialog';
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <a href="/#categories" class="drawer-link-serif">
+          <a href="/categories" class="drawer-link-serif">
             <span>Shop by Category</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -157,3 +157,81 @@ import SearchDialog from '../../features/search/components/SearchDialog';
   <!-- Live Search Dialog Overlay -->
   <SearchDialog client:load />
 </header>
+
+<script>
+  function initSmartHeader() {
+    const header = document.getElementById('header');
+    if (!header) return;
+
+    const navToggle = document.getElementById('nav-toggle') as HTMLInputElement | null;
+
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+    const scrollThreshold = 8;
+    const topThreshold = 80;
+
+    function updateHeader() {
+      const currentScrollY = window.scrollY;
+
+      // Always keep header visible when drawer/menu is open
+      if (navToggle && navToggle.checked) {
+        header?.classList.remove('is-hidden');
+        lastScrollY = currentScrollY;
+        ticking = false;
+        return;
+      }
+
+      // At the top of the page: clear hidden and scrolled classes
+      if (currentScrollY <= 15) {
+        header?.classList.remove('is-hidden');
+        header?.classList.remove('is-scrolled');
+        lastScrollY = currentScrollY;
+        ticking = false;
+        return;
+      }
+
+      // Scrolled past top: add subtle luxury shadow class
+      header?.classList.add('is-scrolled');
+
+      const diff = currentScrollY - lastScrollY;
+
+      if (Math.abs(diff) >= scrollThreshold) {
+        if (diff > 0 && currentScrollY > topThreshold) {
+          // Scrolling DOWN -> slide up smoothly out of view
+          header?.classList.add('is-hidden');
+        } else if (diff < 0) {
+          // Scrolling UP -> reveal smoothly
+          header?.classList.remove('is-hidden');
+        }
+        lastScrollY = currentScrollY;
+      }
+
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(updateHeader);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    if (navToggle) {
+      navToggle.addEventListener('change', () => {
+        if (navToggle.checked) {
+          header?.classList.remove('is-hidden');
+        }
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSmartHeader);
+  } else {
+    initSmartHeader();
+  }
+
+  document.addEventListener('astro:page-load', initSmartHeader);
+</script>

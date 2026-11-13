@@ -243,3 +243,125 @@ export async function sendOrderShippedEmail(
     resendApiKey,
   );
 }
+
+
+// ---------------------------------------------------------------------------
+// Contact form notification email (sent to admin)
+// ---------------------------------------------------------------------------
+
+export interface ContactFormData {
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+  preferredContact: 'email' | 'phone' | 'whatsapp';
+}
+
+function buildContactAdminHtml(form: ContactFormData): string {
+  const phoneRow = form.phone
+    ? `<div class="field"><div class="label">Phone</div><div class="value">${form.phone}</div></div>`
+    : '';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8">
+<style>
+body{margin:0;padding:0;background-color:#faf9f6;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111111;}
+.container{max-width:600px;margin:40px auto;background-color:#ffffff;border:1px solid #eaeaea;padding:48px;}
+.logo{text-align:center;margin-bottom:36px;}
+.title{font-family:Georgia,serif;font-size:20px;font-weight:400;text-align:center;letter-spacing:0.04em;margin-bottom:28px;color:#111111;}
+.field{margin-bottom:16px;}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#888;margin-bottom:4px;}
+.value{font-size:14px;color:#111;line-height:1.6;}
+.message-box{background:#faf9f6;border:1px solid #eaeaea;padding:16px;font-size:14px;line-height:1.7;color:#333;}
+.footer{font-size:11px;color:#888888;text-align:center;border-top:1px solid #f0f0f0;padding-top:24px;margin-top:40px;text-transform:uppercase;letter-spacing:0.08em;}
+</style></head>
+<body>
+<div class="container">
+  <div class="logo">
+    <h2 style="letter-spacing:0.2em;font-weight:600;font-size:16px;margin:0;">DEYNOLD DANNY</h2>
+    <p style="font-size:9px;letter-spacing:0.15em;color:#777;margin:4px 0 0 0;">MILANO &bull; ATELIER</p>
+  </div>
+  <div class="title">New Client Enquiry</div>
+  <div class="field"><div class="label">Name</div><div class="value">${form.name}</div></div>
+  <div class="field"><div class="label">Email</div><div class="value"><a href="mailto:${form.email}" style="color:#111;">${form.email}</a></div></div>
+  ${phoneRow}
+  <div class="field"><div class="label">Preferred Contact</div><div class="value" style="text-transform:capitalize;">${form.preferredContact}</div></div>
+  <div class="field"><div class="label">Subject</div><div class="value">${form.subject}</div></div>
+  <div class="field"><div class="label">Message</div><div class="message-box">${form.message.replace(/\n/g, '<br>')}</div></div>
+  <div class="footer">&copy; 2026 DEYNOLD DANNY S.R.L. ALL RIGHTS RESERVED.</div>
+</div>
+</body></html>`;
+}
+
+/**
+ * Sends a contact form enquiry notification to the admin.
+ */
+export async function sendContactAdminEmail(
+  resendApiKey: string,
+  adminEmail: string,
+  form: ContactFormData,
+): Promise<void> {
+  const html = buildContactAdminHtml(form);
+  await sendEmail(
+    adminEmail,
+    `New Enquiry: ${form.subject} — ${form.name}`,
+    html,
+    resendApiKey,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Order delivered notification email
+// ---------------------------------------------------------------------------
+
+function buildOrderDeliveredHtml(orderNumber: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8">
+<style>
+body{margin:0;padding:0;background-color:#faf9f6;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;color:#111111;}
+.container{max-width:540px;margin:40px auto;background-color:#ffffff;border:1px solid #eaeaea;padding:48px;}
+.logo{text-align:center;margin-bottom:36px;}
+.title{font-family:Georgia,serif;font-size:22px;font-weight:400;text-align:center;letter-spacing:0.04em;margin-bottom:16px;color:#111111;}
+.text{font-size:14px;line-height:1.7;color:#555555;text-align:center;margin-bottom:28px;}
+.check{font-size:40px;text-align:center;margin-bottom:20px;color:#111;}
+.footer{font-size:11px;color:#888888;text-align:center;border-top:1px solid #f0f0f0;padding-top:24px;text-transform:uppercase;letter-spacing:0.08em;}
+</style></head>
+<body>
+<div class="container">
+  <div class="logo">
+    <h2 style="letter-spacing:0.2em;font-weight:600;font-size:16px;margin:0;">DEYNOLD DANNY</h2>
+    <p style="font-size:9px;letter-spacing:0.15em;color:#777;margin:4px 0 0 0;">MILANO &bull; ATELIER</p>
+  </div>
+  <div class="check">&#10003;</div>
+  <div class="title">Your Order Has Arrived</div>
+  <p class="text">
+    Your order <strong>${orderNumber}</strong> has been successfully delivered.
+    We hope your garments bring you great satisfaction and elegance.
+  </p>
+  <p class="text" style="font-size:12px;color:#888;">
+    If you have any concerns about your delivery, please contact our client concierge at
+    <a href="mailto:concierge@deynolddanny.com" style="color:#111;">concierge@deynolddanny.com</a>
+  </p>
+  <div class="footer">&copy; 2026 DEYNOLD DANNY S.R.L. ALL RIGHTS RESERVED.</div>
+</div>
+</body></html>`;
+}
+
+/**
+ * Sends a delivery confirmation email to the customer.
+ */
+export async function sendOrderDeliveredEmail(
+  resendApiKey: string,
+  to: string,
+  orderNumber: string,
+): Promise<void> {
+  const html = buildOrderDeliveredHtml(orderNumber);
+  await sendEmail(
+    to,
+    `Your DEYNOLD DANNY Order ${orderNumber} Has Been Delivered`,
+    html,
+    resendApiKey,
+  );
+}
