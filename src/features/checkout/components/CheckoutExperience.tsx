@@ -799,7 +799,12 @@ export const CheckoutExperience: React.FC = () => {
     try {
       const res = await submitCheckoutApi(payload);
       if (!res.success || !res.data) {
-        setErrorMessage(res.error?.message || 'Could not initialize order. Please check stock and try again.');
+        console.error('[Checkout Submission Failed]', res);
+        setErrorMessage(
+          res.error?.message ||
+          (res as any)?.message ||
+          'Could not initialize order. Please verify your connection and try again.'
+        );
         setIsSubmitting(false);
         return;
       }
