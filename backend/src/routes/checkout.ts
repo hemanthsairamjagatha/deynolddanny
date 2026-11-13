@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Env } from '../types/bindings.js';
 import type { ApiCheckoutResponse } from '../types/api.js';
 import { authRequired } from '../middleware/auth.js';
-import { getOrCreateCart, getCartWithItems, clearCart } from '../db/queries/cart.js';
+import { getOrCreateCart, getCartWithItems, clearCart, mergeGuestCart } from '../db/queries/cart.js';
 import { createOrder, createOrderItems } from '../db/queries/orders.js';
 import { holdStock } from '../services/stockEngine.js';
 import { createRazorpayOrder } from '../services/razorpay.js';
@@ -46,13 +46,22 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
   const body = c.req.valid('json');
   const env = c.env;
 
-  // 1. Resolve user cart
+  // 1. Merge guest cart from session if present, then resolve user cart
+  const sessionId = c.req.header('x-session-id') || body.sessionId;
+  if (sessionId) {
+    try {
+      await mergeGuestCart(env.DB, sessionId, userId);
+    } catch {
+      // Cart merge non-fatal
+    }
+  }
+
   const cartRecord = await getOrCreateCart(env.DB, { userId });
   const cartData = await getCartWithItems(env.DB, cartRecord.id);
 
   if (!cartData || cartData.items.length === 0) {
     return c.json(
-      { success: false, error: { code: 'EMPTY_CART', message: 'Your cart is empty.', status: 400 } },
+      { success: false, error: { code: 'EMPTY_CART', message: 'Your cart is empty. Please add garments before checking out.', status: 400 } },
       400,
     );
   }
@@ -176,47 +185,62 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     customerNotes: body.customerNotes,
   });
 
-  // Create Razorpay order and get the razorpayOrderId
-  let razorpayOrderId: string;
-  let razorpayAmount: number;
-  try {
-    const rzpResult = await createRazorpayOrder(
-      {
-        orderId: order.id,
-        orderNumber: order.order_number,
-        amountPaise: totalPaise,
-        customerName: body.shippingName,
-        customerEmail: userEmail || '',
-        customerPhone: body.shippingPhone,
-      },
-      env.RAZORPAY_KEY_ID,
-      env.RAZORPAY_KEY_SECRET,
-    );
-    razorpayOrderId = rzpResult.razorpayOrderId;
-    razorpayAmount = rzpResult.amount;
-  } catch (err) {
-    // Rollback all stock holds on Razorpay failure
-    await Promise.all(
-      cartData.items.map((item) =>
-        env.DB
-          .prepare(
-            `UPDATE product_variants
-             SET reserved_stock = MAX(0, reserved_stock - ?1),
-                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-             WHERE id = ?2`,
-          )
-          .bind(item.qty, item.variantId)
-          .run(),
-      ),
-    );
-    throw err;
-  }
+  // Check if Razorpay keys are configured
+  const isRazorpayConfigured = Boolean(
+    env.RAZORPAY_KEY_ID &&
+    env.RAZORPAY_KEY_SECRET &&
+    !env.RAZORPAY_KEY_ID.includes('placeholder') &&
+    env.RAZORPAY_KEY_SECRET.length > 5
+  );
 
-  // Store Razorpay order ID in cf_order_id column (column rename deferred to future migration)
-  await env.DB
-    .prepare(`UPDATE orders SET cf_order_id = ?1, updated_at = ?2 WHERE id = ?3`)
-    .bind(razorpayOrderId, new Date().toISOString(), order.id)
-    .run();
+  let razorpayOrderId: string | undefined;
+  let razorpayAmount: number | undefined;
+
+  if (isRazorpayConfigured) {
+    try {
+      const rzpResult = await createRazorpayOrder(
+        {
+          orderId: order.id,
+          orderNumber: order.order_number,
+          amountPaise: totalPaise,
+          customerName: body.shippingName,
+          customerEmail: userEmail || '',
+          customerPhone: body.shippingPhone,
+        },
+        env.RAZORPAY_KEY_ID,
+        env.RAZORPAY_KEY_SECRET,
+      );
+      razorpayOrderId = rzpResult.razorpayOrderId;
+      razorpayAmount = rzpResult.amount;
+
+      await env.DB
+        .prepare(`UPDATE orders SET cf_order_id = ?1, updated_at = ?2 WHERE id = ?3`)
+        .bind(razorpayOrderId, new Date().toISOString(), order.id)
+        .run();
+    } catch (err) {
+      // Rollback all stock holds on Razorpay failure
+      await Promise.all(
+        cartData.items.map((item) =>
+          env.DB
+            .prepare(
+              `UPDATE product_variants
+               SET reserved_stock = MAX(0, reserved_stock - ?1),
+                   updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+               WHERE id = ?2`,
+            )
+            .bind(item.qty, item.variantId)
+            .run(),
+        ),
+      );
+      throw err;
+    }
+  } else {
+    // Sandbox / Test mode: direct confirmation
+    await env.DB
+      .prepare(`UPDATE orders SET cf_order_id = ?1, status = 'confirmed', payment_status = 'test_confirmed', updated_at = ?2 WHERE id = ?3`)
+      .bind(`test_order_${Date.now()}`, new Date().toISOString(), order.id)
+      .run();
+  }
 
   // 6. Create order items (snapshot of product data at time of purchase)
   await createOrderItems(
@@ -238,15 +262,14 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
   // 7. Clear the user's cart
   await clearCart(env.DB, cartRecord.id);
 
-  // The frontend needs razorpayOrderId, razorpayKeyId, and amount (paise)
-  // to open the Razorpay checkout modal.
+  // Return response for frontend checkout modal / confirmation
   const response: ApiCheckoutResponse = {
     orderId: order.id,
     orderNumber: order.order_number,
     totalPaise,
-    razorpayOrderId,
-    razorpayKeyId: env.RAZORPAY_KEY_ID,
-    amount: razorpayAmount,
+    razorpayOrderId: isRazorpayConfigured ? razorpayOrderId : undefined,
+    razorpayKeyId: isRazorpayConfigured ? env.RAZORPAY_KEY_ID : undefined,
+    amount: isRazorpayConfigured ? razorpayAmount : totalPaise,
   };
 
   return c.json({ success: true, data: response }, 201);

@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { $cartItems, $formattedSubtotal } from '../../cart/store/cart.store';
 import { submitCheckoutApi, verifyPaymentApi, type CheckoutPayload } from '../api/checkout.api';
 import { sendOtpApi, verifyOtpApi, getProfileApi } from '../../auth/api/auth.api';
-import { getAccessToken, apiFetch } from '../../../lib/api/client';
+import { getAccessToken, getSessionId, apiFetch } from '../../../lib/api/client';
 
 export interface SavedAddress {
   id: string;
@@ -643,6 +643,24 @@ export const CheckoutExperience: React.FC = () => {
       if (res.success) {
         setIsAuthenticated(true);
         setOtpSent(false);
+
+        // Merge guest cart items into authenticated user account
+        const sessionId = getSessionId();
+        if (sessionId) {
+          apiFetch('/api/cart/merge', {
+            method: 'POST',
+            body: JSON.stringify({ sessionId }),
+          }).catch(() => {});
+        }
+
+        // Auto-fill client name if previously saved
+        getProfileApi().then((pRes) => {
+          if (pRes.success && pRes.data?.fullName && !firstName && !lastName) {
+            const parts = pRes.data.fullName.split(' ');
+            setFirstName(parts[0] || '');
+            setLastName(parts.slice(1).join(' ') || '');
+          }
+        });
       } else {
         setErrorMessage(res.error?.message || 'Invalid code. Please try again.');
       }

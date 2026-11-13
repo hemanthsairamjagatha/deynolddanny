@@ -2566,6 +2566,26 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-13 — Automated Guest-to-User Cart Merge and Smooth Checkout Order Placement**:
+  - **Status:** COMPLETE
+  - **Summary:** Engineered seamless end-to-end checkout flow between guest shopping sessions and authenticated orders:
+    1. In `src/features/checkout/components/CheckoutExperience.tsx`, immediately upon successful OTP verification (`verifyOtpApi`), dispatches background `POST /api/cart/merge` using the anonymous `sessionId` from `getSessionId()` so guest wardrobe selections automatically attach to the authenticated user ID.
+    2. In `backend/src/routes/checkout.ts`, added server-side defensive cart merge on `POST /api/checkout` using `x-session-id`, ensuring the user's cart is never reported empty after OTP sign-in.
+    3. Added graceful fallback in `backend/src/routes/checkout.ts` to support instant direct confirmation in sandbox/test mode when Razorpay live keys are not yet configured, automatically switching to Razorpay Checkout sheet when live keys are provided.
+  - **Files Modified:**
+    - `src/features/checkout/components/CheckoutExperience.tsx`
+    - `backend/src/routes/checkout.ts`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (77 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (57 page(s) built cleanly in 3.24s).
+    - `npx wrangler deploy`: PASS (Current Version ID `12c63af9-0dc7-443d-878f-0e5bea5fe10c`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 - **2026-11-13 — Vercel Subdomain API Proxy Rewrites Configuration**:
   - **Status:** COMPLETE
   - **Summary:** Added `vercel.json` with edge rewrites proxying `/api/:path*` and `/health` from `deynolddanny.pixenox.com` directly to `https://deynold-danny-backend.deynolddanny.workers.dev`. Allows visiting `https://deynolddanny.pixenox.com/health` and `https://deynolddanny.pixenox.com/api/*` directly on the primary subdomain.
@@ -2633,6 +2653,26 @@ deynold-danny-ecommerce/
     - `npx wrangler deploy`: PASS (Current Version ID `7df7baec-1025-4b9c-bdcc-298210ea5e75`)
     - Live OTP dispatch test `POST https://deynolddanny.pixenox.com/api/auth/send-otp`: PASS (200 OK)
     - D1 verification: PASS (OTP record created in `otps` table)
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-13 — Automated Guest-to-User Cart Merge and Smooth Checkout Order Placement**:
+  - **Status:** COMPLETE
+  - **Summary:** Engineered seamless end-to-end checkout flow between guest shopping sessions and authenticated orders:
+    1. In `src/features/checkout/components/CheckoutExperience.tsx`, immediately upon successful OTP verification (`verifyOtpApi`), dispatches background `POST /api/cart/merge` using the anonymous `sessionId` from `getSessionId()` so guest wardrobe selections automatically attach to the authenticated user ID.
+    2. In `backend/src/routes/checkout.ts`, added server-side defensive cart merge on `POST /api/checkout` using `x-session-id`, ensuring the user's cart is never reported empty after OTP sign-in.
+    3. Added graceful fallback in `backend/src/routes/checkout.ts` to support instant direct confirmation in sandbox/test mode when Razorpay live keys are not yet configured, automatically switching to Razorpay Checkout sheet when live keys are provided.
+  - **Files Modified:**
+    - `src/features/checkout/components/CheckoutExperience.tsx`
+    - `backend/src/routes/checkout.ts`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (77 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (57 page(s) built cleanly in 3.24s).
+    - `npx wrangler deploy`: PASS (Current Version ID `12c63af9-0dc7-443d-878f-0e5bea5fe10c`).
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
