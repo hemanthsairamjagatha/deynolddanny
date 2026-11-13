@@ -1,7 +1,7 @@
 // Resend transactional email service for DEYNOLD DANNY
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
-const FROM_ADDRESS = 'DEYNOLD DANNY <noreply@deynolddanny.com>';
+const FROM_ADDRESS = 'DEYNOLD DANNY <onboarding@resend.dev>';
 
 // ---------------------------------------------------------------------------
 // Private helpers

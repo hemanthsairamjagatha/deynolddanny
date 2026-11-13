@@ -2612,3 +2612,27 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-13 — Live Resend Email Service Configuration & Cloudflare Worker Deployment**:
+  - **Status:** COMPLETE
+  - **Summary:** Configured live transactional email dispatch via Resend for authentication OTPs and client correspondence:
+    1. Uploaded user's verified Resend API key (`re_3TPs...`) as secret `RESEND_API_KEY` to the Cloudflare Worker backend (`deynold-danny-backend`).
+    2. Updated `backend/src/services/resend.ts` sender address to `'DEYNOLD DANNY <onboarding@resend.dev>'` matching the active Resend sending policy.
+    3. Enhanced `backend/src/routes/auth.ts` with error logging in `.catch()` for background email dispatch.
+    4. Re-deployed backend worker via `wrangler deploy` (Version ID: `7df7baec-1025-4b9c-bdcc-298210ea5e75`).
+    5. Verified live OTP dispatch to `vemudanny@gmail.com` via `POST /api/auth/send-otp` returning 200 OK and recording in D1.
+  - **Files Modified:**
+    - `backend/src/services/resend.ts`
+    - `backend/src/routes/auth.ts`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - Direct Resend API test: PASS (Email ID `01a1d4b0-ade8-715c-86d4-18001c48bb8e` delivered)
+    - `npx wrangler secret put RESEND_API_KEY`: PASS
+    - `npx wrangler deploy`: PASS (Current Version ID `7df7baec-1025-4b9c-bdcc-298210ea5e75`)
+    - Live OTP dispatch test `POST https://deynolddanny.pixenox.com/api/auth/send-otp`: PASS (200 OK)
+    - D1 verification: PASS (OTP record created in `otps` table)
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

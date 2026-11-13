@@ -59,7 +59,9 @@ auth.post('/send-otp', zValidator('json', emailSchema), async (c) => {
   // Fire-and-forget email via waitUntil (never blocks the response)
   if (c.env.RESEND_API_KEY) {
     c.executionCtx.waitUntil(
-      sendOtpEmail(c.env.RESEND_API_KEY, email, otp),
+      sendOtpEmail(c.env.RESEND_API_KEY, email, otp).catch((err) => {
+        console.error('Failed to send OTP email via Resend:', err);
+      }),
     );
   }
 
