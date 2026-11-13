@@ -30,6 +30,60 @@ export const $formattedSubtotal = computed($subtotalNum, num => {
   return `₹ ${formatted} INR`;
 });
 
+export interface AppliedCoupon {
+  code: string;
+  discountNum: number;
+  discountFormatted: string;
+}
+
+function loadInitialCoupon(): AppliedCoupon | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('dd_applied_coupon');
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // Ignore JSON error
+  }
+  return null;
+}
+
+export const $appliedCoupon = atom<AppliedCoupon | null>(loadInitialCoupon());
+
+export function applyCoupon(coupon: AppliedCoupon) {
+  $appliedCoupon.set(coupon);
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('dd_applied_coupon', JSON.stringify(coupon));
+    } catch {}
+  }
+}
+
+export function removeCoupon() {
+  $appliedCoupon.set(null);
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('dd_applied_coupon');
+    } catch {}
+  }
+}
+
+export const $discountNum = computed([$subtotalNum, $appliedCoupon], (subtotal, coupon) => {
+  if (!coupon || !coupon.discountNum) return 0;
+  return Math.min(coupon.discountNum, subtotal);
+});
+
+export const $totalPayableNum = computed([$subtotalNum, $discountNum], (subtotal, discount) => {
+  return Math.max(0, subtotal - discount);
+});
+
+export const $formattedTotalPayable = computed($totalPayableNum, num => {
+  const formatted = num.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  return `₹ ${formatted} INR`;
+});
+
 export function openCart() {
   $isCartOpen.set(true);
   if (typeof document !== 'undefined') {

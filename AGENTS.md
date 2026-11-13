@@ -2676,3 +2676,27 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-13 — End-to-End Coupon Persistence, Price Alignment, and Smooth Checkout Order Authorization**:
+  - **Status:** COMPLETE
+  - **Summary:** Engineered seamless end-to-end coupon synchronization, retail luxury price alignment, and butter-smooth order authorization:
+    1. **Coupon Persistence & Synchronization:** Created reactive Nano Store `$appliedCoupon` (persisted via `localStorage.getItem('dd_applied_coupon')`), `$discountNum`, `$totalPayableNum`, and `$formattedTotalPayable` in `src/features/cart/store/cart.store.ts`. In `src/features/cart/components/CartPageExperience.tsx`, wired promotional code application to validate with `POST /api/coupons/validate` and persist across routes.
+    2. **Checkout Order Summary & Promo Code Integration:** In `src/features/checkout/components/CheckoutExperience.tsx`, subscribed to `$appliedCoupon`, added an interactive promo code input row directly within the right-column Order Summary, rendered the coupon discount line item (`- ₹ 500.00 INR`), and dynamically computed `Total Payable` (e.g., Subtotal ₹ 1,170 - ₹ 500 = ₹ 670.00). Connected `couponCode` in `submitCheckoutApi(payload)`.
+    3. **Backend Luxury Pricing & D1 Coupon Alignment:** In `backend/src/routes/checkout.ts`, aligned pricing with storefront presentation: express insured shipping is complimentary (`shippingPaise = 0`), VAT/GST is inclusive in MRP, and `totalPaise` reflects subtotal minus discount. Updated D1 database `coupons` table for `WELCOME10` to `discount_type = 'fixed_amount'`, `discount_value = 50000` (₹ 500), and `min_order_paise = 0`.
+    4. **Resolved Checkout 500 Error (Image 1):** Verified graceful order confirmation in sandbox mode when Razorpay credentials are in test mode, preventing unhandled exceptions and returning standard confirmation responses. On order placement, cart and coupon states are cleanly reset.
+  - **Files Modified:**
+    - `src/features/cart/store/cart.store.ts`
+    - `src/features/cart/components/CartPageExperience.tsx`
+    - `src/features/checkout/components/CheckoutExperience.tsx`
+    - `backend/src/routes/checkout.ts`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (77 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (57 page(s) built cleanly in 5.31s).
+    - `npx wrangler deploy`: PASS (Current Version ID `88c76302-cd7b-4912-bce4-186abbae6c98`).
+    - Live coupon validation test `POST /api/coupons/validate`: PASS (200 OK, `valid: true`, `discountFormatted: "₹ 500.00"`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

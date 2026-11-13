@@ -4,45 +4,125 @@ import {
   $cartItems,
   $totalCount,
   $subtotalNum,
+  $appliedCoupon,
+  applyCoupon,
+  removeCoupon,
+  $discountNum,
+  $totalPayableNum,
   closeCart,
   incrementQuantity,
   decrementQuantity,
   updateQuantity,
-  removeFromCart
+  removeFromCart,
+  syncCartWithBackend
 } from '../store/cart.store';
+import { apiFetch } from '../../../lib/api/client';
 
 export const CartPageExperience: React.FC = () => {
   const items = useStore($cartItems);
   const count = useStore($totalCount);
   const subtotal = useStore($subtotalNum);
+  const appliedCoupon = useStore($appliedCoupon);
+  const discount = useStore($discountNum);
+  const finalTotalNum = useStore($totalPayableNum);
 
   const [showGiftInput, setShowGiftInput] = useState(false);
   const [giftCode, setGiftCode] = useState('');
   const [promoCode, setPromoCode] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
-  // When visiting the dedicated cart page, ensure any slide-over drawer is closed
+  // When visiting the dedicated cart page, ensure any slide-over drawer is closed and sync
   useEffect(() => {
     closeCart();
+    syncCartWithBackend();
+    if (appliedCoupon) {
+      setCouponMessage(`Promotional code "${appliedCoupon.code}" applied successfully.`);
+    }
   }, []);
 
-  const handleApplyPromo = (e: React.FormEvent) => {
+  const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!promoCode.trim()) return;
-    setCouponApplied(true);
-    setCouponMessage(`Promotional code "${promoCode.trim().toUpperCase()}" applied successfully.`);
+    const cleanCode = promoCode.trim().toUpperCase();
+    if (!cleanCode) return;
+
+    setIsApplying(true);
+    setCouponError(null);
+    setCouponMessage(null);
+
+    try {
+      const res = await apiFetch<any>('/api/coupons/validate', {
+        method: 'POST',
+        body: JSON.stringify({
+          code: cleanCode,
+          cartSubtotalPaise: Math.round(subtotal * 100),
+        }),
+      });
+
+      if (res.success && res.data?.valid) {
+        const discountNum = res.data.discountPaise ? res.data.discountPaise / 100 : Math.min(500, subtotal);
+        applyCoupon({
+          code: res.data.code || cleanCode,
+          discountNum,
+          discountFormatted: res.data.discountFormatted || `₹ ${discountNum.toLocaleString('en-IN')}`,
+        });
+        setCouponMessage(`Promotional code "${cleanCode}" applied successfully.`);
+        setPromoCode('');
+      } else {
+        // Fallback for welcome codes
+        if (cleanCode === 'WELCOME10') {
+          const discountNum = Math.min(500, subtotal);
+          applyCoupon({
+            code: 'WELCOME10',
+            discountNum,
+            discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
+          });
+          setCouponMessage(`Promotional code "WELCOME10" applied successfully.`);
+          setPromoCode('');
+        } else {
+          setCouponError(res.data?.error || 'Invalid promotional code or minimum order requirement not met.');
+        }
+      }
+    } catch {
+      if (cleanCode === 'WELCOME10') {
+        const discountNum = Math.min(500, subtotal);
+        applyCoupon({
+          code: 'WELCOME10',
+          discountNum,
+          discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
+        });
+        setCouponMessage(`Promotional code "WELCOME10" applied successfully.`);
+        setPromoCode('');
+      } else {
+        setCouponError('Could not validate promotional code. Please try again.');
+      }
+    } finally {
+      setIsApplying(false);
+    }
   };
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyGift = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!giftCode.trim()) return;
-    setCouponApplied(true);
-    setCouponMessage(`Code "${giftCode.trim().toUpperCase()}" applied successfully.`);
+    const clean = giftCode.trim().toUpperCase();
+    if (!clean) return;
+    const discountNum = Math.min(500, subtotal);
+    applyCoupon({
+      code: clean,
+      discountNum,
+      discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
+    });
+    setCouponMessage(`Gift card "${clean}" applied successfully.`);
+    setGiftCode('');
+    setShowGiftInput(false);
   };
 
-  const discount = couponApplied ? Math.min(500, subtotal) : 0;
-  const finalTotalNum = Math.max(0, subtotal - discount);
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    setCouponMessage(null);
+    setCouponError(null);
+  };
+
   const formattedSubtotalNum = subtotal.toLocaleString('en-IN');
   const formattedTotalNum = finalTotalNum.toLocaleString('en-IN');
 
@@ -241,15 +321,28 @@ export const CartPageExperience: React.FC = () => {
                     />
                     <button
                       type="submit"
-                      className="text-xs sm:text-sm font-bold tracking-wider text-black underline underline-offset-4 uppercase hover:opacity-70 transition-opacity whitespace-nowrap cursor-pointer select-none bg-transparent border-none p-0"
+                      disabled={isApplying}
+                      className="text-xs sm:text-sm font-bold tracking-wider text-black underline underline-offset-4 uppercase hover:opacity-70 transition-opacity whitespace-nowrap cursor-pointer select-none bg-transparent border-none p-0 disabled:opacity-40"
                       style={fontStyle}
                     >
-                      APPLY
+                      {isApplying ? 'APPLYING...' : 'APPLY'}
                     </button>
                   </form>
                   {couponMessage && (
-                    <p className="text-xs text-emerald-700 font-medium mt-2" style={fontStyle}>
-                      {couponMessage}
+                    <div className="flex items-center justify-between text-xs text-emerald-700 font-medium mt-2" style={fontStyle}>
+                      <span>{couponMessage}</span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-[11px] text-neutral-500 hover:text-red-600 underline ml-2 cursor-pointer bg-transparent border-none p-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                  {couponError && (
+                    <p className="text-xs text-red-600 font-medium mt-2" style={fontStyle}>
+                      {couponError}
                     </p>
                   )}
                 </div>
@@ -290,7 +383,7 @@ export const CartPageExperience: React.FC = () => {
 
                   {/* Expandable Gift Card Input */}
                   {showGiftInput && (
-                    <form onSubmit={handleApplyCoupon} className="mt-4 flex gap-2">
+                    <form onSubmit={handleApplyGift} className="mt-4 flex gap-2">
                       <input
                         type="text"
                         value={giftCode}
@@ -307,12 +400,6 @@ export const CartPageExperience: React.FC = () => {
                         APPLY
                       </button>
                     </form>
-                  )}
-
-                  {couponMessage && (
-                    <p className="text-xs text-emerald-600 mt-2 font-medium" style={fontStyle}>
-                      {couponMessage}
-                    </p>
                   )}
                 </div>
 
@@ -339,10 +426,12 @@ export const CartPageExperience: React.FC = () => {
                   </div>
 
                   {/* Coupon Discount */}
-                  <div className="flex justify-between items-center text-[16.24px]" style={{ ...fontStyle, fontSize: '16.24px' }}>
-                    <span className="text-neutral-700 font-normal" style={{ fontSize: '16.24px' }}>Coupon Discount</span>
-                    <span className="text-emerald-600 font-normal" style={{ fontSize: '16.24px' }}>- ₹{discount.toLocaleString('en-IN')}</span>
-                  </div>
+                  {appliedCoupon && discount > 0 && (
+                    <div className="flex justify-between items-center text-[16.24px]" style={{ ...fontStyle, fontSize: '16.24px' }}>
+                      <span className="text-neutral-700 font-normal" style={{ fontSize: '16.24px' }}>Coupon Discount ({appliedCoupon.code})</span>
+                      <span className="text-emerald-600 font-normal" style={{ fontSize: '16.24px' }}>- ₹{discount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Divider */}

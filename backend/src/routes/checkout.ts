@@ -8,6 +8,7 @@ import { getOrCreateCart, getCartWithItems, clearCart, mergeGuestCart } from '..
 import { createOrder, createOrderItems } from '../db/queries/orders.js';
 import { holdStock } from '../services/stockEngine.js';
 import { createRazorpayOrder } from '../services/razorpay.js';
+import { formatPaiseToDisplay } from '../services/money.js';
 import {
   FREE_SHIPPING_THRESHOLD_PAISE,
   STANDARD_SHIPPING_PAISE,
@@ -72,7 +73,8 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     subtotalPaise += item.pricePaise * item.qty;
   }
 
-  const shippingPaise = subtotalPaise >= FREE_SHIPPING_THRESHOLD_PAISE ? 0 : STANDARD_SHIPPING_PAISE;
+  // Luxury shipping is complimentary across all orders
+  const shippingPaise = 0;
 
   // 3. Coupon validation (if provided) — Atomic update to prevent race conditions
   let discountPaise = 0;
@@ -123,9 +125,10 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     }
   }
 
-  const taxableAmount = subtotalPaise - discountPaise + shippingPaise;
-  const taxPaise = Math.round(taxableAmount * TAX_RATE);
-  const totalPaise = taxableAmount + taxPaise;
+  // Retail luxury pricing: GST is inclusive in MRP, express shipping is complimentary
+  const totalPayablePaise = Math.max(0, subtotalPaise - discountPaise);
+  const taxPaise = Math.round(totalPayablePaise * (TAX_RATE / (1 + TAX_RATE)));
+  const totalPaise = totalPayablePaise;
 
   // 4. Atomic stock hold — all items must succeed or we reject
   const holdResults: Array<{ variantId: string; qty: number; held: boolean }> = [];
@@ -267,6 +270,7 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     orderId: order.id,
     orderNumber: order.order_number,
     totalPaise,
+    totalFormatted: formatPaiseToDisplay(totalPaise),
     razorpayOrderId: isRazorpayConfigured ? razorpayOrderId : undefined,
     razorpayKeyId: isRazorpayConfigured ? env.RAZORPAY_KEY_ID : undefined,
     amount: isRazorpayConfigured ? razorpayAmount : totalPaise,
