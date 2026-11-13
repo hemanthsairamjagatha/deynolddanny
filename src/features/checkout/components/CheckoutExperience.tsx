@@ -3,7 +3,21 @@ import { useStore } from '@nanostores/react';
 import { $cartItems, $formattedSubtotal } from '../../cart/store/cart.store';
 import { submitCheckoutApi, verifyPaymentApi, type CheckoutPayload } from '../api/checkout.api';
 import { sendOtpApi, verifyOtpApi, getProfileApi } from '../../auth/api/auth.api';
-import { getAccessToken } from '../../../lib/api/client';
+import { getAccessToken, apiFetch } from '../../../lib/api/client';
+
+export interface SavedAddress {
+  id: string;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  address: string;
+  apartment?: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+}
 
 export interface AddressSuggestion {
   id: string;
@@ -111,13 +125,20 @@ export const CheckoutExperience: React.FC = () => {
   const [city, setCity] = useState('');
   const [province, setProvince] = useState('');
   const [phone, setPhone] = useState('');
-  const [saveInfo, setSaveInfo] = useState(false);
+  const [saveInfo, setSaveInfo] = useState(true);
   const [showPhoneInfo, setShowPhoneInfo] = useState(false);
+
+  // Saved addresses state
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [isUsingNewAddress, setIsUsingNewAddress] = useState(false);
 
   // Address autocomplete state
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const addressContainerRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -165,6 +186,152 @@ export const CheckoutExperience: React.FC = () => {
     }
   }, []);
 
+  // Apply a saved address to form inputs
+  const applySavedAddress = (addr: SavedAddress) => {
+    setSelectedAddressId(addr.id);
+    setIsUsingNewAddress(false);
+    setFirstName(addr.firstName || '');
+    setLastName(addr.lastName || '');
+    setAddress(addr.address || '');
+    setApartment(addr.apartment || '');
+    setCity(addr.city || '');
+    setProvince(matchProvince(addr.province || ''));
+    setPostalCode(addr.postalCode || '');
+    setCountry(addr.country || 'India');
+    setPhone(addr.phone || '');
+  };
+
+  const handleDeleteSavedAddress = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const updated = savedAddresses.filter((a) => a.id !== id);
+    setSavedAddresses(updated);
+    try {
+      localStorage.setItem('dd_saved_addresses', JSON.stringify(updated));
+    } catch {
+      // Ignore
+    }
+    if (selectedAddressId === id) {
+      if (updated.length > 0) {
+        applySavedAddress(updated[0]);
+      } else {
+        setSelectedAddressId(null);
+        setIsUsingNewAddress(true);
+        setFirstName('');
+        setLastName('');
+        setAddress('');
+        setApartment('');
+        setCity('');
+        setProvince('');
+        setPostalCode('');
+        setPhone('');
+      }
+    }
+  };
+
+  // Save address both to localStorage (instant repeat recognition) and backend (if authed)
+  const saveAddressLocallyAndRemote = async (newAddr: SavedAddress) => {
+    try {
+      const KEY = 'dd_saved_addresses';
+      const existingStr = localStorage.getItem(KEY);
+      let list: SavedAddress[] = existingStr ? JSON.parse(existingStr) : [];
+      list = list.filter(
+        (a) =>
+          !(
+            a.address.toLowerCase().trim() === newAddr.address.toLowerCase().trim() &&
+            a.postalCode.trim() === newAddr.postalCode.trim()
+          ),
+      );
+      list.unshift(newAddr);
+      list = list.slice(0, 5); // Keep up to 5 most recent
+      localStorage.setItem(KEY, JSON.stringify(list));
+      setSavedAddresses(list);
+    } catch {
+      // Local storage non-critical
+    }
+
+    if (isAuthenticated) {
+      try {
+        await apiFetch('/api/users/me/addresses', {
+          method: 'POST',
+          body: JSON.stringify({
+            addressType: 'Home',
+            fullName: `${newAddr.firstName} ${newAddr.lastName}`.trim(),
+            phone: newAddr.phone,
+            line1: newAddr.address,
+            line2: newAddr.apartment || undefined,
+            city: newAddr.city,
+            state: newAddr.province,
+            pincode: newAddr.postalCode,
+            country: newAddr.country || 'India',
+            isDefault: true,
+          }),
+        });
+      } catch {
+        // Backend address book sync non-critical
+      }
+    }
+  };
+
+  // Initial load: retrieve saved addresses from localStorage
+  useEffect(() => {
+    try {
+      const KEY = 'dd_saved_addresses';
+      const localStr = localStorage.getItem(KEY);
+      if (localStr) {
+        const parsed: SavedAddress[] = JSON.parse(localStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSavedAddresses(parsed);
+          applySavedAddress(parsed[0]);
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // When authenticated, sync with remote address book from Cloudflare D1
+  useEffect(() => {
+    if (isAuthenticated) {
+      apiFetch<{ items: any[] }>('/api/users/me/addresses').then((res) => {
+        if (res.success && res.data?.items && res.data.items.length > 0) {
+          const remoteAddrs: SavedAddress[] = res.data.items.map((item: any) => {
+            const parts = (item.full_name || '').split(' ');
+            return {
+              id: item.id,
+              fullName: item.full_name || '',
+              firstName: parts[0] || '',
+              lastName: parts.slice(1).join(' ') || '',
+              address: item.line1,
+              apartment: item.line2 || '',
+              city: item.city,
+              province: item.state,
+              postalCode: item.pincode,
+              country: item.country || 'India',
+              phone: item.phone || '',
+            };
+          });
+
+          setSavedAddresses((prev) => {
+            const combined = [...remoteAddrs, ...prev];
+            const seen = new Set<string>();
+            const deduped: SavedAddress[] = [];
+            for (const a of combined) {
+              const key = `${a.address.toLowerCase().trim()}-${a.postalCode.trim()}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                deduped.push(a);
+              }
+            }
+            if (deduped.length > 0 && !selectedAddressId) {
+              applySavedAddress(deduped[0]);
+            }
+            return deduped;
+          });
+        }
+      });
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (addressContainerRef.current && !addressContainerRef.current.contains(e.target as Node)) {
@@ -175,6 +342,85 @@ export const CheckoutExperience: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // GPS Auto-detect current location
+  const handleDetectLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setErrorMessage('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    setErrorMessage(null);
+    setLocationNotice(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } },
+          );
+          const data = await res.json();
+
+          if (data && data.address) {
+            const a = data.address;
+            const streetParts = [
+              a.house_number || a.house_name || a.building,
+              a.road || a.street || a.footway,
+              a.residential,
+              a.quarter || a.neighbourhood || a.subdivision,
+              a.suburb,
+              (a.city || a.town) ? a.village : null,
+            ].filter(Boolean);
+
+            const uniqueParts = Array.from(new Set(streetParts));
+            const resolvedStreet =
+              uniqueParts.length > 0
+                ? uniqueParts.join(', ')
+                : (data.display_name ? data.display_name.split(',').slice(0, 3).join(', ').trim() : (data.name || ''));
+
+            const resolvedCity = a.city || a.town || a.village || a.county || a.state_district || '';
+            const resolvedState = a.state || '';
+            let resolvedPostcode = a.postcode || '';
+            if (!resolvedPostcode && data.display_name) {
+              const pinMatch = data.display_name.match(/\b\d{6}\b/);
+              if (pinMatch) resolvedPostcode = pinMatch[0];
+            }
+            const resolvedCountry = a.country || 'India';
+
+            if (resolvedStreet) setAddress(resolvedStreet);
+            if (resolvedCity) setCity(resolvedCity);
+            if (resolvedState) setProvince(matchProvince(resolvedState));
+            if (resolvedPostcode) setPostalCode(resolvedPostcode);
+            if (resolvedCountry) setCountry(resolvedCountry);
+
+            setLocationNotice(`Location detected: ${resolvedCity ? resolvedCity + ', ' : ''}${resolvedState || resolvedCountry}`);
+          } else {
+            setErrorMessage('Could not determine exact street address from GPS. Please type your address.');
+          }
+        } catch (err) {
+          console.error('Reverse geocode error:', err);
+          setErrorMessage('Failed to fetch address details for your location.');
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      (err) => {
+        setIsDetectingLocation(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setErrorMessage('Location permission was denied. Please allow location access in your browser or type your address.');
+        } else {
+          setErrorMessage('Unable to retrieve your location. Please type your address.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
+  };
+
+  // High-precision address search: Nominatim (all villages/streets) + Postal Pincode + Photon fallback
   const handleAddressSearch = (query: string) => {
     setAddress(query);
 
@@ -194,18 +440,18 @@ export const CheckoutExperience: React.FC = () => {
       try {
         const results: AddressSuggestion[] = [];
 
-        // Check if query contains an Indian 6-digit pincode
+        // 1. Check if query contains an Indian 6-digit pincode
         const pinMatch = trimmed.match(/\b\d{6}\b/);
         if (pinMatch) {
           try {
             const pinRes = await fetch(`https://api.postalpincode.in/pincode/${pinMatch[0]}`);
             const pinData = await pinRes.json();
             if (pinData && pinData[0]?.Status === 'Success' && Array.isArray(pinData[0]?.PostOffice)) {
-              pinData[0].PostOffice.slice(0, 3).forEach((po: any, idx: number) => {
+              pinData[0].PostOffice.slice(0, 4).forEach((po: any, idx: number) => {
                 results.push({
                   id: `pin-${idx}-${po.Name}`,
                   title: `${po.Name}, ${po.District}`,
-                  subtitle: `${po.State}, ${po.Pincode}, India`,
+                  subtitle: `${po.Block ? po.Block + ', ' : ''}${po.State}, PIN ${po.Pincode}`,
                   line1: po.Name,
                   city: po.District || po.Name,
                   state: po.State,
@@ -219,29 +465,53 @@ export const CheckoutExperience: React.FC = () => {
           }
         }
 
-        // Query Photon geocoder (OpenStreetMap)
-        const countryBias = country === 'India' ? '&lat=20.5937&lon=78.9629' : '';
-        const photonRes = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=6${countryBias}&lang=en`
+        // 2. Query Nominatim OpenStreetMap (High precision for villages, mandals, colonies, streets)
+        const countryCodeParam = country === 'India' ? '&countrycodes=in' : '';
+        const nominatimRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&addressdetails=1&limit=8${countryCodeParam}`,
+          { headers: { 'Accept-Language': 'en' } },
         );
-        const photonData = await photonRes.json();
+        const nominatimData = await nominatimRes.json();
 
-        if (photonData?.features && Array.isArray(photonData.features)) {
-          photonData.features.forEach((f: any, idx: number) => {
-            const p = f.properties || {};
-            const title = p.name || p.street || p.city || trimmed;
-            const lineParts = [p.housenumber, p.street || p.name].filter(Boolean);
-            const line1 = lineParts.length > 0 ? lineParts.join(' ') : title;
-            const city = p.city || p.district || p.county || p.locality || '';
-            const state = p.state || '';
-            const postcode = p.postcode || '';
-            const ctry = p.country || country;
+        if (Array.isArray(nominatimData) && nominatimData.length > 0) {
+          nominatimData.forEach((item: any, idx: number) => {
+            const a = item.address || {};
+            const title =
+              item.name ||
+              a.road ||
+              a.village ||
+              a.town ||
+              a.residential ||
+              a.suburb ||
+              trimmed;
+            const localityParts = [
+              a.house_number,
+              a.road || a.street,
+              a.neighbourhood || a.suburb || a.residential,
+              (a.city || a.town) ? a.village : null,
+            ].filter(Boolean);
+            const line1 = localityParts.length > 0 ? Array.from(new Set(localityParts)).join(', ') : title;
+            const city = a.city || a.town || a.village || a.county || a.state_district || '';
+            const state = a.state || '';
+            let postcode = a.postcode || '';
+            if (!postcode && item.display_name) {
+              const pinMatch = item.display_name.match(/\b\d{6}\b/);
+              if (pinMatch) postcode = pinMatch[0];
+            }
+            const ctry = a.country || country;
 
-            const subtitleParts = [p.district, p.city, p.state, p.postcode, p.country].filter(Boolean);
+            const subtitleParts = [
+              a.suburb || a.neighbourhood,
+              city && city !== title ? city : null,
+              a.county,
+              a.state_district && a.state_district !== city ? a.state_district : null,
+              state,
+              postcode ? `PIN ${postcode}` : null,
+            ].filter(Boolean);
             const subtitle = Array.from(new Set(subtitleParts)).join(', ');
 
             results.push({
-              id: `photon-${idx}-${p.osm_id || title}`,
+              id: `nom-${idx}-${item.place_id || title}`,
               title,
               subtitle: subtitle || `${city}, ${state} ${postcode}`,
               line1,
@@ -251,6 +521,48 @@ export const CheckoutExperience: React.FC = () => {
               country: ctry,
             });
           });
+        }
+
+        // 3. Fallback to Photon if fewer than 2 results found
+        if (results.length < 2) {
+          const countryBias = country === 'India' ? '&lat=20.5937&lon=78.9629' : '';
+          const photonRes = await fetch(
+            `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=5${countryBias}&lang=en`,
+          );
+          const photonData = await photonRes.json();
+
+          if (photonData?.features && Array.isArray(photonData.features)) {
+            photonData.features.forEach((f: any, idx: number) => {
+              const p = f.properties || {};
+              const title = p.name || p.street || p.city || trimmed;
+              const lineParts = [p.housenumber, p.street || p.name].filter(Boolean);
+              const line1 = lineParts.length > 0 ? lineParts.join(' ') : title;
+              const city = p.city || p.district || p.county || p.locality || '';
+              const state = p.state || '';
+              const postcode = p.postcode || '';
+              const ctry = p.country || country;
+
+              const subtitleParts = [
+                p.district,
+                p.city,
+                p.state,
+                p.postcode,
+                p.country,
+              ].filter(Boolean);
+              const subtitle = Array.from(new Set(subtitleParts)).join(', ');
+
+              results.push({
+                id: `photon-${idx}-${p.osm_id || title}`,
+                title,
+                subtitle: subtitle || `${city}, ${state} ${postcode}`,
+                line1,
+                city,
+                state,
+                postcode,
+                country: ctry,
+              });
+            });
+          }
         }
 
         setAddressSuggestions(results);
@@ -393,6 +705,22 @@ export const CheckoutExperience: React.FC = () => {
       }
 
       const { orderId, orderNumber, totalPaise, razorpayOrderId, razorpayKeyId } = res.data;
+
+      // Save address for future one-click checkout
+      const newSavedAddr: SavedAddress = {
+        id: `addr_${Date.now()}`,
+        fullName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        address: address.trim(),
+        apartment: apartment.trim(),
+        city: city.trim(),
+        province: province.trim(),
+        postalCode: postalCode.trim(),
+        country: country.trim(),
+        phone: phone.trim(),
+      };
+      saveAddressLocallyAndRemote(newSavedAddr);
 
       // If Razorpay order ID exists, launch the Razorpay Checkout sheet
       if (razorpayOrderId && razorpayKeyId) {
@@ -664,6 +992,107 @@ export const CheckoutExperience: React.FC = () => {
               Step 2: Delivery Details
             </span>
 
+            {/* Saved Addresses Section (Instant One-Click Re-use) */}
+            {savedAddresses.length > 0 && (
+              <div className="mb-6 pb-6 border-b border-neutral-200/80">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs uppercase tracking-wider text-neutral-600 font-semibold flex items-center gap-1.5" style={fontStyle}>
+                    <svg className="w-3.5 h-3.5 text-neutral-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    Saved Addresses ({savedAddresses.length})
+                  </span>
+                  {!isUsingNewAddress ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUsingNewAddress(true);
+                        setSelectedAddressId(null);
+                        setFirstName('');
+                        setLastName('');
+                        setAddress('');
+                        setApartment('');
+                        setCity('');
+                        setProvince('');
+                        setPostalCode('');
+                        setPhone('');
+                      }}
+                      className="text-xs text-neutral-900 font-semibold hover:underline cursor-pointer transition-colors"
+                      style={fontStyle}
+                    >
+                      + Deliver to another address
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUsingNewAddress(false);
+                        if (savedAddresses.length > 0) {
+                          applySavedAddress(savedAddresses[0]);
+                        }
+                      }}
+                      className="text-xs text-neutral-900 font-semibold underline hover:text-black cursor-pointer transition-colors"
+                      style={fontStyle}
+                    >
+                      ← Back to saved address
+                    </button>
+                  )}
+                </div>
+
+                {!isUsingNewAddress && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {savedAddresses.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id;
+                      return (
+                        <div
+                          key={addr.id}
+                          onClick={() => applySavedAddress(addr)}
+                          className={`p-4 border rounded-[4px] cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-neutral-900 bg-neutral-50/70 shadow-sm ring-1 ring-neutral-900'
+                              : 'border-neutral-200 hover:border-neutral-400 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                            <span className="text-[14px] font-bold text-neutral-900 truncate" style={fontStyle}>
+                              {addr.fullName || `${addr.firstName} ${addr.lastName}`}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isSelected && (
+                                <span className="text-[11px] bg-neutral-900 text-white px-2 py-0.5 rounded text-xs font-medium shrink-0">
+                                  Selected
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteSavedAddress(e, addr.id)}
+                                title="Remove saved address"
+                                className="text-neutral-400 hover:text-red-600 p-0.5 transition-colors cursor-pointer"
+                              >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-[13px] text-neutral-600 line-clamp-2 leading-snug" style={fontStyle}>
+                            {addr.address}{addr.apartment ? `, ${addr.apartment}` : ''}
+                          </p>
+                          <p className="text-[13px] text-neutral-500 mt-1" style={fontStyle}>
+                            {addr.city}, {addr.province} {addr.postalCode}
+                          </p>
+                          <p className="text-[12px] text-neutral-400 mt-1 font-mono">
+                            {addr.phone}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Top helper text from user's image with exact 16px font size */}
             <p className="text-[16px] text-neutral-600 mb-4" style={font16}>
               This will also be used as your billing address for this order.
@@ -746,8 +1175,61 @@ export const CheckoutExperience: React.FC = () => {
                 </div>
               </div>
 
-              {/* Row 3: Address (with Live Autocomplete Dropdown) */}
+              {/* Row 3: Address (with Live Autocomplete Dropdown + GPS Auto-Detect) */}
               <div ref={addressContainerRef} className="relative">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs text-neutral-500 font-medium" style={fontStyle}>
+                    Street Address
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDetectLocation}
+                    disabled={isDetectingLocation}
+                    className="text-xs text-neutral-900 hover:text-black font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+                    style={fontStyle}
+                    title="Click to automatically detect your location via GPS"
+                  >
+                    {isDetectingLocation ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin text-neutral-900" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        <span>Detecting location...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5 text-neutral-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="7" />
+                          <circle cx="12" cy="12" r="3" />
+                          <line x1="12" y1="2" x2="12" y2="5" />
+                          <line x1="12" y1="19" x2="12" y2="22" />
+                          <line x1="2" y1="12" x2="5" y2="12" />
+                          <line x1="19" y1="12" x2="22" y2="12" />
+                        </svg>
+                        <span className="underline">Use current location</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {locationNotice && (
+                  <div className="mb-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-[4px] flex items-center justify-between" style={fontStyle}>
+                    <span className="flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      {locationNotice}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLocationNotice(null)}
+                      className="text-emerald-700 hover:text-emerald-950 text-sm font-bold ml-2 cursor-pointer"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                )}
                 <div className="relative">
                   <input
                     type="text"
@@ -758,7 +1240,7 @@ export const CheckoutExperience: React.FC = () => {
                         setShowAddressDropdown(true);
                       }
                     }}
-                    placeholder="Address (Start typing your street or area to search...)"
+                    placeholder="Address (Search village, mandal, street or PIN...)"
                     required
                     autoComplete="street-address"
                     className="checkout-input w-full h-12 pl-3.5 pr-10 text-[16px] text-neutral-900 placeholder:text-neutral-500 bg-white transition-colors"

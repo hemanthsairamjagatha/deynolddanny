@@ -1558,3 +1558,21 @@ task.
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-13 — Checkout Saved Addresses System, High-Precision Nominatim Village Search & Detailed GPS Location Detection**:
+  - **Status:** COMPLETE
+  - **Summary:** Engineered high-accuracy address handling and returning-customer address persistence in `src/features/checkout/components/CheckoutExperience.tsx`:
+    1. **Saved Addresses System:** Added instant one-click address selection for repeat customers. When an order is placed, the address is saved to `localStorage` (up to 5 recent addresses, deduped) and synced to the Cloudflare D1 address book (`POST /api/users/me/addresses`) when authenticated. Returning customers see saved address cards at the top of Step 2 with the active address highlighted; clicking any card immediately autofills all delivery fields. Users can toggle between saved addresses, enter a new delivery address (`+ Deliver to another address`), or delete obsolete addresses. "Save this information for next time" is pre-checked by default.
+    2. **Detailed GPS Auto-Detect Location:** Added a "Use current location" button with browser geolocation (`navigator.geolocation`). Uses OpenStreetMap Nominatim reverse geocoding with granular hierarchy extraction (`house_number`, `building`, `road`, `residential`, `quarter`, `neighbourhood`, `suburb`, `village`, `hamlet`, `town`, `city`, `district`, `state`, and 6-digit postal PIN). Shows an instant confirmation pill with the detected location.
+    3. **High-Precision Search for All Localities & Villages:** Upgraded address search to use Nominatim OpenStreetMap as the primary search engine (`addressdetails=1`, `limit=8`, country-scoped) combined with the official Department of Posts India Pincode API for 6-digit PIN codes and Photon fallback. Finds micro-level villages, mandals, colonies, streets, and rural post offices across India (not just tier-1 metropolitan cities), autofilling line 1, city/district, state, and pincode in one click.
+  - **Files Modified:**
+    - `src/features/checkout/components/CheckoutExperience.tsx`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (77 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (57 page(s) built cleanly in 3.27s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
