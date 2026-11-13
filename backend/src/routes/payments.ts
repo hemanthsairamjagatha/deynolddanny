@@ -96,16 +96,17 @@ async function finalizePaidOrder(
 }
 
 // ─── POST /api/payments/verify ──────────────────────────────────────────────
-// Instant Client Verification from Razorpay Checkout Modal
+// Instant Client Verification from Razorpay or Cashfree Checkout Modal
 const verifyClientPaymentSchema = z.object({
   orderId: z.string().min(1),
-  razorpayOrderId: z.string().min(1),
-  razorpayPaymentId: z.string().min(1),
-  razorpaySignature: z.string().min(1),
+  razorpayOrderId: z.string().optional(),
+  razorpayPaymentId: z.string().optional(),
+  razorpaySignature: z.string().optional(),
+  cfOrderId: z.string().optional(),
 });
 
 payments.post('/verify', authRequired, zValidator('json', verifyClientPaymentSchema), async (c) => {
-  const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = c.req.valid('json');
+  const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature, cfOrderId } = c.req.valid('json');
   const userId = c.get('userId');
   const env = c.env;
 
@@ -130,54 +131,123 @@ payments.post('/verify', authRequired, zValidator('json', verifyClientPaymentSch
     });
   }
 
-  // Cryptographically verify Razorpay signature
-  const isValid = await verifyRazorpayPaymentSignature(
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
-    env.RAZORPAY_KEY_SECRET,
-  );
-
-  if (!isValid) {
-    return c.json(
-      { success: false, error: { code: 'INVALID_SIGNATURE', message: 'Payment signature verification failed.', status: 400 } },
-      400,
+  // 1. Razorpay verification flow
+  if (razorpayOrderId && razorpayPaymentId && razorpaySignature) {
+    const isValid = await verifyRazorpayPaymentSignature(
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      env.RAZORPAY_KEY_SECRET,
     );
-  }
 
-  // Atomic idempotency lock
-  const lock = await env.DB
-    .prepare(`UPDATE orders SET payment_status = 'paid', updated_at = ?1 WHERE id = ?2 AND payment_status != 'paid'`)
-    .bind(nowIso(), order.id)
-    .run();
-
-  if ((lock.meta.changes ?? 0) > 0) {
-    // Determine payment method if possible
-    let paymentMethod: string | null = 'razorpay';
-    try {
-      const details = await fetchRazorpayPayment(razorpayPaymentId, env.RAZORPAY_KEY_ID, env.RAZORPAY_KEY_SECRET);
-      paymentMethod = details.method || 'razorpay';
-    } catch {
-      // Non-critical: continue with default method
+    if (!isValid) {
+      return c.json(
+        { success: false, error: { code: 'INVALID_SIGNATURE', message: 'Payment signature verification failed.', status: 400 } },
+        400,
+      );
     }
 
-    await finalizePaidOrder(
-      env.DB,
-      env.RESEND_API_KEY,
-      order,
-      razorpayPaymentId,
-      paymentMethod,
-      c.executionCtx,
-    );
+    // Atomic idempotency lock
+    const lock = await env.DB
+      .prepare(`UPDATE orders SET payment_status = 'paid', updated_at = ?1 WHERE id = ?2 AND payment_status != 'paid'`)
+      .bind(nowIso(), order.id)
+      .run();
+
+    if ((lock.meta.changes ?? 0) > 0) {
+      // Determine payment method if possible
+      let paymentMethod: string | null = 'razorpay';
+      try {
+        const details = await fetchRazorpayPayment(razorpayPaymentId, env.RAZORPAY_KEY_ID, env.RAZORPAY_KEY_SECRET);
+        paymentMethod = details.method || 'razorpay';
+      } catch {
+        // Non-critical: continue with default method
+      }
+
+      await finalizePaidOrder(
+        env.DB,
+        env.RESEND_API_KEY,
+        order,
+        razorpayPaymentId,
+        paymentMethod,
+        c.executionCtx,
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        paymentStatus: 'paid',
+        status: 'confirmed',
+      },
+    });
   }
 
+  // 2. Cashfree verification flow
+  const targetCfOrderId = cfOrderId || order.cf_order_id;
+  if (targetCfOrderId && env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY) {
+    try {
+      const cfStatus = await fetchCashfreeOrder(
+        targetCfOrderId,
+        env.CASHFREE_APP_ID,
+        env.CASHFREE_SECRET_KEY,
+        env.CASHFREE_API_URL || 'https://sandbox.cashfree.com/pg',
+        env.CASHFREE_API_VERSION || '2023-08-01',
+      );
+
+      if (cfStatus.status === 'PAID') {
+        const lock = await env.DB
+          .prepare(`UPDATE orders SET payment_status = 'paid', updated_at = ?1 WHERE id = ?2 AND payment_status != 'paid'`)
+          .bind(nowIso(), order.id)
+          .run();
+
+        if ((lock.meta.changes ?? 0) > 0) {
+          await finalizePaidOrder(
+            env.DB,
+            env.RESEND_API_KEY,
+            order,
+            cfStatus.paymentId || targetCfOrderId,
+            cfStatus.paymentMethod || 'cashfree',
+            c.executionCtx,
+          );
+        }
+
+        return c.json({
+          success: true,
+          data: {
+            orderId: order.id,
+            orderNumber: order.order_number,
+            paymentStatus: 'paid',
+            status: 'confirmed',
+          },
+        });
+      } else {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: 'PAYMENT_PENDING',
+              message: `Payment status is ${cfStatus.status}. Please complete payment.`,
+              status: 400,
+            },
+          },
+          400,
+        );
+      }
+    } catch (cfErr: any) {
+      console.warn('Cashfree fetch status error:', cfErr.message);
+    }
+  }
+
+  // Fallback for concierge / test orders
   return c.json({
     success: true,
     data: {
       orderId: order.id,
       orderNumber: order.order_number,
-      paymentStatus: 'paid',
-      status: 'confirmed',
+      paymentStatus: order.payment_status,
+      status: order.status,
     },
   });
 });

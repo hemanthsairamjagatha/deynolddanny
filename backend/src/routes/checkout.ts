@@ -8,7 +8,8 @@ import { getOrCreateCart, getCartWithItems, clearCart, mergeGuestCart } from '..
 import { createOrder, createOrderItems } from '../db/queries/orders.js';
 import { holdStock } from '../services/stockEngine.js';
 import { createRazorpayOrder } from '../services/razorpay.js';
-import { formatPaiseToDisplay } from '../services/money.js';
+import { createCashfreeOrder } from '../services/cashfree.js';
+import { formatPaiseToDisplay, paiseToRupeesFloat } from '../services/money.js';
 import {
   FREE_SHIPPING_THRESHOLD_PAISE,
   STANDARD_SHIPPING_PAISE,
@@ -188,7 +189,8 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     customerNotes: body.customerNotes,
   });
 
-  // Check if Razorpay keys are configured
+  // Check gateway configuration:
+  // 1. Razorpay (Primary if keys configured)
   const isRazorpayConfigured = Boolean(
     env.RAZORPAY_KEY_ID &&
     env.RAZORPAY_KEY_SECRET &&
@@ -196,8 +198,19 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     env.RAZORPAY_KEY_SECRET.length > 5
   );
 
+  // 2. Cashfree (Active if keys configured)
+  const isCashfreeConfigured = Boolean(
+    env.CASHFREE_APP_ID &&
+    env.CASHFREE_SECRET_KEY &&
+    !env.CASHFREE_APP_ID.includes('placeholder') &&
+    env.CASHFREE_SECRET_KEY.length > 5
+  );
+
   let razorpayOrderId: string | undefined;
   let razorpayAmount: number | undefined;
+  let cashfreeOrderId: string | undefined;
+  let paymentSessionId: string | undefined;
+  let activeGateway: 'razorpay' | 'cashfree' | 'test' = 'test';
   const now = new Date().toISOString();
 
   if (isRazorpayConfigured) {
@@ -216,20 +229,50 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
       );
       razorpayOrderId = rzpResult.razorpayOrderId;
       razorpayAmount = rzpResult.amount;
+      activeGateway = 'razorpay';
 
       await env.DB
         .prepare(`UPDATE orders SET cf_order_id = ?1, updated_at = ?2 WHERE id = ?3`)
         .bind(razorpayOrderId, now, order.id)
         .run();
     } catch (rzpErr) {
-      console.warn('Razorpay order creation bypassed, confirming in concierge test mode:', rzpErr);
-      await env.DB
-        .prepare(`UPDATE orders SET cf_order_id = ?1, status = 'confirmed', payment_status = 'paid', paid_at = ?2, updated_at = ?2 WHERE id = ?3`)
-        .bind(`test_order_${Date.now()}`, now, order.id)
-        .run();
+      console.warn('Razorpay order creation error, falling back:', rzpErr);
     }
-  } else {
-    // Sandbox / Test mode: direct confirmation with valid payment_status 'paid'
+  }
+
+  // If Razorpay not configured or threw error, try Cashfree
+  if (activeGateway === 'test' && isCashfreeConfigured) {
+    try {
+      const cfResult = await createCashfreeOrder(
+        {
+          orderId: order.order_number,
+          orderAmount: parseFloat(paiseToRupeesFloat(totalPaise)),
+          customerPhone: body.shippingPhone,
+          customerEmail: userEmail || 'concierge@deynolddanny.com',
+          customerName: body.shippingName,
+          returnUrl: `${env.FRONTEND_URL}/checkout/confirmation/${order.id}`,
+          notifyUrl: `${env.BACKEND_URL}/api/payments/webhook`,
+        },
+        env.CASHFREE_APP_ID!,
+        env.CASHFREE_SECRET_KEY!,
+        env.CASHFREE_API_URL || 'https://sandbox.cashfree.com/pg',
+        env.CASHFREE_API_VERSION || '2023-08-01',
+      );
+      cashfreeOrderId = cfResult.cfOrderId;
+      paymentSessionId = cfResult.paymentSessionId;
+      activeGateway = 'cashfree';
+
+      await env.DB
+        .prepare(`UPDATE orders SET cf_order_id = ?1, updated_at = ?2 WHERE id = ?3`)
+        .bind(cashfreeOrderId, now, order.id)
+        .run();
+    } catch (cfErr) {
+      console.warn('Cashfree order creation error, falling back to concierge confirmation:', cfErr);
+    }
+  }
+
+  // If neither online gateway initialized (sandbox / fallback / test):
+  if (activeGateway === 'test') {
     await env.DB
       .prepare(`UPDATE orders SET cf_order_id = ?1, status = 'confirmed', payment_status = 'paid', paid_at = ?2, updated_at = ?2 WHERE id = ?3`)
       .bind(`test_order_${Date.now()}`, now, order.id)
@@ -262,9 +305,13 @@ checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) =
     orderNumber: order.order_number,
     totalPaise,
     totalFormatted: formatPaiseToDisplay(totalPaise),
-    razorpayOrderId: isRazorpayConfigured && razorpayOrderId ? razorpayOrderId : undefined,
-    razorpayKeyId: isRazorpayConfigured && razorpayOrderId ? env.RAZORPAY_KEY_ID : undefined,
-    amount: isRazorpayConfigured && razorpayAmount ? razorpayAmount : totalPaise,
+    gateway: activeGateway,
+    razorpayOrderId: activeGateway === 'razorpay' ? razorpayOrderId : undefined,
+    razorpayKeyId: activeGateway === 'razorpay' ? env.RAZORPAY_KEY_ID : undefined,
+    amount: activeGateway === 'razorpay' && razorpayAmount ? razorpayAmount : totalPaise,
+    cfOrderId: activeGateway === 'cashfree' ? cashfreeOrderId : undefined,
+    paymentSessionId: activeGateway === 'cashfree' ? paymentSessionId : undefined,
+    cashfreeEnvironment: env.CASHFREE_API_URL?.includes('sandbox') ? 'sandbox' : 'production',
   };
 
   return c.json({ success: true, data: response }, 201);

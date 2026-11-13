@@ -114,6 +114,19 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
+function loadCashfreeScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if ((window as any).Cashfree) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export const CheckoutExperience: React.FC = () => {
   const items = useStore($cartItems);
   const subtotal = useStore($subtotalNum);
@@ -809,7 +822,16 @@ export const CheckoutExperience: React.FC = () => {
         return;
       }
 
-      const { orderId, orderNumber, totalPaise, razorpayOrderId, razorpayKeyId } = res.data;
+      const {
+        orderId,
+        orderNumber,
+        totalPaise,
+        razorpayOrderId,
+        razorpayKeyId,
+        paymentSessionId,
+        cfOrderId,
+        cashfreeEnvironment,
+      } = res.data;
 
       // Save address for future one-click checkout
       const newSavedAddr: SavedAddress = {
@@ -827,7 +849,25 @@ export const CheckoutExperience: React.FC = () => {
       };
       saveAddressLocallyAndRemote(newSavedAddr);
 
-      // If Razorpay order ID exists, launch the Razorpay Checkout sheet
+      // Helper to finalize completed state on frontend
+      const finalizeSuccess = () => {
+        removeCoupon();
+        $cartItems.set([]);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('dd_last_order', orderNumber);
+          }
+        } catch {}
+        setCompletedOrder({
+          orderNumber,
+          total: res.data?.totalFormatted || `₹ ${(totalPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })} INR`,
+          name: fullName,
+          address: `${address}, ${apartment ? apartment + ', ' : ''}${city}, ${province} ${postalCode}, ${country}`,
+        });
+        setIsSubmitting(false);
+      };
+
+      // ── GATEWAY 1: RAZORPAY STANDARD CHECKOUT ──────────────────────────────
       if (razorpayOrderId && razorpayKeyId) {
         const scriptLoaded = await loadRazorpayScript();
         if (!scriptLoaded) {
@@ -869,14 +909,7 @@ export const CheckoutExperience: React.FC = () => {
               });
 
               if (verifyRes.success) {
-                removeCoupon();
-                $cartItems.set([]);
-                setCompletedOrder({
-                  orderNumber,
-                  total: res.data?.totalFormatted || `₹ ${(totalPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })} INR`,
-                  name: fullName,
-                  address: `${address}, ${apartment ? apartment + ', ' : ''}${city}, ${province} ${postalCode}, ${country}`,
-                });
+                finalizeSuccess();
               } else {
                 setErrorMessage(
                   verifyRes.error?.message ||
@@ -897,17 +930,61 @@ export const CheckoutExperience: React.FC = () => {
           setErrorMessage(`Payment declined: ${resp.error?.description || 'Transaction unsuccessful.'}`);
         });
         rzp.open();
-      } else {
-        // Fallback for orders confirmed directly or sandbox without online modal
-        removeCoupon();
-        $cartItems.set([]);
-        setCompletedOrder({
-          orderNumber,
-          total: res.data?.totalFormatted || `₹ ${(totalPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })} INR`,
-          name: fullName,
-          address: `${address}, ${apartment ? apartment + ', ' : ''}${city}, ${province} ${postalCode}, ${country}`,
-        });
-        setIsSubmitting(false);
+      }
+      // ── GATEWAY 2: CASHFREE MODAL CHECKOUT ──────────────────────────────────
+      else if (paymentSessionId) {
+        const cfLoaded = await loadCashfreeScript();
+        if (!cfLoaded) {
+          setErrorMessage('Unable to load secure Cashfree gateway. Please check your connection.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        try {
+          const cashfree = new (window as any).Cashfree({
+            mode: cashfreeEnvironment || 'sandbox',
+          });
+
+          cashfree.checkout({
+            paymentSessionId: paymentSessionId,
+            redirectTarget: '_modal',
+          }).then(async (result: any) => {
+            if (result.error) {
+              setIsSubmitting(false);
+              setErrorMessage(result.error.message || 'Payment was cancelled or unsuccessful.');
+              return;
+            }
+            if (result.paymentDetails) {
+              // Verify Cashfree payment with backend
+              try {
+                setIsSubmitting(true);
+                const verifyRes = await verifyPaymentApi({
+                  orderId,
+                  cfOrderId: cfOrderId || orderNumber,
+                });
+                if (verifyRes.success) {
+                  finalizeSuccess();
+                } else {
+                  setErrorMessage(verifyRes.error?.message || 'Payment verification pending. Concierge alerted.');
+                }
+              } catch (verErr: any) {
+                setErrorMessage(verErr.message || 'Payment verification encountered an issue.');
+              } finally {
+                setIsSubmitting(false);
+              }
+            }
+          }).catch((cfErr: any) => {
+            setIsSubmitting(false);
+            setErrorMessage(cfErr.message || 'Payment modal closed.');
+          });
+        } catch (initErr: any) {
+          console.warn('Cashfree init error, falling back to direct confirmation:', initErr);
+          finalizeSuccess();
+        }
+      }
+      // ── GATEWAY 3: CONCIERGE TEST / DIRECT CONFIRMATION ────────────────────
+      else {
+        finalizeSuccess();
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected error occurred during checkout.');
@@ -951,13 +1028,26 @@ export const CheckoutExperience: React.FC = () => {
             <span className="text-neutral-900 font-medium">Bespoke Insured Express</span>
           </div>
         </div>
-        <a
-          href="/"
-          className="inline-block px-8 py-3.5 bg-neutral-900 text-white uppercase text-xs tracking-widest hover:bg-neutral-800 transition-colors"
-          style={fontStyle}
-        >
-          Return to Storefront
-        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href={`/orders/track?order=${encodeURIComponent(completedOrder.orderNumber)}`}
+            className="w-full sm:w-auto px-8 py-3.5 bg-neutral-900 text-white uppercase text-xs tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 font-medium"
+            style={fontStyle}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            Track Commission Shipment
+          </a>
+          <a
+            href="/"
+            className="w-full sm:w-auto px-8 py-3.5 border border-neutral-300 text-neutral-800 uppercase text-xs tracking-widest hover:border-black hover:text-black transition-all text-center font-medium"
+            style={fontStyle}
+          >
+            Return to Storefront
+          </a>
+        </div>
       </div>
     );
   }

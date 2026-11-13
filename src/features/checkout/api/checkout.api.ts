@@ -18,20 +18,26 @@ export interface CheckoutResponse {
   orderNumber: string;
   totalPaise: number;
   totalFormatted?: string;
+  gateway?: 'razorpay' | 'cashfree' | 'test';
   // Razorpay fields
   razorpayOrderId?: string;
   razorpayKeyId?: string;
   amount?: number;
-  // Legacy / fallback fields
+  // Cashfree fields
   paymentSessionId?: string;
+  cfOrderId?: string;
   cashfreeOrderId?: string;
+  cashfreeEnvironment?: 'sandbox' | 'production';
 }
 
 export interface VerifyPaymentPayload {
   orderId: string;
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
+  // Razorpay fields
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  // Cashfree fields
+  cfOrderId?: string;
 }
 
 export interface VerifyPaymentResponse {

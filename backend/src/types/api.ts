@@ -130,9 +130,63 @@ export interface ApiCheckoutResponse {
   razorpayKeyId?: string;
   amount?: number; // in paise for Razorpay Checkout
   currency?: string;
-  // Cashfree legacy fallback
+  // Cashfree integration
   cfOrderId?: string;
   paymentSessionId?: string;
+  gateway?: 'razorpay' | 'cashfree' | 'test';
+  cashfreeEnvironment?: 'sandbox' | 'production';
+}
+
+// ─── Tracking / Milestones ───────────────────────────────────────────────────
+
+export interface TrackingMilestone {
+  key: 'ORDER_PLACED' | 'ATELIER_INSPECTION' | 'DISPATCHED' | 'IN_TRANSIT' | 'DELIVERED';
+  title: string;
+  description: string;
+  status: 'completed' | 'current' | 'upcoming';
+  timestamp?: string | null;
+}
+
+export interface ApiOrderTrackingDetails {
+  orderId: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  createdAt: string;
+  paidAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  estimatedDeliveryDate?: string | null;
+  shippingName: string;
+  shippingCity: string;
+  shippingState: string;
+  shippingPincode: string;
+  shippingCountry: string;
+  courierPartner: string;
+  trackingNumber?: string | null;
+  shiprocketAwb?: string | null;
+  totalPaise: number;
+  totalFormatted: string;
+  subtotalPaise: number;
+  subtotalFormatted: string;
+  discountPaise: number;
+  discountFormatted: string;
+  shippingFormatted: string;
+  items: Array<{
+    title: string;
+    size: string;
+    color: string;
+    image: string;
+    quantity: number;
+    unitPriceFormatted: string;
+  }>;
+  timeline: TrackingMilestone[];
+  liveActivities: Array<{
+    date: string;
+    status: string;
+    activity: string;
+    location: string;
+  }>;
 }
 
 // ─── Logistics / Shiprocket ──────────────────────────────────────────────────
