@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://deynold-danny-backend.deynolddanny.workers.dev/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://deynold-danny-backend.deynolddanny.workers.dev/health"
+    }
+  ]
+}

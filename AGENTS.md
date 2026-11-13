@@ -2565,3 +2565,12 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-13 — Vercel Subdomain API Proxy Rewrites Configuration**:
+  - **Status:** COMPLETE
+  - **Summary:** Added `vercel.json` with edge rewrites proxying `/api/:path*` and `/health` from `deynolddanny.pixenox.com` directly to `https://deynold-danny-backend.deynolddanny.workers.dev`. Allows visiting `https://deynolddanny.pixenox.com/health` and `https://deynolddanny.pixenox.com/api/*` directly on the primary subdomain.
+  - **Files Added:** `vercel.json`
+  - **Files Modified:** `AGENTS.md`, `GEMINI.md`
+  - **Validation:**
+    - `npm run build`: PASS
+  - **Blockers:** None.
