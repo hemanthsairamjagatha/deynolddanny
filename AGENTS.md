@@ -2542,3 +2542,26 @@ deynold-danny-ecommerce/
     - `npx astro check`: **PASS** (77 files, 0 errors, 0 warnings, 0 hints)
     - `npm run build`: **PASS** (57 pages built in 3.52s)
   - **Blockers:** None. Backend is production-ready.
+
+- **2026-11-13 — Live Cloudflare Deployment: Remote D1 Migrations, Worker Deploy, Vercel Production**:
+  - **Status:** COMPLETE
+  - **Summary:** Executed end-to-end production deployment:
+    1. Applied pending D1 migrations `0003_refresh_tokens_and_hardening.sql` and `0004_audit_logs.sql` directly to remote production database `deynold-danny-db` (UUID `e7a8af53-0174-4e60-8ef6-bf65acb5ae92`).
+    2. Updated `backend/wrangler.toml` default deployment vars to production mode, pointing `FRONTEND_URL` to `https://deynolddanny.pixenox.com` and `BACKEND_URL` to `https://deynold-danny-backend.deynolddanny.workers.dev`.
+    3. Deployed the backend Cloudflare Worker `deynold-danny-backend` via Wrangler (version ID `566a6932-a751-4675-a971-e0e4343388ad`), active cron trigger `*/5 * * * *`, bound to remote D1 and KV `CATALOG_KV`.
+    4. Verified live endpoints returning 200 OK: `/health`, `POST /api/coupons/validate` (tested code WELCOME10), `GET /api/products` (16 items returned from D1), `POST /api/contact`, and `POST /api/webhooks/shiprocket`.
+    5. Frontend live at `https://deynolddanny.pixenox.com` verified 200 OK, freshly deployed via Vercel.
+  - **Files Modified:**
+    - `backend/wrangler.toml`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (0003 ✅, 0004 ✅)
+    - `npx wrangler deploy`: PASS (Uploaded and deployed to workers.dev)
+    - Live health check `GET https://deynold-danny-backend.deynolddanny.workers.dev/health`: PASS (200 OK, environment: production)
+    - Live coupon check `POST .../api/coupons/validate`: PASS (200 OK, code: WELCOME10, valid: true)
+    - Live domain verification `https://deynolddanny.pixenox.com`: PASS (HTTP 200 OK)
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

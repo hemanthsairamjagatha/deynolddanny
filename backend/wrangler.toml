@@ -4,10 +4,10 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-ENVIRONMENT = "development"
-FRONTEND_URL = "http://localhost:4321"
-BACKEND_URL = "http://localhost:8787"
-ADMIN_URL = "http://localhost:4321"
+ENVIRONMENT = "production"
+FRONTEND_URL = "https://deynolddanny.pixenox.com"
+BACKEND_URL = "https://deynold-danny-backend.deynolddanny.workers.dev"
+ADMIN_URL = "https://deynolddanny.pixenox.com"
 MEDIA_BUCKET_PUBLIC_URL = "http://localhost:8787/media"
 RAZORPAY_KEY_ID = "rzp_test_placeholder"
 SHIPROCKET_PICKUP_PINCODE = "400001"
