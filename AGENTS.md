@@ -2574,3 +2574,23 @@ deynold-danny-ecommerce/
   - **Validation:**
     - `npm run build`: PASS
   - **Blockers:** None.
+
+- **2026-11-13 — Checkout UI Enhancements: Email Re-entry and Live Address Autocomplete Autofill**:
+  - **Status:** COMPLETE
+  - **Summary:** Implemented two critical checkout UX enhancements in `src/features/checkout/components/CheckoutExperience.tsx`:
+    1. **Email Re-entry / Change:** Added an intuitive "Change email" button to Step 1 (Contact Information) in both the OTP verification state and the authenticated state. Users who mistype their email or want to use an alternative email can now freely click "Change email" to edit their email address and request a fresh OTP without having to reload the page or abandon their cart.
+    2. **Live Address Search & Autofill:** Upgraded Row 3 (Address) from a static input with a search icon to an active, real-time location autocomplete engine powered by Photon (OpenStreetMap) and India Postal Pincode resolution. As users type an address or locality, a luxury suggestions dropdown appears showing exact location pins, titles, and full address subtitles.
+    3. **One-Click Multi-Field Autofill:** Clicking any suggestion instantly populates Street Address, City/District, State/Province, and Postal Code.
+    4. **Smart Pincode Resolution:** Typing a 6-digit Indian postal code automatically resolves City and State/Province in real time.
+    5. **Comprehensive State Support:** Extended the Province/State dropdown to encompass all Indian states and Union Territories (including Andhra Pradesh) alongside international destinations.
+  - **Files Modified:**
+    - `src/features/checkout/components/CheckoutExperience.tsx`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (77 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (57 pages built cleanly in 3.19s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

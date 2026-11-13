@@ -1,9 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '@nanostores/react';
 import { $cartItems, $formattedSubtotal } from '../../cart/store/cart.store';
 import { submitCheckoutApi, verifyPaymentApi, type CheckoutPayload } from '../api/checkout.api';
 import { sendOtpApi, verifyOtpApi, getProfileApi } from '../../auth/api/auth.api';
 import { getAccessToken } from '../../../lib/api/client';
+
+export interface AddressSuggestion {
+  id: string;
+  title: string;
+  subtitle: string;
+  line1: string;
+  city: string;
+  state: string;
+  postcode: string;
+  country: string;
+}
+
+const ALL_INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chandigarh',
+  'Chhattisgarh',
+  'Delhi',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jammu and Kashmir',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Ladakh',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Puducherry',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+];
+
+const INTERNATIONAL_PROVINCES = [
+  'Rome',
+  'Milan',
+  'Florence',
+  'Venice',
+  'Turin',
+  'Bologna',
+  'Naples',
+  'Other / International',
+];
+
+function matchProvince(stateStr: string): string {
+  if (!stateStr) return '';
+  const clean = stateStr.trim().toLowerCase();
+  for (const s of ALL_INDIAN_STATES) {
+    if (s.toLowerCase() === clean) return s;
+  }
+  for (const s of ALL_INDIAN_STATES) {
+    if (clean.includes(s.toLowerCase()) || s.toLowerCase().includes(clean)) return s;
+  }
+  for (const s of INTERNATIONAL_PROVINCES) {
+    if (s.toLowerCase() === clean || clean.includes(s.toLowerCase())) return s;
+  }
+  return stateStr;
+}
 
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -40,6 +113,13 @@ export const CheckoutExperience: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [saveInfo, setSaveInfo] = useState(false);
   const [showPhoneInfo, setShowPhoneInfo] = useState(false);
+
+  // Address autocomplete state
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const addressContainerRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -84,6 +164,137 @@ export const CheckoutExperience: React.FC = () => {
       });
     }
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addressContainerRef.current && !addressContainerRef.current.contains(e.target as Node)) {
+        setShowAddressDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleAddressSearch = (query: string) => {
+    setAddress(query);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressDropdown(false);
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      setIsLoadingAddress(true);
+      try {
+        const results: AddressSuggestion[] = [];
+
+        // Check if query contains an Indian 6-digit pincode
+        const pinMatch = trimmed.match(/\b\d{6}\b/);
+        if (pinMatch) {
+          try {
+            const pinRes = await fetch(`https://api.postalpincode.in/pincode/${pinMatch[0]}`);
+            const pinData = await pinRes.json();
+            if (pinData && pinData[0]?.Status === 'Success' && Array.isArray(pinData[0]?.PostOffice)) {
+              pinData[0].PostOffice.slice(0, 3).forEach((po: any, idx: number) => {
+                results.push({
+                  id: `pin-${idx}-${po.Name}`,
+                  title: `${po.Name}, ${po.District}`,
+                  subtitle: `${po.State}, ${po.Pincode}, India`,
+                  line1: po.Name,
+                  city: po.District || po.Name,
+                  state: po.State,
+                  postcode: po.Pincode,
+                  country: 'India',
+                });
+              });
+            }
+          } catch {
+            // Ignore error
+          }
+        }
+
+        // Query Photon geocoder (OpenStreetMap)
+        const countryBias = country === 'India' ? '&lat=20.5937&lon=78.9629' : '';
+        const photonRes = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=6${countryBias}&lang=en`
+        );
+        const photonData = await photonRes.json();
+
+        if (photonData?.features && Array.isArray(photonData.features)) {
+          photonData.features.forEach((f: any, idx: number) => {
+            const p = f.properties || {};
+            const title = p.name || p.street || p.city || trimmed;
+            const lineParts = [p.housenumber, p.street || p.name].filter(Boolean);
+            const line1 = lineParts.length > 0 ? lineParts.join(' ') : title;
+            const city = p.city || p.district || p.county || p.locality || '';
+            const state = p.state || '';
+            const postcode = p.postcode || '';
+            const ctry = p.country || country;
+
+            const subtitleParts = [p.district, p.city, p.state, p.postcode, p.country].filter(Boolean);
+            const subtitle = Array.from(new Set(subtitleParts)).join(', ');
+
+            results.push({
+              id: `photon-${idx}-${p.osm_id || title}`,
+              title,
+              subtitle: subtitle || `${city}, ${state} ${postcode}`,
+              line1,
+              city,
+              state,
+              postcode,
+              country: ctry,
+            });
+          });
+        }
+
+        setAddressSuggestions(results);
+        setShowAddressDropdown(results.length > 0);
+      } catch (err) {
+        console.error('Address search error:', err);
+      } finally {
+        setIsLoadingAddress(false);
+      }
+    }, 300);
+  };
+
+  const handleSelectAddress = (item: AddressSuggestion) => {
+    setAddress(item.line1 || item.title);
+    if (item.city) setCity(item.city);
+    if (item.state) {
+      setProvince(matchProvince(item.state));
+    }
+    if (item.postcode) setPostalCode(item.postcode);
+    if (item.country) setCountry(item.country);
+    setShowAddressDropdown(false);
+  };
+
+  const handlePostalCodeChange = async (val: string) => {
+    setPostalCode(val);
+    const clean = val.trim();
+    if (clean.length === 6 && /^\d{6}$/.test(clean) && country === 'India') {
+      try {
+        const pinRes = await fetch(`https://api.postalpincode.in/pincode/${clean}`);
+        const pinData = await pinRes.json();
+        if (pinData && pinData[0]?.Status === 'Success' && Array.isArray(pinData[0]?.PostOffice)) {
+          const po = pinData[0].PostOffice[0];
+          if (po) {
+            if (!city) setCity(po.District || po.Name);
+            if (po.State) {
+              setProvince(matchProvince(po.State));
+            }
+          }
+        }
+      } catch {
+        // Non-critical
+      }
+    }
+  };
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -354,9 +565,27 @@ export const CheckoutExperience: React.FC = () => {
             </div>
 
             {isAuthenticated ? (
-              <p className="text-[16px] text-neutral-700" style={font16}>
-                Signed in as: <strong className="text-neutral-900">{email}</strong>
-              </p>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="text-[16px] text-neutral-700" style={font16}>
+                  Signed in as: <strong className="text-neutral-900">{email}</strong>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAuthenticated(false);
+                    setOtpSent(false);
+                    setOtp('');
+                  }}
+                  className="text-xs uppercase tracking-wider text-neutral-500 hover:text-black underline font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-colors"
+                  style={fontStyle}
+                >
+                  <svg className="w-3.5 h-3.5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Change email
+                </button>
+              </div>
             ) : !otpSent ? (
               <form onSubmit={handleSendOtp} className="space-y-4">
                 <p className="text-[16px] text-neutral-600 leading-relaxed" style={font16}>
@@ -384,9 +613,27 @@ export const CheckoutExperience: React.FC = () => {
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <p className="text-[16px] text-neutral-600" style={font16}>
-                  We sent a 6-digit code to <strong>{email}</strong>. Enter it below:
-                </p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <p className="text-[16px] text-neutral-600" style={font16}>
+                    We sent a 6-digit code to <strong className="text-neutral-900">{email}</strong>. Enter it below:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtpSent(false);
+                      setOtp('');
+                      setErrorMessage(null);
+                    }}
+                    className="text-xs uppercase tracking-wider text-neutral-900 hover:text-black underline font-semibold cursor-pointer inline-flex items-center gap-1.5 self-start sm:self-auto transition-colors"
+                    style={fontStyle}
+                  >
+                    <svg className="w-3.5 h-3.5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    Change email
+                  </button>
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -499,23 +746,65 @@ export const CheckoutExperience: React.FC = () => {
                 </div>
               </div>
 
-              {/* Row 3: Address (with Search icon) */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Address"
-                  required
-                  className="checkout-input w-full h-12 pl-3.5 pr-10 text-[16px] text-neutral-900 placeholder:text-neutral-500 bg-white transition-colors"
-                  style={{ ...inputStyle }}
-                />
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
+              {/* Row 3: Address (with Live Autocomplete Dropdown) */}
+              <div ref={addressContainerRef} className="relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => handleAddressSearch(e.target.value)}
+                    onFocus={() => {
+                      if (addressSuggestions.length > 0) {
+                        setShowAddressDropdown(true);
+                      }
+                    }}
+                    placeholder="Address (Start typing your street or area to search...)"
+                    required
+                    autoComplete="street-address"
+                    className="checkout-input w-full h-12 pl-3.5 pr-10 text-[16px] text-neutral-900 placeholder:text-neutral-500 bg-white transition-colors"
+                    style={{ ...inputStyle }}
+                  />
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400">
+                    {isLoadingAddress ? (
+                      <svg className="w-4 h-4 animate-spin text-neutral-900" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
+
+                {/* Suggestions Dropdown */}
+                {showAddressDropdown && addressSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-neutral-200 rounded-[4px] shadow-xl z-50 max-h-64 overflow-y-auto divide-y divide-neutral-100">
+                    {addressSuggestions.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectAddress(item)}
+                        className="w-full text-left px-4 py-3 hover:bg-neutral-50 transition-colors flex items-start gap-3 cursor-pointer group"
+                      >
+                        <svg className="w-4 h-4 text-neutral-400 group-hover:text-black mt-1 shrink-0 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-semibold text-neutral-900 truncate" style={fontStyle}>
+                            {item.title}
+                          </p>
+                          <p className="text-[12px] text-neutral-500 truncate" style={fontStyle}>
+                            {item.subtitle}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Row 4: Apartment, suite, etc. (optional) */}
@@ -536,7 +825,7 @@ export const CheckoutExperience: React.FC = () => {
                   <input
                     type="text"
                     value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
+                    onChange={(e) => handlePostalCodeChange(e.target.value)}
                     placeholder="Postal code"
                     required
                     className="checkout-input w-full h-12 px-3.5 text-[16px] text-neutral-900 placeholder:text-neutral-500 bg-white transition-colors"
@@ -563,30 +852,19 @@ export const CheckoutExperience: React.FC = () => {
                       province ? 'text-neutral-900' : 'text-neutral-500'
                     }`}
                     style={{ ...inputStyle }}
-                    aria-label="Province"
+                    aria-label="State or Province"
                   >
-                    <option value="" disabled>Province</option>
-                    <option value="Maharashtra">Maharashtra</option>
-                    <option value="Delhi">Delhi</option>
-                    <option value="Karnataka">Karnataka</option>
-                    <option value="Tamil Nadu">Tamil Nadu</option>
-                    <option value="Gujarat">Gujarat</option>
-                    <option value="Uttar Pradesh">Uttar Pradesh</option>
-                    <option value="Telangana">Telangana</option>
-                    <option value="West Bengal">West Bengal</option>
-                    <option value="Rajasthan">Rajasthan</option>
-                    <option value="Kerala">Kerala</option>
-                    <option value="Punjab">Punjab</option>
-                    <option value="Haryana">Haryana</option>
-                    <option value="Madhya Pradesh">Madhya Pradesh</option>
-                    <option value="Rome">Rome</option>
-                    <option value="Milan">Milan</option>
-                    <option value="Florence">Florence</option>
-                    <option value="Venice">Venice</option>
-                    <option value="Turin">Turin</option>
-                    <option value="Bologna">Bologna</option>
-                    <option value="Naples">Naples</option>
-                    <option value="Other">Other / International</option>
+                    <option value="" disabled>State / Province</option>
+                    <optgroup label="India (States & Union Territories)">
+                      {ALL_INDIAN_STATES.map((st) => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="International">
+                      {INTERNATIONAL_PROVINCES.map((pr) => (
+                        <option key={pr} value={pr}>{pr}</option>
+                      ))}
+                    </optgroup>
                   </select>
                   <svg
                     className="w-4 h-4 text-neutral-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
