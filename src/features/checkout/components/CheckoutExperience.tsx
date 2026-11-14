@@ -12,7 +12,14 @@ import {
 } from '../../cart/store/cart.store';
 import { submitCheckoutApi, verifyPaymentApi, type CheckoutPayload } from '../api/checkout.api';
 import { sendOtpApi, verifyOtpApi, getProfileApi } from '../../auth/api/auth.api';
-import { getAccessToken, getSessionId, apiFetch } from '../../../lib/api/client';
+import {
+  getAccessToken,
+  setAccessToken,
+  getStoredClientEmail,
+  setStoredClientEmail,
+  getSessionId,
+  apiFetch
+} from '../../../lib/api/client';
 
 export interface SavedAddress {
   id: string;
@@ -202,16 +209,26 @@ export const CheckoutExperience: React.FC = () => {
   useEffect(() => {
     syncCartWithBackend();
     const token = getAccessToken();
+    const storedEmail = getStoredClientEmail();
+
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
+
     if (token) {
       setIsAuthenticated(true);
       getProfileApi().then((res) => {
         if (res.success && res.data) {
           setEmail(res.data.email);
+          setStoredClientEmail(res.data.email);
           if (res.data.fullName) {
             const parts = res.data.fullName.split(' ');
-            setFirstName(parts[0] || '');
-            setLastName(parts.slice(1).join(' ') || '');
+            setFirstName((prev) => prev || parts[0] || '');
+            setLastName((prev) => prev || parts.slice(1).join(' ') || '');
           }
+        } else if (res.error?.status === 401) {
+          setAccessToken(null);
+          setIsAuthenticated(false);
         }
       });
     }
@@ -791,21 +808,39 @@ export const CheckoutExperience: React.FC = () => {
       setErrorMessage('Please provide your postal code.');
       return;
     }
-    if (!phone.trim()) {
-      setErrorMessage('Please provide your contact phone number.');
+    // Clean and validate Indian phone number (strip +91, 0, spaces, dashes)
+    let cleanDigits = phone.replace(/\D/g, '');
+    if (cleanDigits.length === 12 && cleanDigits.startsWith('91')) cleanDigits = cleanDigits.slice(2);
+    if (cleanDigits.length === 11 && cleanDigits.startsWith('0')) cleanDigits = cleanDigits.slice(1);
+
+    if (!cleanDigits || !/^[6-9]\d{9}$/.test(cleanDigits)) {
+      setErrorMessage('Please provide a valid 10-digit Indian mobile number (e.g. 9876543210).');
       return;
     }
 
+    const cleanPincode = postalCode.replace(/\D/g, '');
+    if (cleanPincode.length !== 6) {
+      setErrorMessage('Please provide a valid 6-digit postal pincode.');
+      return;
+    }
+
+    // Map current wardrobe items for checkout commitment
+    const checkoutItems = items.map((it) => ({
+      variantId: it.variantId || `${it.id}-${it.size.replace(/\s+/g, '')}`,
+      quantity: it.qty,
+    }));
+
     const payload: CheckoutPayload = {
       shippingName: fullName,
-      shippingPhone: phone.trim(),
+      shippingPhone: cleanDigits,
       shippingLine1: address.trim(),
       shippingLine2: apartment.trim() || undefined,
       shippingCity: city.trim(),
       shippingState: province.trim() || 'Maharashtra',
-      shippingPincode: postalCode.trim(),
+      shippingPincode: cleanPincode,
       shippingCountry: country,
       couponCode: appliedCoupon?.code,
+      items: checkoutItems,
     };
 
     setIsSubmitting(true);
@@ -813,11 +848,12 @@ export const CheckoutExperience: React.FC = () => {
       const res = await submitCheckoutApi(payload);
       if (!res.success || !res.data) {
         console.error('[Checkout Submission Failed]', res);
-        setErrorMessage(
+        const errorMsg =
           res.error?.message ||
+          (res.error as any)?.issues?.[0]?.message ||
           (res as any)?.message ||
-          'Could not initialize order. Please verify your connection and try again.'
-        );
+          'Could not initialize order. Please verify your details and try again.';
+        setErrorMessage(errorMsg);
         setIsSubmitting(false);
         return;
       }
@@ -1102,6 +1138,8 @@ export const CheckoutExperience: React.FC = () => {
                     setIsAuthenticated(false);
                     setOtpSent(false);
                     setOtp('');
+                    setAccessToken(null);
+                    setStoredClientEmail(null);
                   }}
                   className="text-xs uppercase tracking-wider text-neutral-500 hover:text-black underline font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-colors"
                   style={fontStyle}

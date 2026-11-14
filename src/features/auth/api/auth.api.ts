@@ -4,7 +4,7 @@
  * Authentication API operations connecting the storefront to the Cloudflare Worker OTP engine.
  */
 
-import { apiFetch, setAccessToken } from '../../../lib/api/client';
+import { apiFetch, setAccessToken, setStoredClientEmail } from '../../../lib/api/client';
 
 export interface UserProfile {
   id: string;
@@ -39,13 +39,15 @@ export async function sendOtpApi(email: string) {
  * Verify OTP and sign in
  */
 export async function verifyOtpApi(email: string, otp: string) {
+  const cleanEmail = email.trim().toLowerCase();
   const res = await apiFetch<VerifyOtpResponse>('/api/auth/verify-otp', {
     method: 'POST',
-    body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otp.trim() }),
+    body: JSON.stringify({ email: cleanEmail, otp: otp.trim() }),
   });
 
   if (res.success && res.data?.accessToken) {
     setAccessToken(res.data.accessToken);
+    setStoredClientEmail(res.data.user?.email || cleanEmail);
   }
 
   return res;
@@ -64,6 +66,7 @@ export async function getProfileApi() {
 export async function logoutApi() {
   const res = await apiFetch('/api/auth/logout', { method: 'POST' });
   setAccessToken(null);
+  setStoredClientEmail(null);
   return res;
 }
 

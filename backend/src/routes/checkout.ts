@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Env } from '../types/bindings.js';
 import type { ApiCheckoutResponse } from '../types/api.js';
 import { authRequired } from '../middleware/auth.js';
-import { getOrCreateCart, getCartWithItems, clearCart, mergeGuestCart } from '../db/queries/cart.js';
+import { getOrCreateCart, getCartWithItems, addCartItem, clearCart, mergeGuestCart } from '../db/queries/cart.js';
 import { createOrder, createOrderItems } from '../db/queries/orders.js';
 import { holdStock } from '../services/stockEngine.js';
 import { createRazorpayOrder } from '../services/razorpay.js';
@@ -20,53 +20,110 @@ const checkout = new Hono<{ Bindings: Env }>();
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
+const checkoutItemSchema = z.object({
+  variantId: z.string().min(1),
+  quantity: z.number().int().min(1).max(10).default(1),
+});
+
 const checkoutSchema = z.object({
   shippingAddressId: z.string().optional(),
   // Manual address fields (used when shippingAddressId not provided)
-  shippingName: z.string().min(2).max(100),
+  shippingName: z.string().min(2, 'Full name must be at least 2 characters').max(100),
   shippingPhone: z
     .string()
-    .regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number'),
-  shippingLine1: z.string().min(5).max(200),
+    .transform((val) => {
+      let digits = val.replace(/\D/g, '');
+      if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+      if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+      return digits;
+    })
+    .refine((val) => /^[6-9]\d{9}$/.test(val), {
+      message: 'Invalid Indian mobile number. Please provide a 10-digit mobile number.',
+    }),
+  shippingLine1: z.string().min(3, 'Address line must be at least 3 characters').max(200),
   shippingLine2: z.string().max(200).optional(),
-  shippingCity: z.string().min(2).max(100),
-  shippingState: z.string().min(2).max(100),
+  shippingCity: z.string().min(2, 'City is required').max(100),
+  shippingState: z.string().min(2, 'State is required').max(100),
   shippingPincode: z
     .string()
-    .regex(/^\d{6}$/, 'Pincode must be 6 digits'),
+    .transform((val) => val.replace(/\D/g, ''))
+    .refine((val) => /^\d{6}$/.test(val), {
+      message: 'Pincode must be 6 digits',
+    }),
   shippingCountry: z.string().default('India'),
   couponCode: z.string().max(50).optional(),
   customerNotes: z.string().max(500).optional(),
   sessionId: z.string().optional(), // for guest cart merge (if already authed)
+  items: z.array(checkoutItemSchema).optional(),
 });
 
 // ─── POST /api/checkout ──────────────────────────────────────────────────────
 
-checkout.post('/', authRequired, zValidator('json', checkoutSchema), async (c) => {
-  const userId = c.get('userId');
-  const userEmail = c.get('userEmail');
-  const body = c.req.valid('json');
-  const env = c.env;
-
-  // 1. Merge guest cart from session if present, then resolve user cart
-  const sessionId = c.req.header('x-session-id') || body.sessionId;
-  if (sessionId) {
-    try {
-      await mergeGuestCart(env.DB, sessionId, userId);
-    } catch {
-      // Cart merge non-fatal
+checkout.post(
+  '/',
+  authRequired,
+  zValidator('json', checkoutSchema, (result, c) => {
+    if (!result.success) {
+      const firstIssue = result.error.issues[0];
+      const message = firstIssue?.message || 'Invalid checkout information provided.';
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message,
+            status: 400,
+            details: result.error.issues,
+          },
+        },
+        400,
+      );
     }
-  }
+  }),
+  async (c) => {
+    const userId = c.get('userId');
+    const userEmail = c.get('userEmail');
+    const body = c.req.valid('json');
+    const env = c.env;
 
-  const cartRecord = await getOrCreateCart(env.DB, { userId });
-  const cartData = await getCartWithItems(env.DB, cartRecord.id);
+    // 1. Merge guest cart from session if present, then resolve user cart
+    const sessionId = c.req.header('x-session-id') || body.sessionId;
+    if (sessionId) {
+      try {
+        await mergeGuestCart(env.DB, sessionId, userId);
+      } catch {
+        // Cart merge non-fatal
+      }
+    }
 
-  if (!cartData || cartData.items.length === 0) {
-    return c.json(
-      { success: false, error: { code: 'EMPTY_CART', message: 'Your cart is empty. Please add garments before checking out.', status: 400 } },
-      400,
-    );
-  }
+    const cartRecord = await getOrCreateCart(env.DB, { userId });
+    let cartData = await getCartWithItems(env.DB, cartRecord.id);
+
+    // If D1 cart is empty but client passed wardrobe items, populate D1 cart automatically
+    if ((!cartData || cartData.items.length === 0) && body.items && body.items.length > 0) {
+      for (const item of body.items) {
+        try {
+          await addCartItem(env.DB, cartRecord.id, item.variantId, item.quantity);
+        } catch (err) {
+          console.warn('Failed to sync item to cart during checkout:', item.variantId, err);
+        }
+      }
+      cartData = await getCartWithItems(env.DB, cartRecord.id);
+    }
+
+    if (!cartData || cartData.items.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'EMPTY_CART',
+            message: 'Your wardrobe selection is empty. Please add garments before checking out.',
+            status: 400,
+          },
+        },
+        400,
+      );
+    }
 
   // 2. Server-side price recalculation — NEVER trust client prices
   let subtotalPaise = 0;

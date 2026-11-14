@@ -38,7 +38,7 @@ export async function verifyAccessToken(token: string, secret: string): Promise<
 }
 
 /**
- * Sets an HttpOnly Secure SameSite=Strict refresh-token cookie.
+ * Sets an HttpOnly Secure SameSite=None refresh-token cookie (cross-origin compatible).
  */
 export function setRefreshCookie(c: Context<{ Bindings: Env }>, token: string): void {
   c.header(
@@ -47,7 +47,7 @@ export function setRefreshCookie(c: Context<{ Bindings: Env }>, token: string): 
       `${COOKIE_REFRESH_TOKEN}=${token}`,
       'HttpOnly',
       'Secure',
-      'SameSite=Strict',
+      'SameSite=None',
       `Max-Age=${REFRESH_TOKEN_EXPIRY_SECONDS}`,
       `Path=${COOKIE_PATH}`,
     ].join('; '),
@@ -64,7 +64,7 @@ export function clearRefreshCookie(c: Context<{ Bindings: Env }>): void {
       `${COOKIE_REFRESH_TOKEN}=`,
       'HttpOnly',
       'Secure',
-      'SameSite=Strict',
+      'SameSite=None',
       'Max-Age=0',
       `Path=${COOKIE_PATH}`,
     ].join('; '),

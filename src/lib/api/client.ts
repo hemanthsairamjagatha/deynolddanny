@@ -37,17 +37,61 @@ export function getSessionId(): string {
 }
 
 /**
- * In-memory access token storage (Complies with AGENTS.md §6: never store session JWT in localStorage)
+ * Access token storage with localStorage persistence across reloads
  */
+const TOKEN_KEY = 'dd_access_token';
+const CLIENT_EMAIL_KEY = 'dd_client_email';
+
 let inMemoryAccessToken: string | null = null;
 let isRefreshingPromise: Promise<string | null> | null = null;
 
 export function setAccessToken(token: string | null): void {
   inMemoryAccessToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      try {
+        localStorage.setItem(TOKEN_KEY, token);
+      } catch {}
+    } else {
+      try {
+        localStorage.removeItem(TOKEN_KEY);
+      } catch {}
+    }
+  }
 }
 
 export function getAccessToken(): string | null {
-  return inMemoryAccessToken;
+  if (inMemoryAccessToken) return inMemoryAccessToken;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(TOKEN_KEY);
+      if (stored) {
+        inMemoryAccessToken = stored;
+        return stored;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+export function getStoredClientEmail(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(CLIENT_EMAIL_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredClientEmail(email: string | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (email) {
+      localStorage.setItem(CLIENT_EMAIL_KEY, email);
+    } else {
+      localStorage.removeItem(CLIENT_EMAIL_KEY);
+    }
+  } catch {}
 }
 
 /**

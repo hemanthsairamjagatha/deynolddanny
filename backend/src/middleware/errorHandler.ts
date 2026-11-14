@@ -14,14 +14,14 @@ export function setupErrorHandler(app: Hono<{ Bindings: Env }>): void {
     const path = c.req.path;
     const method = c.req.method;
 
-    console.error(`[Error ${method} ${path}]`, err.message, isDev ? err.stack : '');
+    console.error(`[Error ${method} ${path}]`, err.message, err.stack);
 
     return c.json(
       {
         success: false,
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message: isDev ? err.message : 'An unexpected error occurred. Our team has been notified.',
+          message: err.message || 'An unexpected error occurred. Our team has been notified.',
           status: 500,
         },
       },

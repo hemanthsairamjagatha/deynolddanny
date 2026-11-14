@@ -143,14 +143,20 @@ orders.get('/track/:orderNumber', async (c) => {
   const emailQuery = c.req.query('email')?.trim().toLowerCase();
   const phoneQuery = c.req.query('phone')?.trim();
 
-  // Search case-insensitively by order_number or by internal order id
+  // Support numeric shorthand like '4' or '000004' -> 'DD-2026-000004'
+  let normalizedNumber = orderNumber;
+  if (/^\d{1,6}$/.test(orderNumber)) {
+    normalizedNumber = `DD-2026-${orderNumber.padStart(6, '0')}`;
+  }
+
+  // Search case-insensitively by order_number, normalized number, or internal order id
   const order = await c.env.DB
     .prepare(
       `SELECT * FROM orders
-       WHERE (order_number = ?1 COLLATE NOCASE OR id = ?1)
+       WHERE (order_number = ?1 COLLATE NOCASE OR order_number = ?2 COLLATE NOCASE OR id = ?1)
        LIMIT 1`,
     )
-    .bind(orderNumber)
+    .bind(orderNumber, normalizedNumber)
     .first<any>();
 
   if (!order) {

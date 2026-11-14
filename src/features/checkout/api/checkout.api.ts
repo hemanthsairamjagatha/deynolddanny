@@ -11,6 +11,7 @@ export interface CheckoutPayload {
   shippingCountry?: string;
   couponCode?: string;
   customerNotes?: string;
+  items?: Array<{ variantId: string; quantity: number }>;
 }
 
 export interface CheckoutResponse {
