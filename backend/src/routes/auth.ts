@@ -173,6 +173,7 @@ auth.post('/verify-otp', zValidator('json', verifyOtpSchema), async (c) => {
     success: true,
     data: {
       accessToken,
+      refreshToken: rawRefreshToken,
       user: {
         id: userId,
         email,
@@ -187,7 +188,12 @@ auth.post('/verify-otp', zValidator('json', verifyOtpSchema), async (c) => {
 // Implements Refresh Token Rotation for strict security
 
 auth.post('/refresh', async (c) => {
-  const rawToken = getRefreshTokenFromCookie(c);
+  let rawToken = getRefreshTokenFromCookie(c);
+  if (!rawToken) {
+    const body = await c.req.json().catch(() => ({}));
+    rawToken = body?.refreshToken;
+  }
+
   if (!rawToken) {
     return c.json({
       success: false,
@@ -250,7 +256,7 @@ auth.post('/refresh', async (c) => {
 
   setRefreshCookie(c as any, newRawRefreshToken);
 
-  return c.json({ success: true, data: { accessToken } });
+  return c.json({ success: true, data: { accessToken, refreshToken: newRawRefreshToken } });
 });
 
 // ─── GET /api/auth/me ────────────────────────────────────────────────────────

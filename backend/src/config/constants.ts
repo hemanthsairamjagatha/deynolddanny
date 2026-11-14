@@ -2,8 +2,8 @@
 
 export const COOKIE_REFRESH_TOKEN = 'dd_refresh';
 export const COOKIE_PATH = '/api/auth';
-export const ACCESS_TOKEN_EXPIRY = '15m';
-export const REFRESH_TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 30; // 30 days
+export const ACCESS_TOKEN_EXPIRY = '30d';
+export const REFRESH_TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 90; // 90 days
 
 // Paise constants (all monetary values stored as integer paise)
 export const FREE_SHIPPING_THRESHOLD_PAISE = 500_000;  // ₹5,000

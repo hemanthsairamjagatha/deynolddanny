@@ -61,7 +61,7 @@ export async function createOrder(
          coupon_code, customer_notes, created_at, updated_at
        ) VALUES (
          ?1,?2,?3,'pending',?4,?5,?6,?7,?8,'pending',?9,
-         ?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?20
+         ?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21
        )`,
     )
     .bind(
@@ -70,7 +70,7 @@ export async function createOrder(
       input.cfOrderId,
       input.shippingName, input.shippingPhone, input.shippingLine1, input.shippingLine2 ?? null,
       input.shippingCity, input.shippingState, input.shippingPincode, input.shippingCountry,
-      input.couponCode ?? null, input.customerNotes ?? null, now,
+      input.couponCode ?? null, input.customerNotes ?? null, now, now,
     )
     .run();
 

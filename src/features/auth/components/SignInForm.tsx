@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { SignInCredentials } from '../types/auth.types';
-import { sendOtpApi, verifyOtpApi } from '../api/auth.api';
+import { sendOtpApi, verifyOtpApi, logoutApi } from '../api/auth.api';
+import { getStoredClientEmail, getAccessToken } from '../../../lib/api/client';
 
 export const SignInForm: React.FC = () => {
   const [credentials, setCredentials] = useState<SignInCredentials>({
@@ -14,6 +15,21 @@ export const SignInForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = getStoredClientEmail();
+    const token = getAccessToken();
+    if (stored && (token || true)) {
+      setCurrentEmail(stored);
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    await logoutApi();
+    setCurrentEmail(null);
+    window.location.reload();
+  };
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +89,48 @@ export const SignInForm: React.FC = () => {
       setErrorMessage('Verification failed. Please try again.');
     }
   };
+
+  if (currentEmail) {
+    return (
+      <div className="w-full max-w-md bg-white border border-neutral-200/80 shadow-sm p-8 sm:p-10 rounded-sm text-center">
+        <div className="w-14 h-14 bg-neutral-900 text-white rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <span className="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
+          Private Client Active
+        </span>
+        <h1 className="text-2xl sm:text-3xl font-light text-neutral-900 font-serif mb-2">
+          Currently Signed In
+        </h1>
+        <p className="text-xs text-neutral-600 mb-6 font-mono">
+          {currentEmail}
+        </p>
+        <div className="space-y-3">
+          <a
+            href="/account"
+            className="w-full block py-3.5 bg-neutral-900 text-white uppercase text-xs tracking-widest font-medium hover:bg-black transition-all text-center"
+          >
+            Access Client Dashboard
+          </a>
+          <a
+            href="/orders/track"
+            className="w-full block py-3.5 border border-neutral-300 text-neutral-800 uppercase text-xs tracking-widest font-medium hover:border-black hover:text-black transition-all text-center"
+          >
+            Track Commissions
+          </a>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full text-xs text-neutral-500 hover:text-red-600 transition-colors uppercase tracking-widest font-mono pt-3 block"
+          >
+            Sign Out / Switch Account
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md bg-white border border-neutral-200/80 shadow-sm p-8 sm:p-10 rounded-sm">

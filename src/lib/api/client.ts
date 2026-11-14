@@ -40,6 +40,7 @@ export function getSessionId(): string {
  * Access token storage with localStorage persistence across reloads
  */
 const TOKEN_KEY = 'dd_access_token';
+const REFRESH_TOKEN_KEY = 'dd_refresh_token';
 const CLIENT_EMAIL_KEY = 'dd_client_email';
 
 let inMemoryAccessToken: string | null = null;
@@ -74,6 +75,26 @@ export function getAccessToken(): string | null {
   return null;
 }
 
+export function getStoredRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredRefreshToken(token: string | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (token) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
+  } catch {}
+}
+
 export function getStoredClientEmail(): string | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -95,34 +116,42 @@ export function setStoredClientEmail(email: string | null): void {
 }
 
 /**
- * Silently refreshes access token using the HttpOnly refresh token cookie
+ * Silently refreshes access token using the HttpOnly refresh token cookie or stored fallback
  */
 export async function refreshAccessToken(): Promise<string | null> {
   if (isRefreshingPromise) return isRefreshingPromise;
 
   isRefreshingPromise = (async () => {
     try {
+      const storedRefreshToken = getStoredRefreshToken();
       const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // sends HttpOnly refresh-token cookie
+        credentials: 'include', // sends HttpOnly refresh-token cookie if supported
+        body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
       });
 
       if (!res.ok) {
         setAccessToken(null);
+        setStoredRefreshToken(null);
         return null;
       }
 
-      const json = (await res.json()) as ApiResponse<{ accessToken: string }>;
+      const json = (await res.json()) as ApiResponse<{ accessToken: string; refreshToken?: string }>;
       if (json.success && json.data?.accessToken) {
         setAccessToken(json.data.accessToken);
+        if (json.data.refreshToken) {
+          setStoredRefreshToken(json.data.refreshToken);
+        }
         return json.data.accessToken;
       }
 
       setAccessToken(null);
+      setStoredRefreshToken(null);
       return null;
     } catch {
       setAccessToken(null);
+      setStoredRefreshToken(null);
       return null;
     } finally {
       isRefreshingPromise = null;

@@ -744,9 +744,49 @@ export const newsProducts: ProductCardData[] = [
   }
 ];
 
+export const nappaLeatherChelseaFlatProduct: ProductCardData = {
+  id: "style-1",
+  slug: "nappa-leather-chelsea-flat",
+  title: "Nappa Leather Chelsea Flat",
+  price: "₹ 1,170.00",
+  priceNum: 1170,
+  badge: undefined,
+  tag: "ICON",
+  defaultImg: "/images/style-1-model.jpg",
+  hoverImg: "/images/style-1-product.jpg",
+  images: [
+    "/images/style-1-model.jpg",
+    "/images/style-1-product.jpg",
+    "/images/nappa-flat.jpg"
+  ],
+  sizes: ["EU 35", "EU 36", "EU 37", "EU 38", "EU 39", "EU 40", "EU 41"],
+  link: "/products/nappa-leather-chelsea-flat",
+  sku: "DD-ST1-01",
+  category: "Shoes",
+  gender: "Women",
+  description:
+    "The definitive Chelsea flat. Supple nappa leather upper, elastic side gussets, and a featherweight crepe sole that walks as beautifully as it looks.",
+  colors: [
+    { name: "Black", hex: "#111111", img: "/images/style-1-model.jpg" }
+  ],
+  sizeAndFit: [
+    "True to size — order your usual EU size.",
+    "Heel height: flat (10 mm sole)."
+  ],
+  compositionAndCare: [
+    "Upper: 100% Nappa Leather.",
+    "Sole: Natural Crepe."
+  ],
+  shippingAndReturns: [
+    "Complimentary express shipping on all orders.",
+    "14-day return privilege."
+  ]
+};
+
 export const allProducts: ProductCardData[] = [
   bordeauxSheathDressProduct,
   cadyTrousersProduct,
+  nappaLeatherChelseaFlatProduct,
   ...masteryProducts,
   ...styleSpaceProducts,
   ...newsProducts

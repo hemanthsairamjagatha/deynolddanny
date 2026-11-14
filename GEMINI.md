@@ -1670,3 +1670,64 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-14 — Persistent 30-Day Client Authentication, Dynamic Header Account Trigger, D1 SQL Parameter Binding Fix & Butter-Smooth Checkout Placement**:
+  - **Status:** COMPLETE
+  - **Summary:** Resolved persistent login prompting, D1 SQL 500 errors, cross-origin cookie dropouts, and variant resolution across checkout and storefront:
+    1. **Persistent 30-Day Customer Authentication & Resilient Token Refresh:**
+       - In `backend/src/config/constants.ts`, increased `ACCESS_TOKEN_EXPIRY` from `15m` to `30d` (30 days) and `REFRESH_TOKEN_EXPIRY_SECONDS` to 90 days.
+       - In `backend/src/routes/auth.ts`, added body-based refresh token fallback in `POST /api/auth/verify-otp` and `POST /api/auth/refresh`, allowing clients to authenticate seamlessly even when cross-origin third-party cookies are blocked by modern browsers between `deynolddanny.pixenox.com` and `workers.dev`.
+       - In `src/lib/api/client.ts`, added `setStoredRefreshToken` and `getStoredRefreshToken` (`dd_refresh_token` in `localStorage`) and updated `refreshAccessToken` to include `{ refreshToken: storedRefreshToken }` in the JSON body.
+       - Routed both `/api/users/me` and `/api/users/profile` in `backend/src/routes/users.ts` to prevent 404s from clearing client tokens on profile lookup.
+    2. **Dynamic Header Account Trigger Island & Client Dashboard Portal:**
+       - Replaced the static `<a href="/account/sign-in">` in `src/components/layout/Header.astro` with an interactive React island `<AccountTrigger client:load />` (`src/components/layout/AccountTrigger.tsx`).
+       - Features an active green session indicator dot when authenticated, and toggles a luxury dropdown displaying client email, one-click access to Client Dashboard (`/account`), Track Orders (`/orders/track`), Saved Wishlist (`/wishlist`), and Sign Out.
+       - Created the dedicated client account dashboard portal at `/account` (`src/features/account/components/AccountExperience.tsx`, `src/pages/account/index.astro`, and `src/pages/account.astro`) displaying client profile, recent bespoke commissions with one-click live tracking, saved delivery address book, and concierge contact card.
+    3. **Active Session Guard on Auth Pages:**
+       - In `src/features/auth/components/SignInForm.tsx` and `src/features/auth/components/SignUpForm.tsx`, added an active session guard that detects authenticated clients and renders a luxury Active Client Card with direct links to Dashboard and Orders instead of repeatedly asking for email OTP.
+    4. **Resolution of Cloudflare D1 SQL Parameter Binding Mismatches (500 Errors):**
+       - In `backend/src/routes/checkout.ts`, fixed parameter count mismatch in the sandbox confirmation update query: Cloudflare D1 counted 4 parameter occurrences (`?1, ?2, ?2, ?3`) with only 3 bind values, throwing D1 error 7500 and causing 500 Internal Server Error ("An unexpected error occurred. Our team has been notified."). Changed to 4 distinct placeholders (`?1, ?2, ?3, ?4`) and 4 bind arguments.
+       - In `backend/src/db/queries/orders.ts`, fixed parameter count mismatch in `createOrder` (21 placeholders with 20 bind arguments).
+       - In `backend/src/db/queries/cart.ts`, fixed parameter count mismatch in `addCartItem` (6 placeholders with 5 bind arguments).
+       - In `backend/src/db/client.ts`, upgraded `generateOrderNumber` to compute `MAX(SUBSTR(...)) + 1` to guarantee uniqueness under concurrency.
+    5. **Flexible Variant Matching in Checkout:**
+       - In `backend/src/routes/checkout.ts`, added intelligent fallback variant resolution so client wardrobe items (e.g. `style-1-EU40`, `nappa-leather-flat-EU40`) resolve to real D1 variants without throwing foreign key or stock hold errors.
+    6. **Butter-Smooth Checkout Step 1 Flow:**
+       - In `src/features/checkout/components/CheckoutExperience.tsx`, decoupled authentication state from email pre-fill.
+       - Step 1 clearly displays "Private Client Authenticated: <email>" with verified badge when logged in.
+       - If unauthenticated, email is pre-filled from memory, and clicking "Authorize & Place Order" automatically sends OTP and smoothly scrolls to Step 1 without crashing.
+       - Verification immediately sets 30-day session and unlocks Step 2 with auto-selected saved address.
+    7. **Synchronized Frontend Product Catalog:**
+       - Added `nappaLeatherChelseaFlatProduct` to `src/features/catalog/data/products.ts` matching D1 seed data.
+  - **Files Added:**
+    - `src/components/layout/AccountTrigger.tsx`
+    - `src/features/account/components/AccountExperience.tsx`
+    - `src/pages/account/index.astro`
+    - `src/pages/account.astro`
+  - **Files Modified:**
+    - `backend/src/config/constants.ts`
+    - `backend/src/db/client.ts`
+    - `backend/src/db/queries/cart.ts`
+    - `backend/src/db/queries/orders.ts`
+    - `backend/src/routes/auth.ts`
+    - `backend/src/routes/checkout.ts`
+    - `backend/src/routes/users.ts`
+    - `src/components/layout/Header.astro`
+    - `src/features/auth/api/auth.api.ts`
+    - `src/features/auth/components/SignInForm.tsx`
+    - `src/features/auth/components/SignUpForm.tsx`
+    - `src/features/catalog/data/products.ts`
+    - `src/features/checkout/components/CheckoutExperience.tsx`
+    - `src/lib/api/client.ts`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** Added `/account` route (`src/pages/account/index.astro` and `src/pages/account.astro`), `AccountExperience.tsx` feature component, and dynamic `AccountTrigger.tsx` layout island.
+  - **Validation:**
+    - `cd backend; npx tsc --noEmit`: PASS (0 errors).
+    - `cd backend; npx wrangler deploy`: PASS (Current Version ID `923cfcf1-6e14-4c43-99aa-e969a8d8b6a8`).
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built in 3.67s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+

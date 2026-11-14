@@ -2,6 +2,7 @@
 import CartTrigger from '../../features/cart/components/CartTrigger';
 import SearchTrigger from '../../features/search/components/SearchTrigger';
 import SearchDialog from '../../features/search/components/SearchDialog';
+import { AccountTrigger } from './AccountTrigger';
 ---
 
 <header class="site-header" id="header">
@@ -34,13 +35,8 @@ import SearchDialog from '../../features/search/components/SearchDialog';
         <!-- 1. Search Icon -->
         <SearchTrigger client:load />
 
-        <!-- 2. Account Icon -->
-        <a href="/account/sign-in" class="header-icon-link" aria-label="Client Account">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="7" r="4"></circle>
-            <path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path>
-          </svg>
-        </a>
+        <!-- 2. Account Icon (Dynamic Interactive Island) -->
+        <AccountTrigger client:load />
 
         <!-- 3. Wishlist (Heart) Icon -->
         <a href="/wishlist" class="header-icon-link" aria-label="Saved Wishlist">

@@ -31,9 +31,9 @@ const addressSchema = z.object({
   isDefault: z.boolean().default(false),
 });
 
-// ─── GET /api/users/me ───────────────────────────────────────────────────────
+// ─── GET /api/users/me & /api/users/profile ─────────────────────────────────
 
-users.get('/me', authRequired, async (c) => {
+const handleGetProfile = async (c: any) => {
   const userId = c.get('userId');
   const user = await getUserById(c.env.DB, userId);
 
@@ -54,7 +54,10 @@ users.get('/me', authRequired, async (c) => {
       role: user.role,
     },
   });
-});
+};
+
+users.get('/me', authRequired, handleGetProfile);
+users.get('/profile', authRequired, handleGetProfile);
 
 // ─── PATCH /api/users/me ─────────────────────────────────────────────────────
 

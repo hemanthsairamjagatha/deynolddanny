@@ -24,8 +24,8 @@ export function nowIso(): string {
  */
 export async function generateOrderNumber(db: D1Database): Promise<string> {
   const result = await db
-    .prepare(`SELECT COUNT(*) as count FROM orders`)
-    .first<{ count: number }>();
-  const num = String((result?.count ?? 0) + 1).padStart(6, '0');
-  return `DD-2026-${num}`;
+    .prepare(`SELECT MAX(CAST(SUBSTR(order_number, 9) AS INTEGER)) as max_num FROM orders`)
+    .first<{ max_num: number | null }>();
+  const nextNum = (result?.max_num ?? 0) + 1;
+  return `DD-2026-${String(nextNum).padStart(6, '0')}`;
 }

@@ -140,12 +140,12 @@ export async function addCartItem(
     db
       .prepare(
         `INSERT INTO cart_items (id, cart_id, variant_id, quantity, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?5)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)
          ON CONFLICT(cart_id, variant_id) DO UPDATE SET
            quantity = quantity + excluded.quantity,
            updated_at = excluded.updated_at`,
       )
-      .bind(id, cartId, variantId, qty, now),
+      .bind(id, cartId, variantId, qty, now, now),
     db
       .prepare(`UPDATE carts SET updated_at = ?1 WHERE id = ?2`)
       .bind(now, cartId),

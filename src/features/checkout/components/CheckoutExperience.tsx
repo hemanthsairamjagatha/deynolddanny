@@ -17,6 +17,8 @@ import {
   setAccessToken,
   getStoredClientEmail,
   setStoredClientEmail,
+  setStoredRefreshToken,
+  refreshAccessToken,
   getSessionId,
   apiFetch
 } from '../../../lib/api/client';
@@ -146,8 +148,18 @@ export const CheckoutExperience: React.FC = () => {
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return Boolean(localStorage.getItem('dd_access_token'));
+    }
+    return false;
+  });
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('dd_client_email') || '';
+    }
+    return '';
+  });
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -208,30 +220,40 @@ export const CheckoutExperience: React.FC = () => {
 
   useEffect(() => {
     syncCartWithBackend();
-    const token = getAccessToken();
-    const storedEmail = getStoredClientEmail();
 
-    if (storedEmail) {
-      setEmail(storedEmail);
-    }
+    const initializeAuth = async () => {
+      let activeToken = getAccessToken();
+      const storedEmail = getStoredClientEmail();
 
-    if (token) {
-      setIsAuthenticated(true);
-      getProfileApi().then((res) => {
-        if (res.success && res.data) {
-          setEmail(res.data.email);
-          setStoredClientEmail(res.data.email);
-          if (res.data.fullName) {
-            const parts = res.data.fullName.split(' ');
-            setFirstName((prev) => prev || parts[0] || '');
-            setLastName((prev) => prev || parts.slice(1).join(' ') || '');
+      if (storedEmail) {
+        setEmail(storedEmail);
+      }
+
+      if (!activeToken) {
+        // Try silent refresh if refresh token exists
+        activeToken = await refreshAccessToken();
+      }
+
+      if (activeToken) {
+        setIsAuthenticated(true);
+        try {
+          const res = await getProfileApi();
+          if (res.success && res.data) {
+            setEmail(res.data.email);
+            setStoredClientEmail(res.data.email);
+            if (res.data.fullName) {
+              const parts = res.data.fullName.split(' ');
+              setFirstName((prev) => prev || parts[0] || '');
+              setLastName((prev) => prev || parts.slice(1).join(' ') || '');
+            }
           }
-        } else if (res.error?.status === 401) {
-          setAccessToken(null);
-          setIsAuthenticated(false);
+        } catch {
+          // Non-fatal: keep current email and session active
         }
-      });
-    }
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const handleApplyCheckoutPromo = async (e: React.FormEvent) => {
@@ -787,7 +809,14 @@ export const CheckoutExperience: React.FC = () => {
     setErrorMessage(null);
 
     if (!isAuthenticated) {
-      setErrorMessage('Please verify your email in Step 1 to proceed with secure checkout.');
+      setErrorMessage('Please confirm the 6-digit verification code in Step 1 to authorize and complete your order.');
+      if (email.trim() && !otpSent) {
+        handleSendOtp({ preventDefault: () => {} } as React.FormEvent);
+      }
+      const step1El = document.getElementById('checkout-step-1');
+      if (step1El) {
+        step1El.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
@@ -1115,23 +1144,31 @@ export const CheckoutExperience: React.FC = () => {
         {/* Left Column: Checkout Forms */}
         <div className="lg:col-span-7 space-y-8">
           {/* Step 1: Contact Information */}
-          <div className="p-6 sm:p-8 border border-neutral-200/80 bg-white" style={font16}>
+          <div id="checkout-step-1" className="p-6 sm:p-8 border border-neutral-200/80 bg-white" style={font16}>
             <div className="flex items-center justify-between pb-4 border-b border-neutral-100 mb-6">
               <span className="text-xs uppercase tracking-[0.2em] text-neutral-400 font-medium" style={fontStyle}>
                 Step 1: Contact Information
               </span>
               {isAuthenticated && (
-                <span className="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-0.5" style={fontStyle}>
+                <span className="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-0.5 font-medium rounded" style={fontStyle}>
                   Verified Client
                 </span>
               )}
             </div>
 
             {isAuthenticated ? (
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <p className="text-[16px] text-neutral-700" style={font16}>
-                  Signed in as: <strong className="text-neutral-900">{email}</strong>
-                </p>
+              <div className="flex items-center justify-between flex-wrap gap-3 bg-neutral-50/80 border border-neutral-200 p-4 rounded-[4px]">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                  <div>
+                    <span className="text-[11px] uppercase tracking-wider text-neutral-400 block font-semibold leading-none mb-1">
+                      Private Client Authenticated
+                    </span>
+                    <span className="text-[16px] text-neutral-900 font-semibold" style={font16}>
+                      {email}
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -1140,15 +1177,12 @@ export const CheckoutExperience: React.FC = () => {
                     setOtp('');
                     setAccessToken(null);
                     setStoredClientEmail(null);
+                    setStoredRefreshToken(null);
                   }}
-                  className="text-xs uppercase tracking-wider text-neutral-500 hover:text-black underline font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-colors"
+                  className="text-xs uppercase tracking-wider text-neutral-500 hover:text-black underline font-semibold cursor-pointer transition-colors"
                   style={fontStyle}
                 >
-                  <svg className="w-3.5 h-3.5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                  Change email
+                  Switch Account
                 </button>
               </div>
             ) : !otpSent ? (

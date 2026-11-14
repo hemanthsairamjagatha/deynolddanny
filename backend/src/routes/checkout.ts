@@ -103,7 +103,33 @@ checkout.post(
     if ((!cartData || cartData.items.length === 0) && body.items && body.items.length > 0) {
       for (const item of body.items) {
         try {
-          await addCartItem(env.DB, cartRecord.id, item.variantId, item.quantity);
+          let resolvedVariantId = item.variantId;
+          const directMatch = await env.DB
+            .prepare(`SELECT id FROM product_variants WHERE id = ?1 AND is_active = 1`)
+            .bind(resolvedVariantId)
+            .first<{ id: string }>();
+
+          if (!directMatch) {
+            const parts = item.variantId.split('-');
+            const potentialProductId = parts.slice(0, 2).join('-');
+            const fallback = await env.DB
+              .prepare(
+                `SELECT pv.id FROM product_variants pv
+                 JOIN products p ON p.id = pv.product_id
+                 WHERE pv.is_active = 1
+                   AND (pv.id LIKE ?1 OR p.id = ?2 OR p.slug LIKE ?3)
+                 ORDER BY pv.sort_order ASC LIMIT 1`,
+              )
+              .bind(`%${item.variantId}%`, potentialProductId, `%${parts[0]}%`)
+              .first<{ id: string }>();
+            if (fallback) {
+              resolvedVariantId = fallback.id;
+            }
+          }
+
+          if (resolvedVariantId) {
+            await addCartItem(env.DB, cartRecord.id, resolvedVariantId, item.quantity);
+          }
         } catch (err) {
           console.warn('Failed to sync item to cart during checkout:', item.variantId, err);
         }
@@ -331,8 +357,8 @@ checkout.post(
   // If neither online gateway initialized (sandbox / fallback / test):
   if (activeGateway === 'test') {
     await env.DB
-      .prepare(`UPDATE orders SET cf_order_id = ?1, status = 'confirmed', payment_status = 'paid', paid_at = ?2, updated_at = ?2 WHERE id = ?3`)
-      .bind(`test_order_${Date.now()}`, now, order.id)
+      .prepare(`UPDATE orders SET cf_order_id = ?1, status = 'confirmed', payment_status = 'paid', paid_at = ?2, updated_at = ?3 WHERE id = ?4`)
+      .bind(`test_order_${Date.now()}`, now, now, order.id)
       .run();
   }
 
