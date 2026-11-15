@@ -1258,17 +1258,26 @@ label:focus-visible {
   }
 }
 
+.style-layering-section .swiper-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  will-change: transform;
+}
+
 .style-layering-section .swiper-slide {
   position: relative;
-  width: 660px;
-  height: 881px;
+  width: 90vw;
+  max-width: 660px;
+  height: 640px;
   flex-shrink: 0;
 }
 
 .style-layering-section .img-box {
   position: relative;
-  width: 660px;
-  height: 857px;
+  width: 100%;
+  max-width: 660px;
+  height: 640px;
   flex-shrink: 0;
 }
 
@@ -1276,9 +1285,24 @@ label:focus-visible {
   content: "";
   position: absolute;
   inset: 0;
-  width: 660px;
-  height: 857px;
   pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .style-layering-section .swiper-slide {
+    width: 660px;
+    height: 881px;
+  }
+
+  .style-layering-section .img-box {
+    width: 660px;
+    height: 857px;
+  }
+
+  .style-layering-section .img-box::after {
+    width: 660px;
+    height: 857px;
+  }
 }
 
 .style-layering-prod-img-box {

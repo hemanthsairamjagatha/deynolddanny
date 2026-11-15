@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WishlistButton } from '../../wishlist/components/WishlistButton';
 
 export interface LayeredProduct {
@@ -371,22 +371,114 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
 ];
 
 export const StyleLayering: React.FC = () => {
-  const [activeIndex, setActiveIndex] = useState<number>(0);
   const looks = STYLE_LAYERING_LOOKS;
+  const LOOKS_COUNT = looks.length;
+  // Triple the looks array for infinite looping: [0..7, 8..15 (middle original), 16..23]
+  const TRIPLED_LOOKS = React.useMemo(() => [...looks, ...looks, ...looks], [looks]);
+
+  // Start at index LOOKS_COUNT (index 8, the first item of the middle set)
+  const [slideIndex, setSlideIndex] = useState<number>(LOOKS_COUNT);
+  const [withTransition, setWithTransition] = useState<boolean>(true);
+  const [isDesktop, setIsDesktop] = useState<boolean>(true);
+
+  const brandNavRef = useRef<HTMLDivElement | null>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const activeBrandIndex = ((slideIndex % LOOKS_COUNT) + LOOKS_COUNT) % LOOKS_COUNT;
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 640);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Smoothly scroll the brand navigation tab into view
+  useEffect(() => {
+    const container = brandNavRef.current;
+    const tab = tabRefs.current[activeBrandIndex];
+    if (container && tab) {
+      const tabLeft = tab.offsetLeft;
+      const tabWidth = tab.offsetWidth;
+      const containerWidth = container.offsetWidth;
+      container.scrollTo({
+        left: tabLeft - containerWidth / 2 + tabWidth / 2,
+        behavior: 'smooth'
+      });
+    }
+  }, [activeBrandIndex]);
+
+  // Re-enable CSS transition on the next animation frame after infinite loop jump
+  useEffect(() => {
+    if (!withTransition) {
+      const rafId = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setWithTransition(true);
+        });
+      });
+      return () => cancelAnimationFrame(rafId);
+    }
+  }, [withTransition]);
+
+  const handleTabClick = (targetIdx: number) => {
+    const currentMod = ((slideIndex % LOOKS_COUNT) + LOOKS_COUNT) % LOOKS_COUNT;
+    let diff = targetIdx - currentMod;
+    if (diff > LOOKS_COUNT / 2) diff -= LOOKS_COUNT;
+    if (diff < -LOOKS_COUNT / 2) diff += LOOKS_COUNT;
+    setWithTransition(true);
+    setSlideIndex((prev) => prev + diff);
+  };
 
   const handlePrev = () => {
-    setActiveIndex((prev) => (prev - 1 + looks.length) % looks.length);
+    setWithTransition(true);
+    setSlideIndex((prev) => prev - 1);
   };
 
   const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % looks.length);
+    setWithTransition(true);
+    setSlideIndex((prev) => prev + 1);
   };
 
-  const currentLook = looks[activeIndex];
-  const prevLook = looks[(activeIndex - 1 + looks.length) % looks.length];
-  const prevLook2 = looks[(activeIndex - 2 + looks.length) % looks.length];
-  const nextLook = looks[(activeIndex + 1) % looks.length];
-  const nextLook2 = looks[(activeIndex + 2) % looks.length];
+  const handleSlideClick = (idx: number) => {
+    if (idx !== slideIndex) {
+      setWithTransition(true);
+      setSlideIndex(idx);
+    }
+  };
+
+  const handleTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget || e.propertyName !== 'transform') return;
+
+    if (slideIndex < LOOKS_COUNT || slideIndex >= LOOKS_COUNT * 2) {
+      const normalizedMod = ((slideIndex % LOOKS_COUNT) + LOOKS_COUNT) % LOOKS_COUNT;
+      const normalizedIndex = LOOKS_COUNT + normalizedMod;
+      setWithTransition(false);
+      setSlideIndex(normalizedIndex);
+    }
+  };
+
+  // Touch swipe handling
+  const touchStartX = useRef<number>(0);
+  const touchDeltaX = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchDeltaX.current = 0;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchDeltaX.current < -50) {
+      handleNext();
+    } else if (touchDeltaX.current > 50) {
+      handlePrev();
+    }
+  };
 
   return (
     <section
@@ -411,14 +503,18 @@ export const StyleLayering: React.FC = () => {
       {/* Lookbook 3-Panel Center-Mode Slider - Full-Bleed Edge-to-Edge */}
       <div className="brand-swiper2 swiper inner-box brand-swiper2-0 swiper-initialized swiper-horizontal relative w-full overflow-hidden mt-4">
         {/* Brand Navigation Tabs Row */}
-        <div className="brand-nav-bar flex items-center justify-start lg:justify-center gap-6 sm:gap-8 overflow-x-auto hide-scrollbar px-4 py-2.5 mb-3 select-none max-w-[1334px] mx-auto">
+        <div
+          ref={brandNavRef}
+          className="brand-nav-bar flex items-center justify-start lg:justify-center gap-6 sm:gap-8 overflow-x-auto hide-scrollbar px-4 py-2.5 mb-3 select-none max-w-[1334px] mx-auto scroll-smooth"
+        >
           {looks.map((look, idx) => (
             <button
               key={look.id}
+              ref={(el) => (tabRefs.current[idx] = el)}
               type="button"
-              onClick={() => setActiveIndex(idx)}
+              onClick={() => handleTabClick(idx)}
               className={`text-[13px] sm:text-[14px] uppercase tracking-[0.14em] font-montserrat whitespace-nowrap transition-colors duration-200 cursor-pointer ${
-                activeIndex === idx
+                activeBrandIndex === idx
                   ? 'text-black font-semibold border-b-2 border-black pb-0.5'
                   : 'text-neutral-400 hover:text-black font-normal pb-0.5'
               }`}
@@ -428,170 +524,126 @@ export const StyleLayering: React.FC = () => {
           ))}
         </div>
 
-        {/* 3-Panel Center-Mode Slider - 660x881 each slide, gap 14px */}
-        <div className="relative w-full flex items-center justify-center gap-2 sm:gap-[14px] min-h-[640px] sm:min-h-[881px] overflow-hidden">
-          {/* Outer Left Look: 660x881 (Ultra-wide screen coverage) */}
+        {/* Continuous Animated Swiper Track - 660x881 each slide, gap 14px */}
+        <div
+          className="relative w-full overflow-hidden min-h-[640px] sm:min-h-[881px]"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div
-            onClick={() => setActiveIndex((prev) => (prev - 2 + looks.length) % looks.length)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && setActiveIndex((prev) => (prev - 2 + looks.length) % looks.length)}
-            aria-label={`View look: ${prevLook2.title}`}
-            className="swiper-slide hidden 2xl:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
+            className="swiper-wrapper flex items-center gap-[14px] will-change-transform"
+            onTransitionEnd={handleTransitionEnd}
+            style={{
+              transform: isDesktop
+                ? `translateX(calc(50% - 330px - ${slideIndex * 674}px))`
+                : `translateX(calc(50% - 45vw - ${slideIndex * 92}vw))`,
+              transition: withTransition
+                ? 'transform 700ms cubic-bezier(0.22, 1, 0.36, 1)'
+                : 'none'
+            }}
           >
-            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
-              <img
-                src={prevLook2.modelImage}
-                alt={prevLook2.title}
-                className="w-full h-full object-cover object-top"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
-            </div>
-          </div>
-
-          {/* Previous Look (Left Slide: 660x881 / img-box: 660x857) */}
-          <div
-            onClick={handlePrev}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && handlePrev()}
-            aria-label={`View previous look: ${prevLook.title}`}
-            className="swiper-slide hidden md:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
-          >
-            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
-              <img
-                src={prevLook.modelImage}
-                alt={prevLook.title}
-                className="w-full h-full object-cover object-top"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
-            </div>
-          </div>
-
-          {/* Active Center Lookbook Card: 660x881 / img-box: 660x857 */}
-          <div className="swiper-slide swiper-slide-active relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[881px] flex-shrink-0 flex flex-col items-center select-none">
-            <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[857px] rounded-sm overflow-hidden shadow-2xl bg-neutral-900">
-              {/* Background Model Image */}
-              <img
-                src={currentLook.modelImage}
-                alt={currentLook.title}
-                className="w-full h-full object-cover object-top transition-transform duration-700 ease-out"
-                loading="eager"
-              />
-
-              {/* Gradient Overlay for Crisp Text Contrast */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none" />
-
-              {/* Center Brand / Collection Title & Shop Now CTA */}
-              <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
-                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2">
-                  {currentLook.title}
-                </h3>
-                <a
-                  href={currentLook.ctaLink}
-                  className="inline-block text-[13px] sm:text-[14px] tracking-[0.12em] text-white/95 uppercase underline underline-offset-4 hover:text-white transition-opacity font-montserrat"
+            {TRIPLED_LOOKS.map((look, idx) => {
+              const isActive = idx === slideIndex;
+              const uniqueKey = `${look.id}-${idx}`;
+              return (
+                <div
+                  key={uniqueKey}
+                  onClick={() => handleSlideClick(idx)}
+                  className={`swiper-slide relative w-[90vw] sm:w-[660px] max-w-[660px] h-[640px] sm:h-[881px] flex-shrink-0 flex flex-col items-center select-none transition-opacity duration-500 ${
+                    isActive ? 'swiper-slide-active cursor-default' : 'cursor-pointer opacity-50 hover:opacity-75'
+                  }`}
                 >
-                  {currentLook.ctaText}
-                </a>
-              </div>
+                  <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[857px] rounded-sm overflow-hidden shadow-2xl bg-neutral-900">
+                    {/* Background Model Image */}
+                    <img
+                      src={look.modelImage}
+                      alt={look.title}
+                      className="w-full h-full object-cover object-top transition-transform duration-700 ease-out"
+                      loading={Math.abs(idx - slideIndex) <= 1 ? "eager" : "lazy"}
+                    />
 
-              {/* Bottom Row of 3 Shoppable Product Cards */}
-              <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 flex justify-center px-3 sm:px-6 z-10">
-                <div className="grid grid-cols-3 gap-2.5 sm:gap-[15px] max-w-[550px] w-full">
-                  {currentLook.products.map((prod) => (
-                    <a
-                      key={prod.id}
-                      href={prod.link}
-                      className="group block text-left transition-transform duration-300 hover:-translate-y-1"
-                    >
-                      {/* White Product Image Container - 173x230.78 */}
-                      <div className="style-layering-prod-img-box relative w-full sm:w-[173px] h-auto sm:h-[230.78px] aspect-[173/230.78] bg-white rounded-sm overflow-hidden mb-2 shadow-sm">
-                        <img
-                          src={prod.image}
-                          alt={prod.title}
-                          className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                        {/* Wishlist Button inside Image */}
-                        <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-10">
-                          <WishlistButton
-                            item={{
-                              id: prod.id,
-                              title: prod.title,
-                              price: prod.price,
-                              priceNum: prod.priceNum,
-                              image: prod.image,
-                              link: prod.link
-                            }}
-                            className="p-1 rounded-full bg-white/80 hover:bg-white text-neutral-600 hover:text-black shadow-sm"
-                          />
+                    {/* Gradient Overlay for Crisp Text Contrast */}
+                    <div className={`absolute inset-0 transition-opacity duration-500 ${
+                      isActive
+                        ? 'bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none'
+                        : 'bg-black/40 hover:bg-black/20 pointer-events-none'
+                    }`} />
+
+                    {/* Interactive Content (Visible on active slide) */}
+                    <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                      {/* Center Brand / Collection Title & Shop Now CTA */}
+                      <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
+                        <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2">
+                          {look.title}
+                        </h3>
+                        <a
+                          href={look.ctaLink}
+                          className="inline-block text-[13px] sm:text-[14px] tracking-[0.12em] text-white/95 uppercase underline underline-offset-4 hover:text-white transition-opacity font-montserrat"
+                        >
+                          {look.ctaText}
+                        </a>
+                      </div>
+
+                      {/* Bottom Row of 3 Shoppable Product Cards */}
+                      <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 flex justify-center px-3 sm:px-6 z-10">
+                        <div className="grid grid-cols-3 gap-2.5 sm:gap-[15px] max-w-[550px] w-full">
+                          {look.products.map((prod) => (
+                            <a
+                              key={prod.id}
+                              href={prod.link}
+                              className="group block text-left transition-transform duration-300 hover:-translate-y-1"
+                            >
+                              {/* White Product Image Container - 173x230.78 */}
+                              <div className="style-layering-prod-img-box relative w-full sm:w-[173px] h-auto sm:h-[230.78px] aspect-[173/230.78] bg-white rounded-sm overflow-hidden mb-2 shadow-sm">
+                                <img
+                                  src={prod.image}
+                                  alt={prod.title}
+                                  className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                                  loading={isActive ? "eager" : "lazy"}
+                                />
+                                {/* Wishlist Button inside Image */}
+                                <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-10">
+                                  <WishlistButton
+                                    item={{
+                                      id: prod.id,
+                                      title: prod.title,
+                                      price: prod.price,
+                                      priceNum: prod.priceNum,
+                                      image: prod.image,
+                                      link: prod.link
+                                    }}
+                                    className="p-1 rounded-full bg-white/80 hover:bg-white text-neutral-600 hover:text-black shadow-sm"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Title & Pricing directly below Image */}
+                              <div className="px-0.5 pt-0.5">
+                                <p className="text-[11px] sm:text-[12px] font-medium text-white truncate tracking-tight font-montserrat mb-0.5">
+                                  {prod.title}
+                                </p>
+                                <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
+                                  {prod.originalPrice}
+                                </p>
+                                <p className="text-[11px] sm:text-[12px] font-montserrat leading-none flex items-center gap-1.5">
+                                  <span className="text-[#ff4d4f] font-bold">
+                                    {prod.discount}
+                                  </span>
+                                  <span className="text-white font-semibold">
+                                    {prod.price}
+                                  </span>
+                                </p>
+                              </div>
+                            </a>
+                          ))}
                         </div>
                       </div>
-
-                      {/* Title & Pricing directly below Image */}
-                      <div className="px-0.5 pt-0.5">
-                        <p className="text-[11px] sm:text-[12px] font-medium text-white truncate tracking-tight font-montserrat mb-0.5">
-                          {prod.title}
-                        </p>
-                        <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
-                          {prod.originalPrice}
-                        </p>
-                        <p className="text-[11px] sm:text-[12px] font-montserrat leading-none flex items-center gap-1.5">
-                          <span className="text-[#ff4d4f] font-bold">
-                            {prod.discount}
-                          </span>
-                          <span className="text-white font-semibold">
-                            {prod.price}
-                          </span>
-                        </p>
-                      </div>
-                    </a>
-                  ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Next Look (Right Slide: 660x881 / img-box: 660x857) */}
-          <div
-            onClick={handleNext}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && handleNext()}
-            aria-label={`View next look: ${nextLook.title}`}
-            className="swiper-slide hidden md:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
-          >
-            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
-              <img
-                src={nextLook.modelImage}
-                alt={nextLook.title}
-                className="w-full h-full object-cover object-top"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
-            </div>
-          </div>
-
-          {/* Outer Right Look: 660x881 (Ultra-wide screen coverage) */}
-          <div
-            onClick={() => setActiveIndex((prev) => (prev + 2) % looks.length)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && setActiveIndex((prev) => (prev + 2) % looks.length)}
-            aria-label={`View look: ${nextLook2.title}`}
-            className="swiper-slide hidden 2xl:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
-          >
-            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
-              <img
-                src={nextLook2.modelImage}
-                alt={nextLook2.title}
-                className="w-full h-full object-cover object-top"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
-            </div>
+              );
+            })}
           </div>
 
           {/* Navigation Arrows positioned over Side Peek Panels */}

@@ -1997,6 +1997,23 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Smooth Animated Scrolling on Brand Tabs & Infinite Looping Swiper in Style Layering**:
+  - **Status:** COMPLETE
+  - **Summary:** Enabled continuous, smooth animated transitions on the Style Layering swiper when clicking top brand navigation tabs (`AVANDRESS`, `AMBLER`, `MINIMAL PROJECT`, `BASEMOMENT`, `THEWEATHER#&SOMETHING`, `SEARCH410`, `MAINTAIN`, `MATHEMATIK`). Implemented infinite loop buffer using tripled collection array (`[0..7, 8..15, 16..23]`) with modular shortest-path angular navigation (`handleTabClick`), hardware-accelerated CSS cubic-bezier transition (`transform 700ms cubic-bezier(0.22, 1, 0.36, 1)`), seamless non-transition boundary normalization (`handleTransitionEnd`), and container-contained smooth auto-centering for top brand tabs (`container.scrollTo`). Integrated touch swipe gesture navigation and maintained uniform slide dimensions (`660px × 881px` container, `660px × 857px` img-box, and `173px × 230.78px` shoppable product cards).
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 2.88s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
