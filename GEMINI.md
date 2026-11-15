@@ -1730,4 +1730,19 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Renamed Homepage Section Heading to "Our Best Sellers"**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the first product carousel section title on the homepage (`src/pages/index.astro`) from "THREAD OF MASTERY" to "Our Best Sellers", ensuring exact heading match and automatic luxury uppercase styling via `.mastery-heading`.
+  - **Files Modified:**
+    - `src/pages/index.astro`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 12.36s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
