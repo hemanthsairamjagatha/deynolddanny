@@ -1247,15 +1247,14 @@ label:focus-visible {
 .brand-swiper2.inner-box {
   position: relative;
   width: 100%;
-  max-width: 1334px;
   margin: 0 auto;
   box-sizing: border-box;
 }
 
 @media (min-width: 1024px) {
   .brand-swiper2.inner-box {
-    width: 1334px;
-    height: 929px;
+    width: 100%;
+    min-height: 929px;
   }
 }
 

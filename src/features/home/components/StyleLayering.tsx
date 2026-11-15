@@ -406,10 +406,10 @@ export const StyleLayering: React.FC = () => {
         </div>
       </div>
 
-      {/* Lookbook 3-Panel Center-Mode Slider - 1334x929 Swiper Container */}
-      <div className="brand-swiper2 swiper inner-box brand-swiper2-0 swiper-initialized swiper-horizontal relative w-full max-w-[1334px] mx-auto px-2 sm:px-4 lg:px-0 mt-4 overflow-hidden">
+      {/* Lookbook 3-Panel Center-Mode Slider - Full-Bleed Edge-to-Edge */}
+      <div className="brand-swiper2 swiper inner-box brand-swiper2-0 swiper-initialized swiper-horizontal relative w-full overflow-hidden mt-4">
         {/* Brand Navigation Tabs Row */}
-        <div className="brand-nav-bar flex items-center justify-start lg:justify-center gap-6 sm:gap-8 overflow-x-auto hide-scrollbar px-4 py-2.5 mb-3 select-none">
+        <div className="brand-nav-bar flex items-center justify-start lg:justify-center gap-6 sm:gap-8 overflow-x-auto hide-scrollbar px-4 py-2.5 mb-3 select-none max-w-[1334px] mx-auto">
           {looks.map((look, idx) => (
             <button
               key={look.id}
@@ -426,16 +426,16 @@ export const StyleLayering: React.FC = () => {
           ))}
         </div>
 
-        {/* 3-Panel Center-Mode Slider */}
-        <div className="relative flex items-center justify-center gap-3 sm:gap-[14px] min-h-[640px] sm:min-h-[760px] lg:min-h-[857px]">
-          {/* Previous Look (Left Peek) */}
+        {/* 3-Panel Center-Mode Slider - Full Bleed Edge-to-Edge */}
+        <div className="relative w-full flex items-center justify-center gap-2 sm:gap-[14px] min-h-[640px] sm:min-h-[760px] lg:min-h-[857px] overflow-hidden">
+          {/* Previous Look (Left Peek: fills to left screen edge) */}
           <div
             onClick={handlePrev}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handlePrev()}
             aria-label={`View previous look: ${prevLook.title}`}
-            className="hidden md:block relative w-[280px] lg:w-[323px] h-[680px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
+            className="hidden md:block relative flex-1 min-w-[280px] h-[640px] sm:h-[760px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-50 hover:opacity-75 transition-opacity duration-300 select-none"
           >
             <img
               src={prevLook.modelImage}
@@ -446,7 +446,7 @@ export const StyleLayering: React.FC = () => {
             <div className="absolute inset-0 bg-black/40" />
           </div>
 
-          {/* Active Center Lookbook Card */}
+          {/* Active Center Lookbook Card: 660x857 */}
           <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[760px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 shadow-2xl bg-neutral-900 select-none">
             {/* Background Model Image */}
             <img
@@ -458,29 +458,6 @@ export const StyleLayering: React.FC = () => {
 
             {/* Gradient Overlay for Crisp Text Contrast */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none" />
-
-            {/* Navigation Arrows positioned over Center Card Edges */}
-            <button
-              type="button"
-              onClick={handlePrev}
-              aria-label="Previous Look"
-              className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 shadow-lg cursor-pointer border border-white/20"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleNext}
-              aria-label="Next Look"
-              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/50 hover:bg-black text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 shadow-lg cursor-pointer border border-white/20"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
 
             {/* Center Brand / Collection Title & Shop Now CTA */}
             <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
@@ -551,14 +528,14 @@ export const StyleLayering: React.FC = () => {
             </div>
           </div>
 
-          {/* Next Look (Right Peek) */}
+          {/* Next Look (Right Peek: fills to right screen edge) */}
           <div
             onClick={handleNext}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleNext()}
             aria-label={`View next look: ${nextLook.title}`}
-            className="hidden md:block relative w-[280px] lg:w-[323px] h-[680px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
+            className="hidden md:block relative flex-1 min-w-[280px] h-[640px] sm:h-[760px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-50 hover:opacity-75 transition-opacity duration-300 select-none"
           >
             <img
               src={nextLook.modelImage}
@@ -568,6 +545,29 @@ export const StyleLayering: React.FC = () => {
             />
             <div className="absolute inset-0 bg-black/40" />
           </div>
+
+          {/* Navigation Arrows positioned over Side Peek Panels */}
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Previous Look"
+            className="absolute left-2 sm:left-4 lg:left-[calc(50%-330px-48px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+          >
+            <svg width="24" height="40" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="18 32 6 20 18 8" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Next Look"
+            className="absolute right-2 sm:right-4 lg:right-[calc(50%-330px-48px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+          >
+            <svg width="24" height="40" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 32 18 20 6 8" />
+            </svg>
+          </button>
         </div>
       </div>
     </section>

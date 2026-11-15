@@ -2934,6 +2934,22 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Full-Bleed Edge-to-Edge Grid Coverage for Style Layering Slider**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the Style Layering lookbook slider in `src/features/home/components/StyleLayering.tsx` and `src/styles/luxury-custom.css` to span 100% full viewport width edge-to-edge as shown in the reference screenshot (`media_1794710782746_6b3dac5a.jpg`). Removed boxing constraints from the slider wrapper, made the left and right peek cards `flex-1` with full `857px` height matching the center card, and positioned clean white chevron arrows (`<` / `>`) over the side peek panels at `calc(50% - 330px - 48px)`.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.35s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
 
 
