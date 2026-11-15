@@ -2076,6 +2076,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Navigation Arrows Repositioned to Left & Right Flanks**:
+  - **Status:** COMPLETE
+  - **Summary:** Repositioned the carousel navigation buttons to the outer left and right flanks (`left-3 sm:left-6 xl:left-[calc(50%-667px+16px)]` and `right-3 sm:right-6 xl:right-[calc(50%-667px+16px)]`) in `src/features/home/components/StyleLayering.tsx` as requested in the user-provided screenshot (`media_1794713518162_2e05461f.jpg`). Styled the navigation controls with semi-transparent dark square buttons (`w-[46px] h-[46px] sm:w-[50px] sm:h-[50px] bg-black/60 hover:bg-black/85`) housing crisp white chevron SVGs (`<` and `>`), aligning with the reference UI.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.23s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

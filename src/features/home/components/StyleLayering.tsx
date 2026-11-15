@@ -640,15 +640,15 @@ export const StyleLayering: React.FC = () => {
             })}
           </div>
 
-          {/* Navigation Arrows positioned over Side Peek Panels */}
+          {/* Navigation Arrows on Left and Right Side */}
           <button
             type="button"
             onClick={handlePrev}
             aria-label="Previous Look"
-            className="absolute left-2 sm:left-4 lg:left-[calc(50%-330px-52px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+            className="absolute left-3 sm:left-6 xl:left-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[46px] h-[46px] sm:w-[50px] sm:h-[50px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-lg select-none"
           >
-            <svg width="26" height="42" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="18 32 6 20 18 8" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
 
@@ -656,10 +656,10 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handleNext}
             aria-label="Next Look"
-            className="absolute right-2 sm:right-4 lg:right-[calc(50%-330px-52px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+            className="absolute right-3 sm:right-6 xl:right-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[46px] h-[46px] sm:w-[50px] sm:h-[50px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-lg select-none"
           >
-            <svg width="26" height="42" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 32 18 20 6 8" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
         </div>
