@@ -2091,6 +2091,23 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Navigation Buttons and Icons Calibrated to 27x27px**:
+  - **Status:** COMPLETE
+  - **Summary:** Calibrated the Style Layering lookbook carousel navigation buttons and SVG icons in `src/features/home/components/StyleLayering.tsx` to exact `27px × 27px` dimensions (`w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px]` with explicit `style={{ width: '27px', height: '27px' }}` and SVG `width="27" height="27"`), resolving the user-reported DevTools inspection (`polyline 5.5 × 11` in `media_1794713913825_5e453399.png`). Added explicit `.style-layering-section .style-layering-nav-btn` and SVG CSS rules in `src/styles/luxury-custom.css` enforcing `width: 27px !important; height: 27px !important; padding: 0 !important;` for pixel-accurate DevTools inspection and crisp centered chevron presentation.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.24s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

@@ -1331,6 +1331,29 @@ label:focus-visible {
   box-shadow: none !important;
 }
 
+/* Style Layering Navigation Buttons - Calibrated to 27x27px */
+.style-layering-section .style-layering-nav-btn {
+  width: 27px !important;
+  height: 27px !important;
+  min-width: 27px !important;
+  min-height: 27px !important;
+  max-width: 27px !important;
+  max-height: 27px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.style-layering-section .style-layering-nav-btn svg {
+  width: 27px !important;
+  height: 27px !important;
+  min-width: 27px !important;
+  min-height: 27px !important;
+  max-width: 27px !important;
+  max-height: 27px !important;
+}
+
 .style-layering-prod-img-box {
   position: relative;
   width: 100%;

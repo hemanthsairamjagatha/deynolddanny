@@ -3060,6 +3060,73 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Navigation Buttons and Icons Calibrated to 27x27px**:
+  - **Status:** COMPLETE
+  - **Summary:** Calibrated the Style Layering lookbook carousel navigation buttons and SVG icons in `src/features/home/components/StyleLayering.tsx` to exact `27px × 27px` dimensions (`w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px]` with explicit `style={{ width: '27px', height: '27px' }}` and SVG `width="27" height="27"`), resolving the user-reported DevTools inspection (`polyline 5.5 × 11` in `media_1794713913825_5e453399.png`). Added explicit `.style-layering-section .style-layering-nav-btn` and SVG CSS rules in `src/styles/luxury-custom.css` enforcing `width: 27px !important; height: 27px !important; padding: 0 !important;` for pixel-accurate DevTools inspection and crisp centered chevron presentation.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.24s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
+- **2026-11-15 — Style Layering Wishlist Button Background Removal**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the semi-transparent white background circle (`bg-white/80`, `hover:bg-white`, `rounded-full`, and `shadow-sm`) from the wishlist heart button on the shoppable product thumbnails in `src/features/home/components/StyleLayering.tsx` and added `.style-layering-wishlist-btn { background: transparent !important; box-shadow: none !important; }` in `src/styles/luxury-custom.css`, displaying the bare minimalist heart icon directly on the product photography as requested in user-provided screenshot (`media_1794713209148_e72fe040.jpg`).
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.13s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-15 — Style Layering Navigation Arrows Repositioned to Left & Right Flanks**:
+  - **Status:** COMPLETE
+  - **Summary:** Repositioned the carousel navigation buttons to the outer left and right flanks (`left-3 sm:left-6 xl:left-[calc(50%-667px+16px)]` and `right-3 sm:right-6 xl:right-[calc(50%-667px+16px)]`) in `src/features/home/components/StyleLayering.tsx` as requested in the user-provided screenshot (`media_1794713518162_2e05461f.jpg`). Styled the navigation controls with semi-transparent dark square buttons (`w-[46px] h-[46px] sm:w-[50px] sm:h-[50px] bg-black/60 hover:bg-black/85`) housing crisp white chevron SVGs (`<` and `>`), aligning with the reference UI.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.23s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-15 — Style Layering Navigation Buttons and Icons Calibrated to 27x27px**:
+  - **Status:** COMPLETE
+  - **Summary:** Calibrated the Style Layering lookbook carousel navigation buttons and SVG icons in `src/features/home/components/StyleLayering.tsx` to exact `27px × 27px` dimensions (`w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px]` with explicit `style={{ width: '27px', height: '27px' }}` and SVG `width="27" height="27"`), resolving the user-reported DevTools inspection (`polyline 5.5 × 11` in `media_1794713913825_5e453399.png`). Added explicit `.style-layering-section .style-layering-nav-btn` and SVG CSS rules in `src/styles/luxury-custom.css` enforcing `width: 27px !important; height: 27px !important; padding: 0 !important;` for pixel-accurate DevTools inspection and crisp centered chevron presentation.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.24s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
+
+
 
 
 
