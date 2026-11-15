@@ -235,15 +235,9 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
                       role="tab"
                       aria-selected={isActive}
                       onClick={() => handleCategorySelect(cat.value)}
-                      className={`mastery-category-tab relative ${isActive ? 'is-active' : ''}`}
+                      className={`mastery-category-tab ${isActive ? 'is-active' : ''}`}
                     >
                       {cat.label}
-                      {isActive && (
-                        <span
-                          className="absolute left-0 bottom-0 h-[2px] w-full bg-black pointer-events-none"
-                          aria-hidden="true"
-                        />
-                      )}
                     </button>
                   );
                 })}

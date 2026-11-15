@@ -1838,6 +1838,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Removed Active Underline Element from Category Tabs**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the black underline indicator bar element (`<span className="absolute left-0 bottom-0 h-[2px] w-full bg-black..." />`) from under the active category tab in `src/features/catalog/components/ProductCarousel.tsx` as requested in the user-provided screenshot (`media_1794707871724_e8ebf4ec.png`), restoring pure minimalist editorial typography.
+  - **Files Modified:**
+    - `src/features/catalog/components/ProductCarousel.tsx`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.72s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
