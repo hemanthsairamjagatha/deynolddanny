@@ -1303,6 +1303,16 @@ label:focus-visible {
     width: 660px;
     height: 857px;
   }
+
+  .style-layering-section .brand-look-title {
+    font-size: 40px !important;
+    line-height: 40px !important;
+  }
+}
+
+.style-layering-section .brand-look-title {
+  font-size: 40px;
+  line-height: 40px;
 }
 
 .style-layering-prod-card {

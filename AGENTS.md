@@ -2998,6 +2998,23 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Brand Look Title Font Size Calibrated to 40px**:
+  - **Status:** COMPLETE
+  - **Summary:** Configured the active brand collection title (`h3.brand-look-title`) in `src/features/home/components/StyleLayering.tsx` and `src/styles/luxury-custom.css` with exact `font-size: 40px !important; line-height: 40px !important;` (inspectable as `40px Montserrat` in DevTools) matching the user-provided DevTools inspection screenshot (`media_1794713094269_f71e2613.jpg`).
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.09s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

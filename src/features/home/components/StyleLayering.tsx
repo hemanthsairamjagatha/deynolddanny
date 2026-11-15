@@ -574,7 +574,7 @@ export const StyleLayering: React.FC = () => {
                     <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                       {/* Center Brand / Collection Title & Shop Now CTA */}
                       <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
-                        <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2">
+                        <h3 className="brand-look-title text-[28px] sm:text-[40px] font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2 leading-[40px]">
                           {look.title}
                         </h3>
                         <a
