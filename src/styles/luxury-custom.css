@@ -1331,29 +1331,49 @@ label:focus-visible {
   box-shadow: none !important;
 }
 
-/* Style Layering Navigation Buttons - Calibrated to 27x27px */
+/* Style Layering Navigation Buttons - Transparent & Enlarged Luxury Styling */
 .style-layering-section .style-layering-nav-btn {
-  width: 27px !important;
-  height: 27px !important;
-  min-width: 27px !important;
-  min-height: 27px !important;
-  max-width: 27px !important;
-  max-height: 27px !important;
+  width: 48px !important;
+  height: 64px !important;
+  min-width: 48px !important;
+  min-height: 64px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
   padding: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  overflow: visible !important;
+  cursor: pointer !important;
 }
 
 .style-layering-section .style-layering-nav-btn svg {
-  width: 27px !important;
-  height: 27px !important;
-  min-width: 27px !important;
-  min-height: 27px !important;
-  max-width: 27px !important;
-  max-height: 27px !important;
-  overflow: visible !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.65)) !important;
+  color: #ffffff !important;
+  opacity: 0.88 !important;
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
+}
+
+@media (min-width: 640px) {
+  .style-layering-section .style-layering-nav-btn svg {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+}
+
+.style-layering-section .style-layering-nav-btn:hover svg {
+  opacity: 1 !important;
+  transform: scale(1.08) !important;
 }
 
 .style-layering-prod-img-box {

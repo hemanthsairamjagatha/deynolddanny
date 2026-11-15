@@ -2123,6 +2123,23 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Navigation Buttons Enlarged & Made 100% Transparent**:
+  - **Status:** COMPLETE
+  - **Summary:** Enlarged the Style Layering lookbook carousel navigation chevrons to 48px (`w-[36px] h-[36px] sm:w-[48px] sm:h-[48px]`) and removed the dark square background box completely (`background: transparent !important; box-shadow: none !important; border: none !important;`) as requested by the user (`make this more bigger and transparrent` with screenshot `media_1794718145366_37d56be3.png`). Added `drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)]` to ensure high-contrast visibility against both light and dark imagery, with sleek opacity and scale transitions on hover.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.18s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

@@ -640,27 +640,26 @@ export const StyleLayering: React.FC = () => {
             })}
           </div>
 
-          {/* Navigation Arrows on Left and Right Side - Calibrated to 27x27 */}
+          {/* Navigation Arrows on Left and Right Side - Transparent & Enlarged */}
           <button
             type="button"
             onClick={handlePrev}
             aria-label="Previous Look"
-            className="style-layering-nav-btn absolute left-3 sm:left-6 xl:left-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-md select-none p-0 overflow-visible"
-            style={{ width: '27px', height: '27px' }}
+            className="style-layering-nav-btn absolute left-2 sm:left-4 xl:left-[calc(50%-667px+12px)] top-1/2 -translate-y-1/2 z-30 w-[48px] h-[64px] bg-transparent hover:bg-transparent text-white/90 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer select-none p-0 border-0 outline-none shadow-none"
+            style={{ background: 'transparent' }}
           >
             <svg
-              width="27"
-              height="27"
-              viewBox="0 0 27 27"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.5"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-[27px] h-[27px] overflow-visible"
-              style={{ overflow: 'visible' }}
+              className="w-[36px] h-[36px] sm:w-[48px] sm:h-[48px] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)]"
             >
-              <polyline points="27 0 0 13.5 27 27" />
+              <polyline points="15 19 8 12 15 5" />
             </svg>
           </button>
 
@@ -668,22 +667,21 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handleNext}
             aria-label="Next Look"
-            className="style-layering-nav-btn absolute right-3 sm:right-6 xl:right-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-md select-none p-0 overflow-visible"
-            style={{ width: '27px', height: '27px' }}
+            className="style-layering-nav-btn absolute right-2 sm:right-4 xl:right-[calc(50%-667px+12px)] top-1/2 -translate-y-1/2 z-30 w-[48px] h-[64px] bg-transparent hover:bg-transparent text-white/90 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer select-none p-0 border-0 outline-none shadow-none"
+            style={{ background: 'transparent' }}
           >
             <svg
-              width="27"
-              height="27"
-              viewBox="0 0 27 27"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.5"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-[27px] h-[27px] overflow-visible"
-              style={{ overflow: 'visible' }}
+              className="w-[36px] h-[36px] sm:w-[48px] sm:h-[48px] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)]"
             >
-              <polyline points="0 0 27 13.5 0 27" />
+              <polyline points="9 19 16 12 9 5" />
             </svg>
           </button>
         </div>
