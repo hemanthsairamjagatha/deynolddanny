@@ -513,10 +513,10 @@ export const StyleLayering: React.FC = () => {
               ref={(el) => (tabRefs.current[idx] = el)}
               type="button"
               onClick={() => handleTabClick(idx)}
-              className={`text-[13px] sm:text-[14px] uppercase tracking-[0.14em] font-montserrat whitespace-nowrap transition-colors duration-200 cursor-pointer ${
+              className={`text-[13px] sm:text-[14px] uppercase tracking-[0.06em] font-montserrat whitespace-nowrap transition-colors duration-200 cursor-pointer pb-1 ${
                 activeBrandIndex === idx
-                  ? 'text-black font-semibold border-b-2 border-black pb-0.5'
-                  : 'text-neutral-400 hover:text-black font-normal pb-0.5'
+                  ? 'text-black font-bold'
+                  : 'text-[#8e8e93] hover:text-black font-medium'
               }`}
             >
               {look.title}

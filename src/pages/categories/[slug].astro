@@ -384,26 +384,25 @@ const remainingProducts = products.slice(7);
         </h1>
       </div>
 
-      <!-- Quick Category Filter Pills -->
-      <div class="flex items-center justify-center flex-wrap gap-2 sm:gap-3 mb-12 border-b border-neutral-200/80 pb-6">
+      <!-- Quick Category Filter Navigation (Referenced Design) -->
+      <div class="mastery-categories-bar flex items-center justify-center gap-6 sm:gap-8 overflow-x-auto hide-scrollbar pb-6 mb-12 border-b border-neutral-200/80">
         <a
           href="/categories"
-          class="px-4 py-2 text-[11px] font-mono uppercase tracking-wider rounded-full border border-neutral-300 text-neutral-700 hover:border-black hover:text-black transition-colors"
+          class={`mastery-category-tab ${!category ? 'is-active' : ''}`}
         >
-          All Collections
+          ALL
         </a>
-        {allCategories.map((cat) => (
-          <a
-            href={`/categories/${cat.slug}`}
-            class={`px-4 py-2 text-[11px] font-mono uppercase tracking-wider rounded-full transition-all ${
-              cat.slug === category.slug
-                ? 'bg-neutral-900 text-white border border-neutral-900 shadow-sm'
-                : 'border border-neutral-300 text-neutral-700 hover:border-black hover:text-black'
-            }`}
-          >
-            {cat.title}
-          </a>
-        ))}
+        {allCategories.map((cat) => {
+          const isActive = cat.slug === category.slug;
+          return (
+            <a
+              href={`/categories/${cat.slug}`}
+              class={`mastery-category-tab ${isActive ? 'is-active' : ''}`}
+            >
+              {cat.title}
+            </a>
+          );
+        })}
       </div>
 
       <!-- Category Editorial Grid (Brunello Cucinelli Signature Rhythmic Layout) -->
