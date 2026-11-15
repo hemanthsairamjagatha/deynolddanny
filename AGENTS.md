@@ -2837,6 +2837,22 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Removed Latest News Carousel Section**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the "LATEST NEWS" product carousel section and its associated data loading (`newsProducts`) from `src/pages/index.astro`, leaving a streamlined homepage ending after the "STYLE SPACE" collection carousel.
+  - **Files Modified:**
+    - `src/pages/index.astro`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** Removed `<ProductCarousel id="latest-news" ... />` invocation from `src/pages/index.astro`.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.98s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

@@ -10,14 +10,12 @@ import Footer from '../components/layout/Footer.astro';
 import { fetchProducts } from '../features/catalog/api/catalog.api';
 import {
   masteryProducts as defaultMastery,
-  styleSpaceProducts as defaultStyleSpace,
-  newsProducts as defaultNews
+  styleSpaceProducts as defaultStyleSpace
 } from '../features/catalog/data/products';
 
 const liveProducts = await fetchProducts();
 const masteryProducts = liveProducts.length >= 4 ? liveProducts.slice(0, 4) : defaultMastery;
 const styleSpaceProducts = liveProducts.length >= 8 ? liveProducts.slice(4, 8) : defaultStyleSpace;
-const newsProducts = liveProducts.length >= 12 ? liveProducts.slice(8, 12) : defaultNews;
 
 const BEST_SELLER_CATEGORIES = [
   { label: 'ALL', value: 'all' },
@@ -62,16 +60,6 @@ const BEST_SELLER_CATEGORIES = [
       title="STYLE SPACE"
       viewAllLink="#style-space"
       products={styleSpaceProducts}
-      sectionClass="mastery-section"
-    />
-
-    <!-- 4. Latest News Carousel -->
-    <ProductCarousel
-      client:load
-      id="latest-news"
-      title="LATEST NEWS"
-      viewAllLink="#latest-news"
-      products={newsProducts}
       sectionClass="mastery-section"
     />
   </main>
