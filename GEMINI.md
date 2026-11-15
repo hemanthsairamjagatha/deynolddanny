@@ -2045,6 +2045,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Removal of 'Shop Now' CTA Link**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the 'Shop Now' call-to-action anchor link (`a.inline-block...` `{look.ctaText}`) situated below the brand look title in `src/features/home/components/StyleLayering.tsx` as requested in the user-provided screenshot (`media_1794713140902_0c11ca7a.jpg`). The active brand look title remains cleanly presented in 40px typography without distracting callouts.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.81s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

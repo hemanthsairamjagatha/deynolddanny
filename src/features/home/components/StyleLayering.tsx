@@ -572,17 +572,11 @@ export const StyleLayering: React.FC = () => {
 
                     {/* Interactive Content (Visible on active slide) */}
                     <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-                      {/* Center Brand / Collection Title & Shop Now CTA */}
-                      <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
-                        <h3 className="brand-look-title text-[28px] sm:text-[40px] font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2 leading-[40px]">
+                      {/* Center Brand / Collection Title */}
+                      <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10 pointer-events-none">
+                        <h3 className="brand-look-title text-[28px] sm:text-[40px] font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md leading-[40px]">
                           {look.title}
                         </h3>
-                        <a
-                          href={look.ctaLink}
-                          className="inline-block text-[13px] sm:text-[14px] tracking-[0.12em] text-white/95 uppercase underline underline-offset-4 hover:text-white transition-opacity font-montserrat"
-                        >
-                          {look.ctaText}
-                        </a>
                       </div>
 
                       {/* Bottom Row of 3 Shoppable Product Cards */}
