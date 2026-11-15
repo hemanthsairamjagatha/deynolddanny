@@ -1762,5 +1762,21 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Updated Section Heading Font Size to 36px**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the `.mastery-heading` and `.mastery-section-title` CSS font size from 24px to 36px (`line-height: 44px`) in `src/styles/luxury-custom.css` as requested in the user-provided Chrome DevTools inspection screenshot (`media_1794706791685_1d70d584.png`). Added responsive scaling (`28px`, `line-height: 36px`) below 640px viewport for flawless mobile presentation.
+  - **Files Modified:**
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.65s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 

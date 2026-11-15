@@ -1176,8 +1176,8 @@ label:focus-visible {
 .mastery-heading,
 .mastery-section-title {
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 24px;
-  line-height: 32px;
+  font-size: 36px;
+  line-height: 44px;
   font-weight: 500;
   letter-spacing: 0.02em;
   color: #000000;
@@ -1186,6 +1186,14 @@ label:focus-visible {
   display: flex;
   align-items: baseline;
   gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .mastery-heading,
+  .mastery-section-title {
+    font-size: 28px;
+    line-height: 36px;
+  }
 }
 
 .mastery-count {
