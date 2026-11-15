@@ -3,7 +3,6 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/layout/Header.astro';
 import HeroBanner from '../features/home/components/HeroBanner.astro';
 import CategoryGrid from '../features/home/components/CategoryGrid.astro';
-import EditorialDuo from '../features/home/components/EditorialDuo.astro';
 import ProductCarousel from '../features/catalog/components/ProductCarousel';
 import CartDrawer from '../features/cart/components/CartDrawer';
 import Footer from '../components/layout/Footer.astro';
@@ -66,10 +65,7 @@ const BEST_SELLER_CATEGORIES = [
       sectionClass="mastery-section"
     />
 
-    <!-- 4. Editorial Duo (Scarpe & Accessori) -->
-    <EditorialDuo />
-
-    <!-- 5. Latest News Carousel -->
+    <!-- 4. Latest News Carousel -->
     <ProductCarousel
       client:load
       id="latest-news"

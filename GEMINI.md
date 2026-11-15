@@ -1853,6 +1853,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Removed Editorial Duo Section Below Style Space**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the two-column Editorial Duo section (`SCARPE` & `ACCESSORI` / `EditorialDuo.astro`) located directly below the "STYLE SPACE" product carousel in `src/pages/index.astro` as requested in the user-provided screenshot (`media_1794708390005_0fa99522.jpg`).
+  - **Files Modified:**
+    - `src/pages/index.astro`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** Removed `<EditorialDuo />` invocation and unused import from `src/pages/index.astro`.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.06s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
