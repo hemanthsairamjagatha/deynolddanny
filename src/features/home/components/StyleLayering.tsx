@@ -384,7 +384,9 @@ export const StyleLayering: React.FC = () => {
 
   const currentLook = looks[activeIndex];
   const prevLook = looks[(activeIndex - 1 + looks.length) % looks.length];
+  const prevLook2 = looks[(activeIndex - 2 + looks.length) % looks.length];
   const nextLook = looks[(activeIndex + 1) % looks.length];
+  const nextLook2 = looks[(activeIndex + 2) % looks.length];
 
   return (
     <section
@@ -426,124 +428,170 @@ export const StyleLayering: React.FC = () => {
           ))}
         </div>
 
-        {/* 3-Panel Center-Mode Slider - Full Bleed Edge-to-Edge */}
-        <div className="relative w-full flex items-center justify-center gap-2 sm:gap-[14px] min-h-[640px] sm:min-h-[760px] lg:min-h-[857px] overflow-hidden">
-          {/* Previous Look (Left Peek: fills to left screen edge) */}
+        {/* 3-Panel Center-Mode Slider - 660x881 each slide, gap 14px */}
+        <div className="relative w-full flex items-center justify-center gap-2 sm:gap-[14px] min-h-[640px] sm:min-h-[881px] overflow-hidden">
+          {/* Outer Left Look: 660x881 (Ultra-wide screen coverage) */}
+          <div
+            onClick={() => setActiveIndex((prev) => (prev - 2 + looks.length) % looks.length)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setActiveIndex((prev) => (prev - 2 + looks.length) % looks.length)}
+            aria-label={`View look: ${prevLook2.title}`}
+            className="swiper-slide hidden 2xl:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
+          >
+            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
+              <img
+                src={prevLook2.modelImage}
+                alt={prevLook2.title}
+                className="w-full h-full object-cover object-top"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
+            </div>
+          </div>
+
+          {/* Previous Look (Left Slide: 660x881 / img-box: 660x857) */}
           <div
             onClick={handlePrev}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handlePrev()}
             aria-label={`View previous look: ${prevLook.title}`}
-            className="hidden md:block relative flex-1 min-w-[280px] h-[640px] sm:h-[760px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-50 hover:opacity-75 transition-opacity duration-300 select-none"
+            className="swiper-slide hidden md:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
           >
-            <img
-              src={prevLook.modelImage}
-              alt={prevLook.title}
-              className="w-full h-full object-cover object-top"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
+              <img
+                src={prevLook.modelImage}
+                alt={prevLook.title}
+                className="w-full h-full object-cover object-top"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
+            </div>
           </div>
 
-          {/* Active Center Lookbook Card: 660x857 */}
-          <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[760px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 shadow-2xl bg-neutral-900 select-none">
-            {/* Background Model Image */}
-            <img
-              src={currentLook.modelImage}
-              alt={currentLook.title}
-              className="w-full h-full object-cover object-top transition-transform duration-700 ease-out"
-              loading="eager"
-            />
+          {/* Active Center Lookbook Card: 660x881 / img-box: 660x857 */}
+          <div className="swiper-slide swiper-slide-active relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[881px] flex-shrink-0 flex flex-col items-center select-none">
+            <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[857px] rounded-sm overflow-hidden shadow-2xl bg-neutral-900">
+              {/* Background Model Image */}
+              <img
+                src={currentLook.modelImage}
+                alt={currentLook.title}
+                className="w-full h-full object-cover object-top transition-transform duration-700 ease-out"
+                loading="eager"
+              />
 
-            {/* Gradient Overlay for Crisp Text Contrast */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none" />
+              {/* Gradient Overlay for Crisp Text Contrast */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none" />
 
-            {/* Center Brand / Collection Title & Shop Now CTA */}
-            <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2">
-                {currentLook.title}
-              </h3>
-              <a
-                href={currentLook.ctaLink}
-                className="inline-block text-[13px] sm:text-[14px] tracking-[0.12em] text-white/95 uppercase underline underline-offset-4 hover:text-white transition-opacity font-montserrat"
-              >
-                {currentLook.ctaText}
-              </a>
-            </div>
+              {/* Center Brand / Collection Title & Shop Now CTA */}
+              <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2">
+                  {currentLook.title}
+                </h3>
+                <a
+                  href={currentLook.ctaLink}
+                  className="inline-block text-[13px] sm:text-[14px] tracking-[0.12em] text-white/95 uppercase underline underline-offset-4 hover:text-white transition-opacity font-montserrat"
+                >
+                  {currentLook.ctaText}
+                </a>
+              </div>
 
-            {/* Bottom Row of 3 Shoppable Product Cards */}
-            <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 flex justify-center px-3 sm:px-6 z-10">
-              <div className="grid grid-cols-3 gap-2.5 sm:gap-[15px] max-w-[550px] w-full">
-                {currentLook.products.map((prod) => (
-                  <a
-                    key={prod.id}
-                    href={prod.link}
-                    className="group block text-left transition-transform duration-300 hover:-translate-y-1"
-                  >
-                    {/* White Product Image Container - 173x230.78 */}
-                    <div className="style-layering-prod-img-box relative w-full sm:w-[173px] h-auto sm:h-[230.78px] aspect-[173/230.78] bg-white rounded-sm overflow-hidden mb-2 shadow-sm">
-                      <img
-                        src={prod.image}
-                        alt={prod.title}
-                        className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                      {/* Wishlist Button inside Image */}
-                      <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-10">
-                        <WishlistButton
-                          item={{
-                            id: prod.id,
-                            title: prod.title,
-                            price: prod.price,
-                            priceNum: prod.priceNum,
-                            image: prod.image,
-                            link: prod.link
-                          }}
-                          className="p-1 rounded-full bg-white/80 hover:bg-white text-neutral-600 hover:text-black shadow-sm"
+              {/* Bottom Row of 3 Shoppable Product Cards */}
+              <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 flex justify-center px-3 sm:px-6 z-10">
+                <div className="grid grid-cols-3 gap-2.5 sm:gap-[15px] max-w-[550px] w-full">
+                  {currentLook.products.map((prod) => (
+                    <a
+                      key={prod.id}
+                      href={prod.link}
+                      className="group block text-left transition-transform duration-300 hover:-translate-y-1"
+                    >
+                      {/* White Product Image Container - 173x230.78 */}
+                      <div className="style-layering-prod-img-box relative w-full sm:w-[173px] h-auto sm:h-[230.78px] aspect-[173/230.78] bg-white rounded-sm overflow-hidden mb-2 shadow-sm">
+                        <img
+                          src={prod.image}
+                          alt={prod.title}
+                          className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
                         />
+                        {/* Wishlist Button inside Image */}
+                        <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-10">
+                          <WishlistButton
+                            item={{
+                              id: prod.id,
+                              title: prod.title,
+                              price: prod.price,
+                              priceNum: prod.priceNum,
+                              image: prod.image,
+                              link: prod.link
+                            }}
+                            className="p-1 rounded-full bg-white/80 hover:bg-white text-neutral-600 hover:text-black shadow-sm"
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Title & Pricing directly below Image */}
-                    <div className="px-0.5 pt-0.5">
-                      <p className="text-[11px] sm:text-[12px] font-medium text-white truncate tracking-tight font-montserrat mb-0.5">
-                        {prod.title}
-                      </p>
-                      <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
-                        {prod.originalPrice}
-                      </p>
-                      <p className="text-[11px] sm:text-[12px] font-montserrat leading-none flex items-center gap-1.5">
-                        <span className="text-[#ff4d4f] font-bold">
-                          {prod.discount}
-                        </span>
-                        <span className="text-white font-semibold">
-                          {prod.price}
-                        </span>
-                      </p>
-                    </div>
-                  </a>
-                ))}
+                      {/* Title & Pricing directly below Image */}
+                      <div className="px-0.5 pt-0.5">
+                        <p className="text-[11px] sm:text-[12px] font-medium text-white truncate tracking-tight font-montserrat mb-0.5">
+                          {prod.title}
+                        </p>
+                        <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
+                          {prod.originalPrice}
+                        </p>
+                        <p className="text-[11px] sm:text-[12px] font-montserrat leading-none flex items-center gap-1.5">
+                          <span className="text-[#ff4d4f] font-bold">
+                            {prod.discount}
+                          </span>
+                          <span className="text-white font-semibold">
+                            {prod.price}
+                          </span>
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Next Look (Right Peek: fills to right screen edge) */}
+          {/* Next Look (Right Slide: 660x881 / img-box: 660x857) */}
           <div
             onClick={handleNext}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleNext()}
             aria-label={`View next look: ${nextLook.title}`}
-            className="hidden md:block relative flex-1 min-w-[280px] h-[640px] sm:h-[760px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-50 hover:opacity-75 transition-opacity duration-300 select-none"
+            className="swiper-slide hidden md:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
           >
-            <img
-              src={nextLook.modelImage}
-              alt={nextLook.title}
-              className="w-full h-full object-cover object-top"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
+              <img
+                src={nextLook.modelImage}
+                alt={nextLook.title}
+                className="w-full h-full object-cover object-top"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
+            </div>
+          </div>
+
+          {/* Outer Right Look: 660x881 (Ultra-wide screen coverage) */}
+          <div
+            onClick={() => setActiveIndex((prev) => (prev + 2) % looks.length)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setActiveIndex((prev) => (prev + 2) % looks.length)}
+            aria-label={`View look: ${nextLook2.title}`}
+            className="swiper-slide hidden 2xl:flex flex-col items-center relative w-[660px] h-[881px] flex-shrink-0 cursor-pointer select-none"
+          >
+            <div className="img-box relative w-[660px] h-[857px] rounded-sm overflow-hidden bg-neutral-900">
+              <img
+                src={nextLook2.modelImage}
+                alt={nextLook2.title}
+                className="w-full h-full object-cover object-top"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-black/40 hover:bg-black/20 transition-colors" />
+            </div>
           </div>
 
           {/* Navigation Arrows positioned over Side Peek Panels */}
@@ -551,9 +599,9 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handlePrev}
             aria-label="Previous Look"
-            className="absolute left-2 sm:left-4 lg:left-[calc(50%-330px-48px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+            className="absolute left-2 sm:left-4 lg:left-[calc(50%-330px-52px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
           >
-            <svg width="24" height="40" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="26" height="42" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="18 32 6 20 18 8" />
             </svg>
           </button>
@@ -562,9 +610,9 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handleNext}
             aria-label="Next Look"
-            className="absolute right-2 sm:right-4 lg:right-[calc(50%-330px-48px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+            className="absolute right-2 sm:right-4 lg:right-[calc(50%-330px-52px)] top-1/2 -translate-y-1/2 z-30 text-white/90 hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-200 cursor-pointer drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
           >
-            <svg width="24" height="40" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="26" height="42" viewBox="0 0 24 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="6 32 18 20 6 8" />
             </svg>
           </button>

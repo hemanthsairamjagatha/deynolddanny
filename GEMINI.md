@@ -1981,6 +1981,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Calibrated Uniform Slide Dimensions to 660x881px and img-box to 660x857px**:
+  - **Status:** COMPLETE
+  - **Summary:** Applied uniform `660px × 881px` dimensions across every slide in the Style Layering track (left, active center, and right slides) with `div.img-box::after` measuring `660px × 857px` as confirmed in all three user inspection screenshots (`media_1794711205560_e771ea36.jpg`, `media_1794711223179_32a61707.jpg`, `media_1794711237131_c304db8a.jpg`). Defined `.style-layering-section .swiper-slide { width: 660px; height: 881px; }` and `.style-layering-section .img-box { width: 660px; height: 857px; }` with `::after` overlay in `src/styles/luxury-custom.css`. Rendered a 5-slide continuous bleed track with `gap-[14px]`.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.17s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
 
 
