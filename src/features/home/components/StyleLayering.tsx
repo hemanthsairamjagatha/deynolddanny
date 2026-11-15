@@ -305,20 +305,20 @@ export const StyleLayering: React.FC = () => {
             </div>
 
             {/* Bottom Row of 3 Shoppable Product Cards */}
-            <div className="absolute bottom-5 sm:bottom-7 left-4 sm:left-6 right-4 sm:right-6 z-10">
-              <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+            <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 flex justify-center px-3 sm:px-6 z-10">
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-[15px] max-w-[550px] w-full">
                 {currentLook.products.map((prod) => (
                   <a
                     key={prod.id}
                     href={prod.link}
                     className="group block text-left transition-transform duration-300 hover:-translate-y-1"
                   >
-                    {/* Square White Product Image Container */}
-                    <div className="relative aspect-square bg-white rounded-sm overflow-hidden mb-2 shadow-sm">
+                    {/* White Product Image Container - 173x230.78 */}
+                    <div className="style-layering-prod-img-box relative w-full sm:w-[173px] h-auto sm:h-[230.78px] aspect-[173/230.78] bg-white rounded-sm overflow-hidden mb-2 shadow-sm">
                       <img
                         src={prod.image}
                         alt={prod.title}
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
                       />
                       {/* Wishlist Button inside Image */}

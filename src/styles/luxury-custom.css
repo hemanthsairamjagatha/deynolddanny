@@ -1257,6 +1257,28 @@ label:focus-visible {
   }
 }
 
+.style-layering-prod-img-box {
+  position: relative;
+  width: 100%;
+  max-width: 173px;
+  aspect-ratio: 173 / 230.78;
+  background-color: #ffffff;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 640px) {
+  .style-layering-prod-img-box {
+    width: 173px;
+    height: 230.78px;
+  }
+  .style-layering-prod-img-box img {
+    width: 173px;
+    height: 230.78px;
+  }
+}
+
 /* Subhead Row: Category Filter Tabs (Referenced Design) & Model View Row */
 .mastery-subhead-row {
   display: flex;

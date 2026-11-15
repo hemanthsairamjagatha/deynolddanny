@@ -2902,6 +2902,22 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Calibrated Style Layering Inside Product Images to 173x230.78px**:
+  - **Status:** COMPLETE
+  - **Summary:** Refined the shoppable product card images inside the Style Layering lookbook card in `src/features/home/components/StyleLayering.tsx` to exact `173 × 230.78px` matching the user's DevTools inspection screenshot (`media_1794710206248_14b946c9.jpg`). Added `.style-layering-prod-img-box` container with `aspect-[173/230.78]` and explicit `@media (min-width: 640px) { width: 173px; height: 230.78px; }` rules for both container and inner `img` in `src/styles/luxury-custom.css`. Centered the 3-column product grid (`max-w-[550px]`) with `gap-[15px]` inside the `660px` card.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.54s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
 
 
