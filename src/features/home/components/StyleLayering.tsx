@@ -236,7 +236,7 @@ export const StyleLayering: React.FC = () => {
 
       {/* Lookbook 3-Panel Center-Mode Slider */}
       <div className="relative w-full max-w-[1520px] mx-auto px-2 sm:px-6 lg:px-8 mt-4 overflow-hidden">
-        <div className="relative flex items-center justify-center gap-3 sm:gap-6 min-h-[640px] sm:min-h-[760px] lg:min-h-[880px]">
+        <div className="relative flex items-center justify-center gap-3 sm:gap-6 min-h-[640px] sm:min-h-[760px] lg:min-h-[857px]">
           {/* Previous Look (Left Peek) */}
           <div
             onClick={handlePrev}
@@ -244,7 +244,7 @@ export const StyleLayering: React.FC = () => {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handlePrev()}
             aria-label={`View previous look: ${prevLook.title}`}
-            className="hidden md:block relative w-[280px] lg:w-[340px] h-[680px] lg:h-[800px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
+            className="hidden md:block relative w-[280px] lg:w-[340px] h-[680px] lg:h-[780px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
           >
             <img
               src={prevLook.modelImage}
@@ -256,7 +256,7 @@ export const StyleLayering: React.FC = () => {
           </div>
 
           {/* Active Center Lookbook Card */}
-          <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[760px] lg:h-[880px] rounded-sm overflow-hidden flex-shrink-0 shadow-2xl bg-neutral-900 select-none">
+          <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[760px] lg:h-[857px] rounded-sm overflow-hidden flex-shrink-0 shadow-2xl bg-neutral-900 select-none">
             {/* Background Model Image */}
             <img
               src={currentLook.modelImage}

@@ -2886,6 +2886,22 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Calibrated Style Layering Image to 660x857px**:
+  - **Status:** COMPLETE
+  - **Summary:** Refined the active center lookbook card image dimensions in `src/features/home/components/StyleLayering.tsx` to exact `660 × 857px` per user inspection confirmation (`media_1794710080897_03362bda.png`). Updated `lg:h-[857px]` on `.img-box`, synchronized `.style-layering-section .img-box { height: 857px; }` in `src/styles/luxury-custom.css`, and scaled outer slider min-height to `min-h-[640px] sm:min-h-[760px] lg:min-h-[857px]`.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.47s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
 
 
