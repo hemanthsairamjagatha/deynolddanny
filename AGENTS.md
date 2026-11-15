@@ -3029,6 +3029,23 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Wishlist Button Background Removal**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the semi-transparent white background circle (`bg-white/80`, `hover:bg-white`, `rounded-full`, and `shadow-sm`) from the wishlist heart button on the shoppable product thumbnails in `src/features/home/components/StyleLayering.tsx` and added `.style-layering-wishlist-btn { background: transparent !important; box-shadow: none !important; }` in `src/styles/luxury-custom.css`, displaying the bare minimalist heart icon directly on the product photography as requested in user-provided screenshot (`media_1794713209148_e72fe040.jpg`).
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.13s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

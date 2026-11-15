@@ -1325,6 +1325,12 @@ label:focus-visible {
   transform: none !important;
 }
 
+.style-layering-wishlist-btn {
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .style-layering-prod-img-box {
   position: relative;
   width: 100%;

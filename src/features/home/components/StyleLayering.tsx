@@ -607,7 +607,7 @@ export const StyleLayering: React.FC = () => {
                                       image: prod.image,
                                       link: prod.link
                                     }}
-                                    className="p-1 rounded-full bg-white/80 hover:bg-white text-neutral-600 hover:text-black shadow-sm"
+                                    className="style-layering-wishlist-btn p-1 bg-transparent hover:bg-transparent text-neutral-400 hover:text-black shadow-none"
                                   />
                                 </div>
                               </div>
