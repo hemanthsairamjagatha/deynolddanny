@@ -1234,8 +1234,7 @@ label:focus-visible {
   justify-content: space-between;
   gap: 24px;
   width: 100%;
-  margin-top: 0;
-  margin-bottom: 12px;
+  margin: 0;
   box-sizing: border-box;
 }
 
@@ -1300,7 +1299,7 @@ label:focus-visible {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
-    margin-bottom: 10px;
+    margin: 0;
   }
 
   .mastery-categories-bar {

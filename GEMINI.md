@@ -1808,6 +1808,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Removed Bottom Margin from Mastery Subhead Row**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the `0px 0px 12px` bottom margin from `.mastery-subhead-row` in `src/styles/luxury-custom.css` (`margin: 0`), seamlessly tightening vertical rhythm under the category navigation bar as requested in the Chrome DevTools inspection screenshot (`media_1794707528074_81377527.png`).
+  - **Files Modified:**
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 7.89s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
