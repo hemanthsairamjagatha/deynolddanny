@@ -3125,6 +3125,22 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Renamed Second Homepage Product Carousel Heading to \"NEW ARRIVAL\"**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the carousel heading in `src/pages/index.astro` from \"STYLE SPACE\" to \"NEW ARRIVAL\" as requested in user-provided screenshot (`media_1794719104214_654f499d.png`). Updated section id to `new-arrival` and viewAllLink to `#new-arrival` while maintaining full category tab filtering and model view support.
+  - **Files Modified:**
+    - `src/pages/index.astro`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.64s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
@@ -3224,6 +3240,22 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-15 — Renamed Second Homepage Product Carousel Heading to \"NEW ARRIVAL\"**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the carousel heading in `src/pages/index.astro` from \"STYLE SPACE\" to \"NEW ARRIVAL\" as requested in user-provided screenshot (`media_1794719104214_654f499d.png`). Updated section id to `new-arrival` and viewAllLink to `#new-arrival` while maintaining full category tab filtering and model view support.
+  - **Files Modified:**
+    - `src/pages/index.astro`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.64s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
 
 
