@@ -236,7 +236,7 @@ export const StyleLayering: React.FC = () => {
 
       {/* Lookbook 3-Panel Center-Mode Slider */}
       <div className="relative w-full max-w-[1520px] mx-auto px-2 sm:px-6 lg:px-8 mt-4 overflow-hidden">
-        <div className="relative flex items-center justify-center gap-3 sm:gap-6 min-h-[520px] sm:min-h-[600px] lg:min-h-[640px]">
+        <div className="relative flex items-center justify-center gap-3 sm:gap-6 min-h-[640px] sm:min-h-[760px] lg:min-h-[880px]">
           {/* Previous Look (Left Peek) */}
           <div
             onClick={handlePrev}
@@ -244,7 +244,7 @@ export const StyleLayering: React.FC = () => {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handlePrev()}
             aria-label={`View previous look: ${prevLook.title}`}
-            className="hidden md:block relative w-[240px] lg:w-[320px] h-[480px] lg:h-[560px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
+            className="hidden md:block relative w-[280px] lg:w-[340px] h-[680px] lg:h-[800px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
           >
             <img
               src={prevLook.modelImage}
@@ -256,7 +256,7 @@ export const StyleLayering: React.FC = () => {
           </div>
 
           {/* Active Center Lookbook Card */}
-          <div className="relative w-full max-w-[620px] lg:max-w-[680px] h-[540px] sm:h-[600px] lg:h-[640px] rounded-sm overflow-hidden flex-shrink-0 shadow-2xl bg-neutral-900 select-none">
+          <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[760px] lg:h-[880px] rounded-sm overflow-hidden flex-shrink-0 shadow-2xl bg-neutral-900 select-none">
             {/* Background Model Image */}
             <img
               src={currentLook.modelImage}
@@ -292,7 +292,7 @@ export const StyleLayering: React.FC = () => {
             </button>
 
             {/* Center Brand / Collection Title & Shop Now CTA */}
-            <div className="absolute top-[20%] sm:top-[22%] left-0 right-0 text-center px-6 z-10">
+            <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10">
               <h3 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md mb-2">
                 {currentLook.title}
               </h3>
@@ -305,7 +305,7 @@ export const StyleLayering: React.FC = () => {
             </div>
 
             {/* Bottom Row of 3 Shoppable Product Cards */}
-            <div className="absolute bottom-4 sm:bottom-6 left-3 sm:left-6 right-3 sm:right-6 z-10">
+            <div className="absolute bottom-5 sm:bottom-7 left-4 sm:left-6 right-4 sm:right-6 z-10">
               <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
                 {currentLook.products.map((prod) => (
                   <a
@@ -338,21 +338,21 @@ export const StyleLayering: React.FC = () => {
                     </div>
 
                     {/* Title & Pricing directly below Image */}
-                    <div className="px-0.5">
+                    <div className="px-0.5 pt-0.5">
                       <p className="text-[11px] sm:text-[12px] font-medium text-white truncate tracking-tight font-montserrat mb-0.5">
                         {prod.title}
                       </p>
-                      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] font-montserrat leading-tight">
-                        <span className="text-white/50 line-through">
-                          {prod.originalPrice}
-                        </span>
-                        <span className="text-[#ff4d4f] font-semibold">
+                      <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
+                        {prod.originalPrice}
+                      </p>
+                      <p className="text-[11px] sm:text-[12px] font-montserrat leading-none flex items-center gap-1.5">
+                        <span className="text-[#ff4d4f] font-bold">
                           {prod.discount}
                         </span>
-                        <span className="text-white font-bold">
+                        <span className="text-white font-semibold">
                           {prod.price}
                         </span>
-                      </div>
+                      </p>
                     </div>
                   </a>
                 ))}
@@ -367,7 +367,7 @@ export const StyleLayering: React.FC = () => {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleNext()}
             aria-label={`View next look: ${nextLook.title}`}
-            className="hidden md:block relative w-[240px] lg:w-[320px] h-[480px] lg:h-[560px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
+            className="hidden md:block relative w-[280px] lg:w-[340px] h-[680px] lg:h-[800px] rounded-sm overflow-hidden flex-shrink-0 cursor-pointer opacity-40 hover:opacity-65 transition-opacity duration-300 shadow-md select-none"
           >
             <img
               src={nextLook.modelImage}

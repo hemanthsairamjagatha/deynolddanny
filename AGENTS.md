@@ -2870,6 +2870,22 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Updated Style Layering Center Image to 660x880px**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the central lookbook card in `src/features/home/components/StyleLayering.tsx` to match the exact `660 × 880px` dimensions shown in the user-provided DevTools inspection screenshot (`media_1794709568287_4b763246.jpg`). Assigned the inspected class `.img-box` with `w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[760px] lg:h-[880px]` and established explicit CSS rules in `src/styles/luxury-custom.css`. Proportionally adjusted the slider viewport min-height (`min-h-[640px] sm:min-h-[760px] lg:min-h-[880px]`), side peek preview cards (`w-[280px] lg:w-[340px] h-[680px] lg:h-[800px]`), centered brand title positioning (`top-[38%] sm:top-[42%]`), and shoppable product cards container with discrete lines for original and discounted prices.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 9.10s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
 
 

@@ -1244,6 +1244,19 @@ label:focus-visible {
   }
 }
 
+.style-layering-section .img-box {
+  position: relative;
+  width: 100%;
+  max-width: 660px;
+}
+
+@media (min-width: 1024px) {
+  .style-layering-section .img-box {
+    width: 660px;
+    height: 880px;
+  }
+}
+
 /* Subhead Row: Category Filter Tabs (Referenced Design) & Model View Row */
 .mastery-subhead-row {
   display: flex;
