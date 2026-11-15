@@ -1949,6 +1949,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Configured Style Layering 1334x929 Swiper Container and Brand Navigation Tabs**:
+  - **Status:** COMPLETE
+  - **Summary:** Replicated the exact Swiper container dimensions (`1334 × 929px`) and horizontal brand navigation tab list shown in the user's DevTools inspection screenshot (`media_1794710166725_9a216e4e.jpg`). Wrapped the slider in `div.brand-swiper2.swiper.inner-box` styled with desktop dimensions `1334px × 929px` in `src/styles/luxury-custom.css`. Added interactive brand tabs (`AVANDRESS`, `AMBLER`, `MINIMAL PROJECT`, `BASEMOMENT`, `THEWEATHER#&SOMETHING`, `SEARCH410`, `MAINTAIN`, `MATHEMATIK`) at the top of the container, switching active looks with one click. Positioned side peek preview cards at `323px × 857px` with `gap-[14px]` around the central `660px × 857px` card (`323 + 14 + 660 + 14 + 323 = 1334px`).
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.53s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
 
 
 
