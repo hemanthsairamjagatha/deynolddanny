@@ -2714,4 +2714,22 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Added Category Filter Navigation under "Our Best Sellers" Section Heading**:
+  - **Status:** COMPLETE
+  - **Summary:** Added horizontal category tabs directly underneath the "OUR BEST SELLERS" section heading adhering strictly to the user-provided reference design (`media_1794705886727_ad793712.png`). Implemented luxury tabs (`ALL`, `TAILORING`, `SHIRTS`, `TROUSERS`, `KNITWEAR`, `OUTERWEAR`, `FOOTWEAR`, `ACCESSORIES`) in `ProductCarousel.tsx` with bold `#000000` active state, soft muted `#8e8e93` unselected states, smooth hover transitions, and horizontal touch scrolling with hidden scrollbars. Connected dynamic category filtering to `allCatalogProducts`, automatic smooth scroll reset on category switch, and dynamic `Shop {category}` view-all routing.
+  - **Files Modified:**
+    - `src/features/catalog/components/ProductCarousel.tsx`
+    - `src/pages/index.astro`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 7.37s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 

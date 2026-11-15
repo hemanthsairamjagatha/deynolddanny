@@ -1219,6 +1219,93 @@ label:focus-visible {
   opacity: 0.65;
 }
 
+/* Subhead Row: Category Filter Tabs (Referenced Design) & Model View Row */
+.mastery-subhead-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  margin-top: 0;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.mastery-categories-bar {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 4px 0 6px 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mastery-categories-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.mastery-category-tab {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8e8e93;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color var(--transition-fast, 0.2s ease), transform var(--transition-fast, 0.2s ease);
+}
+
+.mastery-category-tab:hover {
+  color: #111111;
+}
+
+.mastery-category-tab.is-active {
+  color: #000000;
+  font-weight: 700;
+}
+
+.mastery-category-tab:focus-visible {
+  outline: 2px solid #000000;
+  outline-offset: 3px;
+}
+
+.mastery-subhead-row .model-view-row {
+  width: auto;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .mastery-subhead-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .mastery-categories-bar {
+    width: 100%;
+    gap: 22px;
+    padding-bottom: 6px;
+  }
+
+  .mastery-subhead-row .model-view-row {
+    align-self: flex-end;
+    margin: 0;
+  }
+}
+
 /* Model View Row directly below Section Heading */
 .model-view-row {
   display: flex;

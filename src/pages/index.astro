@@ -19,6 +19,17 @@ const liveProducts = await fetchProducts();
 const masteryProducts = liveProducts.length >= 4 ? liveProducts.slice(0, 4) : defaultMastery;
 const styleSpaceProducts = liveProducts.length >= 8 ? liveProducts.slice(4, 8) : defaultStyleSpace;
 const newsProducts = liveProducts.length >= 12 ? liveProducts.slice(8, 12) : defaultNews;
+
+const BEST_SELLER_CATEGORIES = [
+  { label: 'ALL', value: 'all' },
+  { label: 'TAILORING', value: 'tailoring' },
+  { label: 'SHIRTS', value: 'shirts' },
+  { label: 'TROUSERS', value: 'trousers' },
+  { label: 'KNITWEAR', value: 'knitwear' },
+  { label: 'OUTERWEAR', value: 'outerwear' },
+  { label: 'FOOTWEAR', value: 'footwear' },
+  { label: 'ACCESSORIES', value: 'accessories' }
+];
 ---
 
 <Layout>
@@ -30,13 +41,15 @@ const newsProducts = liveProducts.length >= 12 ? liveProducts.slice(8, 12) : def
     <!-- Hero Banner with Search Strip and Campaign Overlay -->
     <HeroBanner />
 
-    <!-- 1. Our Best Sellers Carousel -->
+    <!-- 1. Our Best Sellers Carousel with Categories Subhead (Referenced Design) -->
     <ProductCarousel
       client:load
       id="thread-of-mastery"
       title="Our Best Sellers"
       viewAllLink="#mastery"
       products={masteryProducts}
+      allCatalogProducts={liveProducts}
+      categories={BEST_SELLER_CATEGORIES}
       sectionClass="mastery-section"
     />
 

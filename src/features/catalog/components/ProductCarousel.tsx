@@ -1,6 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { ProductCardData } from '../types/product.types';
 import ProductCard from './ProductCard';
+
+export interface CarouselCategory {
+  label: string;
+  value: string;
+}
 
 interface ProductCarouselProps {
   id: string;
@@ -8,6 +13,9 @@ interface ProductCarouselProps {
   count?: number;
   viewAllLink?: string;
   products: ProductCardData[];
+  allCatalogProducts?: ProductCardData[];
+  categories?: CarouselCategory[];
+  defaultCategory?: string;
   sectionClass?: string;
   showModelView?: boolean;
 }
@@ -18,14 +26,121 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   count: _count,
   viewAllLink = '#',
   products,
+  allCatalogProducts,
+  categories,
+  defaultCategory = 'all',
   sectionClass = 'mastery-section',
   showModelView = true
 }) => {
+  const [activeCategory, setActiveCategory] = useState<string>(defaultCategory);
   const [isModelView, setIsModelView] = useState<boolean>(true);
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [canScrollPrev, setCanScrollPrev] = useState<boolean>(false);
   const [canScrollNext, setCanScrollNext] = useState<boolean>(true);
   const trackRef = useRef<HTMLDivElement>(null);
+
+  // Compute filtered products based on active category
+  const displayedProducts = useMemo(() => {
+    if (!categories || categories.length === 0 || !activeCategory || activeCategory === 'all') {
+      return products;
+    }
+
+    const source = (allCatalogProducts && allCatalogProducts.length > 0)
+      ? allCatalogProducts
+      : products;
+
+    const catLower = activeCategory.toLowerCase();
+
+    const matches = source.filter((item) => {
+      const itemCat = (item.category || '').toLowerCase();
+      const itemSubCat = (item.subCategory || '').toLowerCase();
+      const itemTitle = (item.title || '').toLowerCase();
+      const itemTag = (item.tag || '').toLowerCase();
+
+      if (catLower === 'tailoring') {
+        return (
+          itemCat.includes('tailor') ||
+          itemTitle.includes('suit') ||
+          itemTitle.includes('blazer') ||
+          itemTag.includes('tailor')
+        );
+      }
+      if (catLower === 'trousers') {
+        return (
+          itemCat.includes('trouser') ||
+          itemCat.includes('pantaloni') ||
+          itemTitle.includes('trouser') ||
+          itemTitle.includes('pant')
+        );
+      }
+      if (catLower === 'shirts') {
+        return (
+          itemCat.includes('shirt') ||
+          itemCat.includes('camicie') ||
+          itemTitle.includes('shirt')
+        );
+      }
+      if (catLower === 'knitwear') {
+        return (
+          itemCat.includes('knit') ||
+          itemCat.includes('maglieria') ||
+          itemTitle.includes('sweater') ||
+          itemTitle.includes('knit') ||
+          itemTitle.includes('turtleneck')
+        );
+      }
+      if (catLower === 'outerwear' || catLower === 'overcoats') {
+        return (
+          itemCat.includes('outerwear') ||
+          itemCat.includes('overcoat') ||
+          itemCat.includes('capispalla') ||
+          itemTitle.includes('coat') ||
+          itemTitle.includes('jacket') ||
+          itemTitle.includes('trench')
+        );
+      }
+      if (catLower === 'footwear' || catLower === 'shoes') {
+        return (
+          itemCat.includes('footwear') ||
+          itemCat.includes('shoe') ||
+          itemCat.includes('scarpe') ||
+          itemTitle.includes('oxford') ||
+          itemTitle.includes('loafer') ||
+          itemTitle.includes('boot') ||
+          itemTitle.includes('flat')
+        );
+      }
+      if (catLower === 'accessories') {
+        return (
+          itemCat.includes('accessori') ||
+          itemCat.includes('timepiece') ||
+          itemTitle.includes('scarf') ||
+          itemTitle.includes('sunglasses') ||
+          itemTitle.includes('weekender') ||
+          itemTitle.includes('beanie') ||
+          itemTitle.includes('chronograph')
+        );
+      }
+
+      return (
+        itemCat.includes(catLower) ||
+        itemSubCat.includes(catLower) ||
+        itemTitle.includes(catLower) ||
+        itemTag.includes(catLower)
+      );
+    });
+
+    return matches.length > 0 ? matches : products;
+  }, [activeCategory, categories, products, allCatalogProducts]);
+
+  // Dynamic View All destination when category is selected
+  const activeViewAllLink = useMemo(() => {
+    if (activeCategory && activeCategory !== 'all') {
+      const slug = activeCategory === 'outerwear' ? 'overcoats' : activeCategory;
+      return `/categories/${slug}`;
+    }
+    return viewAllLink;
+  }, [activeCategory, viewAllLink]);
 
   const updateScrollState = () => {
     if (trackRef.current) {
@@ -35,18 +150,29 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
     }
   };
 
+  const handleCategorySelect = (categoryValue: string) => {
+    if (categoryValue === activeCategory) return;
+    setActiveCategory(categoryValue);
+    if (trackRef.current) {
+      trackRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+  };
+
   useEffect(() => {
     const track = trackRef.current;
     if (track) {
       updateScrollState();
+      // Delay check slightly for layout calculation after card changes
+      const timer = setTimeout(updateScrollState, 50);
       track.addEventListener('scroll', updateScrollState, { passive: true });
       window.addEventListener('resize', updateScrollState);
       return () => {
+        clearTimeout(timer);
         track.removeEventListener('scroll', updateScrollState);
         window.removeEventListener('resize', updateScrollState);
       };
     }
-  }, [products]);
+  }, [displayedProducts]);
 
   const getScrollStep = () => {
     if (!trackRef.current) return 280;
@@ -86,32 +212,60 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
             </h2>
           </div>
 
-          <a href={viewAllLink} className="mastery-view-all">
-            Shop {title}
+          <a href={activeViewAllLink} className="mastery-view-all">
+            Shop {activeCategory && activeCategory !== 'all' ? activeCategory : title}
           </a>
         </div>
 
-        {/* Model View Row directly below Section Heading */}
-        {showModelView && (
-          <div className="model-view-row">
-            <label className="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd e12z7ls0 css-1jaw3da model-view-form-control">
-              <span className={`MuiSwitch-root MuiSwitch-sizeMedium css-1ewr2m8 ${isModelView ? 'Mui-checked' : ''}`}>
-                <span className={`MuiButtonBase-root MuiSwitch-switchBase MuiSwitch-colorPrimary ${isModelView ? 'Mui-checked' : ''} css-by15t2`}>
-                  <input
-                    type="checkbox"
-                    className="MuiSwitch-input css-1m9pwf3 visually-hidden"
-                    checked={isModelView}
-                    onChange={(e) => setIsModelView(e.target.checked)}
-                    aria-label="Toggle Model View"
-                  />
-                  <span className="MuiSwitch-thumb css-1tuil5z" />
-                </span>
-                <span className="MuiSwitch-track css-9og5xt" />
-              </span>
-              <span className="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-uitf9v">
-                MODEL VIEW
-              </span>
-            </label>
+        {/* Subhead Row: Category Filter Tabs (Referenced Design) & Model View Toggle */}
+        {((categories && categories.length > 0) || showModelView) && (
+          <div className="mastery-subhead-row">
+            {categories && categories.length > 0 && (
+              <div
+                className="mastery-categories-bar hide-scrollbar"
+                role="tablist"
+                aria-label={`${title} Categories`}
+              >
+                {categories.map((cat) => {
+                  const isActive = activeCategory === cat.value;
+                  return (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => handleCategorySelect(cat.value)}
+                      className={`mastery-category-tab ${isActive ? 'is-active' : ''}`}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {showModelView && (
+              <div className="model-view-row">
+                <label className="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd e12z7ls0 css-1jaw3da model-view-form-control">
+                  <span className={`MuiSwitch-root MuiSwitch-sizeMedium css-1ewr2m8 ${isModelView ? 'Mui-checked' : ''}`}>
+                    <span className={`MuiButtonBase-root MuiSwitch-switchBase MuiSwitch-colorPrimary ${isModelView ? 'Mui-checked' : ''} css-by15t2`}>
+                      <input
+                        type="checkbox"
+                        className="MuiSwitch-input css-1m9pwf3 visually-hidden"
+                        checked={isModelView}
+                        onChange={(e) => setIsModelView(e.target.checked)}
+                        aria-label="Toggle Model View"
+                      />
+                      <span className="MuiSwitch-thumb css-1tuil5z" />
+                    </span>
+                    <span className="MuiSwitch-track css-9og5xt" />
+                  </span>
+                  <span className="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-uitf9v">
+                    MODEL VIEW
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
         )}
 
@@ -145,8 +299,8 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
             id={`${id}-carousel-track`}
             ref={trackRef}
           >
-            {products.map(prod => (
-              <ProductCard key={prod.id} product={prod} isModelView={isModelView} />
+            {displayedProducts.map(prod => (
+              <ProductCard key={`${prod.id}-${activeCategory}`} product={prod} isModelView={isModelView} />
             ))}
           </div>
 
@@ -179,4 +333,3 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
 };
 
 export default ProductCarousel;
-
