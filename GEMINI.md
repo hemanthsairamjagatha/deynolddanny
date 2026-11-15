@@ -1777,6 +1777,22 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Updated Category Tab Font Size to 14px**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the `.mastery-category-tab` CSS font size from 13px to 14px in `src/styles/luxury-custom.css` as requested in the user-provided Chrome DevTools inspection screenshot (`media_1794706900897_c1813906.png`).
+  - **Files Modified:**
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 6.13s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
