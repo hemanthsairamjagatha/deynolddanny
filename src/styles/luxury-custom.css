@@ -1246,7 +1246,7 @@ label:focus-visible {
   white-space: nowrap;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 4px 0 6px 0;
+  padding: 0;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -1305,7 +1305,7 @@ label:focus-visible {
   .mastery-categories-bar {
     width: 100%;
     gap: 22px;
-    padding-bottom: 6px;
+    padding: 0;
   }
 
   .mastery-subhead-row .model-view-row {
