@@ -1343,6 +1343,7 @@ label:focus-visible {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  overflow: visible !important;
 }
 
 .style-layering-section .style-layering-nav-btn svg {
@@ -1352,6 +1353,7 @@ label:focus-visible {
   min-height: 27px !important;
   max-width: 27px !important;
   max-height: 27px !important;
+  overflow: visible !important;
 }
 
 .style-layering-prod-img-box {

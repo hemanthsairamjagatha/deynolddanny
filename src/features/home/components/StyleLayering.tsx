@@ -645,21 +645,22 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handlePrev}
             aria-label="Previous Look"
-            className="style-layering-nav-btn absolute left-3 sm:left-6 xl:left-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-md select-none p-0"
+            className="style-layering-nav-btn absolute left-3 sm:left-6 xl:left-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-md select-none p-0 overflow-visible"
             style={{ width: '27px', height: '27px' }}
           >
             <svg
               width="27"
               height="27"
-              viewBox="0 0 24 24"
+              viewBox="0 0 27 27"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.2"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-[27px] h-[27px]"
+              className="w-[27px] h-[27px] overflow-visible"
+              style={{ overflow: 'visible' }}
             >
-              <polyline points="15 18 9 12 15 6" />
+              <polyline points="27 0 0 13.5 27 27" />
             </svg>
           </button>
 
@@ -667,21 +668,22 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handleNext}
             aria-label="Next Look"
-            className="style-layering-nav-btn absolute right-3 sm:right-6 xl:right-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-md select-none p-0"
+            className="style-layering-nav-btn absolute right-3 sm:right-6 xl:right-[calc(50%-667px+16px)] top-1/2 -translate-y-1/2 z-30 w-[27px] h-[27px] min-w-[27px] min-h-[27px] max-w-[27px] max-h-[27px] bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-md select-none p-0 overflow-visible"
             style={{ width: '27px', height: '27px' }}
           >
             <svg
               width="27"
               height="27"
-              viewBox="0 0 24 24"
+              viewBox="0 0 27 27"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.2"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-[27px] h-[27px]"
+              className="w-[27px] h-[27px] overflow-visible"
+              style={{ overflow: 'visible' }}
             >
-              <polyline points="9 18 15 12 9 6" />
+              <polyline points="0 0 27 13.5 0 27" />
             </svg>
           </button>
         </div>

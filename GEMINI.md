@@ -2107,6 +2107,23 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Navigation Chevron Polyline Geometry Calibrated to 27x27px**:
+  - **Status:** COMPLETE
+  - **Summary:** Re-engineered the SVG chevron polyline geometry in `src/features/home/components/StyleLayering.tsx` (`viewBox="0 0 27 27"` with `<polyline points="27 0 0 13.5 27 27" />` for left and `points="0 0 27 13.5 0 27"` for right) so that Chrome DevTools element inspection on the `<polyline>` element calculates and displays exact `27 × 27` (resolving the `polyline 6.75 × 13.5` shown in user inspection screenshots `media_1794717937618_2351f51b.png` and `media_1794717965384_be7892c5.png`). Ensured unclipped rendering with `overflow-visible` and matching CSS in `src/styles/luxury-custom.css`.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 8.35s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
