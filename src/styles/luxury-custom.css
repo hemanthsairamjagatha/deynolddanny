@@ -1305,6 +1305,16 @@ label:focus-visible {
   }
 }
 
+.style-layering-prod-card {
+  display: block;
+  transform: none !important;
+  transition: none !important;
+}
+
+.style-layering-prod-card:hover {
+  transform: none !important;
+}
+
 .style-layering-prod-img-box {
   position: relative;
   width: 100%;
@@ -1314,6 +1324,21 @@ label:focus-visible {
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 8px;
+  transform: none !important;
+  transition: none !important;
+}
+
+.style-layering-prod-img-box:hover {
+  transform: none !important;
+}
+
+.style-layering-prod-img-box img {
+  transform: none !important;
+  transition: none !important;
+}
+
+.style-layering-prod-card:hover .style-layering-prod-img-box img {
+  transform: none !important;
 }
 
 @media (min-width: 640px) {

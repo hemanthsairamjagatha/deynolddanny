@@ -2982,6 +2982,23 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Style Layering Rupees Currency Alignment & Card Hover Movement Removal**:
+  - **Status:** COMPLETE
+  - **Summary:** Converted all prices across all 8 looks (24 products) in `src/features/home/components/StyleLayering.tsx` exclusively to Indian Rupees (`₹`), removing all dollar (`$`) symbols. Eliminated upward elevation (`hover:-translate-y-1`) and zoom motion (`group-hover:scale-105`) on the shoppable product cards, ensuring the cards stay completely stationary and static when hovered. Added explicit `transform: none !important; transition: none !important;` CSS overrides for `.style-layering-prod-card` and `.style-layering-prod-img-box` in `src/styles/luxury-custom.css`.
+  - **Files Modified:**
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.12s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 

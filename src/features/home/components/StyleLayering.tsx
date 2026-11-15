@@ -37,9 +37,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'cady-trousers',
         title: 'Classic Two-Tuck Wide...',
         image: '/images/cady-trousers-product.jpg',
-        originalPrice: '$84',
+        originalPrice: '₹ 84',
         discount: '15%',
-        price: '$71',
+        price: '₹ 71',
         priceNum: 71,
         link: '/products/cady-trousers'
       },
@@ -48,9 +48,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'artisanal-ribbed-cashmere-zip-sweater',
         title: 'R Pigment Hoodie _ 2...',
         image: '/images/mastery-1-product.jpg',
-        originalPrice: '$119',
+        originalPrice: '₹ 119',
         discount: '38%',
-        price: '$74',
+        price: '₹ 74',
         priceNum: 74,
         link: '/products/artisanal-ribbed-cashmere-zip-sweater'
       },
@@ -59,9 +59,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'stand-collar-virgin-wool-tailored-car-coat',
         title: 'Aachen Windbreaker Jump...',
         image: '/images/news-1-product.jpg',
-        originalPrice: '$135',
+        originalPrice: '₹ 135',
         discount: '10%',
-        price: '$122',
+        price: '₹ 122',
         priceNum: 122,
         link: '/products/stand-collar-virgin-wool-tailored-car-coat'
       }
@@ -80,9 +80,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'merino-wool-ribbed-turtleneck',
         title: 'Embroidered Heavy Hoodie',
         image: '/images/mastery-2-product.jpg',
-        originalPrice: '$128',
+        originalPrice: '₹ 128',
         discount: '25%',
-        price: '$96',
+        price: '₹ 96',
         priceNum: 96,
         link: '/products/merino-wool-ribbed-turtleneck'
       },
@@ -91,9 +91,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'cady-trousers',
         title: 'Relaxed Pigment Joggers',
         image: '/images/cady-trousers-swatch.jpg',
-        originalPrice: '$92',
+        originalPrice: '₹ 92',
         discount: '20%',
-        price: '$74',
+        price: '₹ 74',
         priceNum: 74,
         link: '/products/cady-trousers'
       },
@@ -102,9 +102,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'cashmere-blend-ribbed-beanie',
         title: 'Ribbed Knit Skull Beanie',
         image: '/images/news-2-product.jpg',
-        originalPrice: '$45',
+        originalPrice: '₹ 45',
         discount: '15%',
-        price: '$38',
+        price: '₹ 38',
         priceNum: 38,
         link: '/products/cashmere-blend-ribbed-beanie'
       }
@@ -123,9 +123,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'minimalist-cotton-twill-tailored-trench-coat',
         title: 'Technical Utility Parka',
         image: '/images/news-3-product.jpg',
-        originalPrice: '$180',
+        originalPrice: '₹ 180',
         discount: '20%',
-        price: '$144',
+        price: '₹ 144',
         priceNum: 144,
         link: '/products/minimalist-cotton-twill-tailored-trench-coat'
       },
@@ -134,9 +134,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'pleated-high-rise-wool-trousers',
         title: 'Multi-Pocket Cargo Pants',
         image: '/images/mastery-3-product.jpg',
-        originalPrice: '$98',
+        originalPrice: '₹ 98',
         discount: '18%',
-        price: '$80',
+        price: '₹ 80',
         priceNum: 80,
         link: '/products/pleated-high-rise-wool-trousers'
       },
@@ -145,9 +145,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'handcrafted-burnished-calfskin-ankle-boots',
         title: 'Commuter Ankle Boot',
         image: '/images/mastery-4-product.jpg',
-        originalPrice: '$165',
+        originalPrice: '₹ 165',
         discount: '15%',
-        price: '$140',
+        price: '₹ 140',
         priceNum: 140,
         link: '/products/handcrafted-burnished-calfskin-ankle-boots'
       }
@@ -166,9 +166,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'ribbed-cashmere-crewneck-knit-sweater',
         title: 'Heavy Cotton Crewneck',
         image: '/images/style-3-product.jpg',
-        originalPrice: '$78',
+        originalPrice: '₹ 78',
         discount: '20%',
-        price: '$62',
+        price: '₹ 62',
         priceNum: 62,
         link: '/products/ribbed-cashmere-crewneck-knit-sweater'
       },
@@ -177,9 +177,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'cady-trousers',
         title: 'Vintage Washed Wide Denim',
         image: '/images/style-2-product.jpg',
-        originalPrice: '$105',
+        originalPrice: '₹ 105',
         discount: '15%',
-        price: '$89',
+        price: '₹ 89',
         priceNum: 89,
         link: '/products/cady-trousers'
       },
@@ -188,9 +188,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'hand-stitched-suede-loafer',
         title: 'Everyday Leather Loafer',
         image: '/images/style-4-product.jpg',
-        originalPrice: '$145',
+        originalPrice: '₹ 145',
         discount: '12%',
-        price: '$128',
+        price: '₹ 128',
         priceNum: 128,
         link: '/products/hand-stitched-suede-loafer'
       }
@@ -209,9 +209,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'stand-collar-virgin-wool-tailored-car-coat',
         title: 'Stormproof Modular Shell',
         image: '/images/news-2-product.jpg',
-        originalPrice: '$195',
+        originalPrice: '₹ 195',
         discount: '22%',
-        price: '$152',
+        price: '₹ 152',
         priceNum: 152,
         link: '/products/stand-collar-virgin-wool-tailored-car-coat'
       },
@@ -220,9 +220,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'pleated-high-rise-wool-trousers',
         title: 'Waterproof Stretch Slacks',
         image: '/images/news-4-product.jpg',
-        originalPrice: '$110',
+        originalPrice: '₹ 110',
         discount: '15%',
-        price: '$93',
+        price: '₹ 93',
         priceNum: 93,
         link: '/products/pleated-high-rise-wool-trousers'
       },
@@ -231,9 +231,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'handcrafted-tuscan-leather-travel-weekender',
         title: 'Weatherproof Tactical Sling',
         image: '/images/style-5-product.jpg',
-        originalPrice: '$68',
+        originalPrice: '₹ 68',
         discount: '10%',
-        price: '$61',
+        price: '₹ 61',
         priceNum: 61,
         link: '/products/handcrafted-tuscan-leather-travel-weekender'
       }
@@ -252,9 +252,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'artisanal-ribbed-cashmere-zip-sweater',
         title: 'Faded Arch Sweatshirt',
         image: '/images/mastery-5-product.jpg',
-        originalPrice: '$94',
+        originalPrice: '₹ 94',
         discount: '30%',
-        price: '$65',
+        price: '₹ 65',
         priceNum: 65,
         link: '/products/artisanal-ribbed-cashmere-zip-sweater'
       },
@@ -263,9 +263,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'cady-trousers',
         title: 'Baggy Skater Chinos',
         image: '/images/cady-trousers-detail.jpg',
-        originalPrice: '$86',
+        originalPrice: '₹ 86',
         discount: '15%',
-        price: '$73',
+        price: '₹ 73',
         priceNum: 73,
         link: '/products/cady-trousers'
       },
@@ -274,9 +274,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'cashmere-blend-ribbed-beanie',
         title: 'Embroidered Cotton Cap',
         image: '/images/news-5-product.jpg',
-        originalPrice: '$42',
+        originalPrice: '₹ 42',
         discount: '10%',
-        price: '$38',
+        price: '₹ 38',
         priceNum: 38,
         link: '/products/cashmere-blend-ribbed-beanie'
       }
@@ -295,9 +295,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'sartorial-poplin-and-twill-dress-shirts-trio',
         title: 'Boxy Poplin Overshirt',
         image: '/images/mastery-3-product.jpg',
-        originalPrice: '$88',
+        originalPrice: '₹ 88',
         discount: '18%',
-        price: '$72',
+        price: '₹ 72',
         priceNum: 72,
         link: '/products/sartorial-poplin-and-twill-dress-shirts-trio'
       },
@@ -306,9 +306,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'cady-trousers',
         title: 'Tailored Pleated Bermudas',
         image: '/images/cady-trousers-waist.jpg',
-        originalPrice: '$75',
+        originalPrice: '₹ 75',
         discount: '15%',
-        price: '$63',
+        price: '₹ 63',
         priceNum: 63,
         link: '/products/cady-trousers'
       },
@@ -317,9 +317,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'nappa-leather-chelsea-flat',
         title: 'Minimalist Nappa Flat',
         image: '/images/news-4-product.jpg',
-        originalPrice: '$135',
+        originalPrice: '₹ 135',
         discount: '12%',
-        price: '$118',
+        price: '₹ 118',
         priceNum: 118,
         link: '/products/nappa-leather-chelsea-flat'
       }
@@ -338,9 +338,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'handcrafted-tuscan-leather-travel-weekender',
         title: 'Ergonomic Commuter Pack',
         image: '/images/style-5-product.jpg',
-        originalPrice: '$140',
+        originalPrice: '₹ 140',
         discount: '20%',
-        price: '$112',
+        price: '₹ 112',
         priceNum: 112,
         link: '/products/handcrafted-tuscan-leather-travel-weekender'
       },
@@ -349,9 +349,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'handcrafted-tuscan-leather-travel-weekender',
         title: 'Waterproof Messenger Bag',
         image: '/images/style-1-product.jpg',
-        originalPrice: '$115',
+        originalPrice: '₹ 115',
         discount: '15%',
-        price: '$97',
+        price: '₹ 97',
         priceNum: 97,
         link: '/products/handcrafted-tuscan-leather-travel-weekender'
       },
@@ -360,9 +360,9 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
         slug: 'round-polarized-sunglasses-on-carrara-marble',
         title: 'Modular Zip Coin Card Case',
         image: '/images/news-5-product.jpg',
-        originalPrice: '$55',
+        originalPrice: '₹ 55',
         discount: '10%',
-        price: '$49',
+        price: '₹ 49',
         priceNum: 49,
         link: '/products/round-polarized-sunglasses-on-carrara-marble'
       }
@@ -592,14 +592,14 @@ export const StyleLayering: React.FC = () => {
                             <a
                               key={prod.id}
                               href={prod.link}
-                              className="group block text-left transition-transform duration-300 hover:-translate-y-1"
+                              className="style-layering-prod-card block text-left"
                             >
                               {/* White Product Image Container - 173x230.78 */}
                               <div className="style-layering-prod-img-box relative w-full sm:w-[173px] h-auto sm:h-[230.78px] aspect-[173/230.78] bg-white rounded-sm overflow-hidden mb-2 shadow-sm">
                                 <img
                                   src={prod.image}
                                   alt={prod.title}
-                                  className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                                  className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center"
                                   loading={isActive ? "eager" : "lazy"}
                                 />
                                 {/* Wishlist Button inside Image */}
