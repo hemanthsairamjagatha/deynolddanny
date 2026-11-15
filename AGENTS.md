@@ -2761,6 +2761,23 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Updated Category Tab Bottom Padding to 12px with Active Indicator**:
+  - **Status:** COMPLETE
+  - **Summary:** Updated the `.mastery-category-tab` CSS padding from `4px 0` to `0px 0px 12px` and `position: relative` in `src/styles/luxury-custom.css` as requested in the user-provided Chrome DevTools inspection screenshot (`media_1794707338158_f5a6c65c.png`). Added active tab indicator `<span className="absolute left-0 bottom-0 h-[2px] w-full bg-black pointer-events-none" aria-hidden="true" />` in `src/features/catalog/components/ProductCarousel.tsx` matching `media_1794707338148_bc6831d8.png`.
+  - **Files Modified:**
+    - `src/features/catalog/components/ProductCarousel.tsx`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (85 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 11.35s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
