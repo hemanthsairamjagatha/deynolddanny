@@ -4,6 +4,7 @@ import Header from '../components/layout/Header.astro';
 import HeroBanner from '../features/home/components/HeroBanner.astro';
 import CategoryGrid from '../features/home/components/CategoryGrid.astro';
 import ProductCarousel from '../features/catalog/components/ProductCarousel';
+import StyleLayering from '../features/home/components/StyleLayering';
 import CartDrawer from '../features/cart/components/CartDrawer';
 import Footer from '../components/layout/Footer.astro';
 
@@ -62,6 +63,9 @@ const BEST_SELLER_CATEGORIES = [
       products={styleSpaceProducts}
       sectionClass="mastery-section"
     />
+
+    <!-- 4. Style Layering Editorial Lookbook Section (Referenced Design) -->
+    <StyleLayering client:load />
   </main>
 
   <!-- Luxury Minimalist White Footer -->

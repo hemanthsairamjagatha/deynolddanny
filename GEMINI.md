@@ -1883,6 +1883,25 @@ task.
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
+- **2026-11-15 — Added Style Layering Editorial Lookbook Section**:
+  - **Status:** COMPLETE
+  - **Summary:** Added the "STYLE LAYERING" lookbook section directly beneath the "STYLE SPACE" carousel in `src/pages/index.astro` as requested in the user-provided reference design (`media_1794709321036_77a2bd6c.png`). Implemented `src/features/home/components/StyleLayering.tsx` featuring a 3-panel center-mode editorial lookbook slider with full-bleed model backdrops, centered collection branding & "Shop Now" CTAs, interactive `<` / `>` navigation controls, side peek cards, and an overlay row of 3 shoppable product cards with reactive Nano Stores wishlist buttons, white container cards, and discount pricing. Added `.style-layering-section` styles in `src/styles/luxury-custom.css`.
+  - **Files Added:**
+    - `src/features/home/components/StyleLayering.tsx`
+  - **Files Modified:**
+    - `src/pages/index.astro`
+    - `src/styles/luxury-custom.css`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** Added `StyleLayering.tsx` component to `src/features/home/components/` and rendered `<StyleLayering client:load />` under STYLE SPACE in `src/pages/index.astro`.
+  - **Validation:**
+    - `npx astro check`: PASS (86 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (61 static pages built cleanly in 3.56s).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+
 
 
 
