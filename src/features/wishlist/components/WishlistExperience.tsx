@@ -4,7 +4,8 @@ import {
   $wishlistItems,
   $wishlistCount,
   removeFromWishlist,
-  clearWishlist
+  clearWishlist,
+  syncWishlistWithBackend,
 } from '../store/wishlist.store';
 import { addToCart, openCart } from '../../cart/store/cart.store';
 
@@ -17,18 +18,7 @@ export const WishlistExperience: React.FC = () => {
 
   useEffect(() => {
     setIsMounted(true);
-    // Sync with localStorage on client mount in case items exist
-    try {
-      const raw = localStorage.getItem('deynold_danny_wishlist');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length !== $wishlistItems.get().length) {
-          $wishlistItems.set(parsed);
-        }
-      }
-    } catch {
-      // ignore
-    }
+    syncWishlistWithBackend().catch(() => {});
   }, []);
 
   const handleAddToCart = (item: (typeof items)[0], e: React.MouseEvent) => {

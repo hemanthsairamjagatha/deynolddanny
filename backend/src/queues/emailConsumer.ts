@@ -1,16 +1,16 @@
 /**
  * Email Queue Consumer — Cloudflare Queue Handler
- *
- * Processes batches of EmailJob items dispatched to the deynold-danny-emails queue.
- * Handles three email types: otp, order_confirmed, order_shipped.
- *
- * Message retry: Cloudflare Queues automatically retries failed messages.
- * We ack all messages individually to avoid partial-batch retries.
  */
 
 import type { Env } from '../types/bindings.js';
 import type { EmailJob } from '../types/api.js';
-import { sendOtpEmail, sendOrderConfirmedEmail, sendOrderShippedEmail, type OrderEmailItem } from '../services/resend.js';
+import {
+  recordAndSendEmail,
+  sendOtpEmail,
+  sendOrderConfirmedEmail,
+  sendOrderShippedEmail,
+  type OrderEmailItem,
+} from '../services/resend.js';
 
 export async function processEmailQueue(
   batch: MessageBatch<EmailJob>,
@@ -21,7 +21,7 @@ export async function processEmailQueue(
 
     try {
       if (job.type === 'otp') {
-        await sendOtpEmail(env.RESEND_API_KEY, job.to, job.otp);
+        await sendOtpEmail(env.RESEND_API_KEY, job.to, job.otp, env.RESEND_FROM_EMAIL);
       } else if (job.type === 'order_confirmed') {
         const emailItems: OrderEmailItem[] = job.items.map((item) => ({
           title: item.title,
@@ -30,30 +30,45 @@ export async function processEmailQueue(
           quantity: item.quantity,
           unitPrice: item.unitPrice,
         }));
-        await sendOrderConfirmedEmail(
-          env.RESEND_API_KEY,
+        await recordAndSendEmail(
+          env.DB,
+          `order_confirmed:${job.orderNumber}`,
+          'order_confirmed',
           job.to,
-          job.orderNumber,
-          job.totalFormatted,
-          emailItems,
+          job,
+          () =>
+            sendOrderConfirmedEmail(
+              env.RESEND_API_KEY,
+              job.to,
+              job.orderNumber,
+              job.totalFormatted,
+              emailItems,
+              env.RESEND_FROM_EMAIL,
+            ),
         );
       } else if (job.type === 'order_shipped') {
-        await sendOrderShippedEmail(
-          env.RESEND_API_KEY,
+        await recordAndSendEmail(
+          env.DB,
+          `order_shipped:${job.orderNumber}:${job.trackingNumber}`,
+          'order_shipped',
           job.to,
-          job.orderNumber,
-          job.courierPartner,
-          job.trackingNumber,
+          job,
+          () =>
+            sendOrderShippedEmail(
+              env.RESEND_API_KEY,
+              job.to,
+              job.orderNumber,
+              job.courierPartner,
+              job.trackingNumber,
+              env.RESEND_FROM_EMAIL,
+            ),
         );
       }
 
-      // Explicitly acknowledge each message on success
       message.ack();
     } catch (err) {
-      console.error(`[EmailQueue] Failed to send ${job.type} email to ${job.to}:`, err);
-      // Retry the message — Cloudflare will re-deliver it after the retry delay
+      console.error(`[EmailQueue] Failed to process ${job.type} email:`, err);
       message.retry();
     }
   }
 }
-

@@ -6,15 +6,17 @@ import { siteConfig } from '../config/site.config';
 interface Props {
   title?: string;
   description?: string;
+  noindex?: boolean;
 }
 
 const {
   title = `Client Access | ${siteConfig.name}`,
-  description = 'Sign in or create your DEYNOLD DANNY client profile.'
+  description = 'Sign in or create your DEYNOLD DANNY client profile.',
+  noindex = true
 } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} noindex={noindex}>
   <div class="min-h-screen flex flex-col bg-[#faf8f5] text-neutral-900 selection:bg-neutral-900 selection:text-white">
     {/* Minimal Luxury Top Bar */}
     <header class="w-full border-b border-neutral-200/70 bg-white/80 backdrop-blur-md sticky top-0 z-30">
@@ -47,7 +49,7 @@ const {
 
         {/* Right: Concierge Assistance */}
         <a
-          href="#concierge"
+          href="/contact"
           class="text-xs uppercase tracking-wider text-neutral-500 hover:text-black transition-colors font-mono"
         >
           <span class="hidden sm:inline">Concierge</span>
@@ -57,7 +59,7 @@ const {
     </header>
 
     {/* Main Content Area */}
-    <main class="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 lg:py-16">
+    <main id="main-content" class="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 lg:py-16">
       <slot />
     </main>
 

@@ -8,28 +8,30 @@ import {
   bulkAdjustStock,
   getLowStockVariants,
 } from '../../db/queries/inventory.js';
-import { invalidateCatalogCache } from '../../services/cache.js';
 import { generateId } from '../../services/crypto.js';
 import { nowIso } from '../../db/client.js';
 
 const adminInventory = new Hono<{ Bindings: Env }>();
 
-// ─── GET /api/admin/inventory ────────────────────────────────────────────────
+async function bumpCatalogVersion(kv: KVNamespace): Promise<void> {
+  try {
+    await kv.put('catalog:version', `v_${Date.now()}`);
+  } catch {
+    // Non-fatal
+  }
+}
 
 adminInventory.get('/', async (c) => {
   const matrix = await getInventoryMatrix(c.env.DB);
   return c.json({ success: true, data: { items: matrix, total: matrix.length } });
 });
 
-// ─── GET /api/admin/inventory/low-stock ──────────────────────────────────────
-
 adminInventory.get('/low-stock', async (c) => {
-  const threshold = Number(c.req.query('threshold') ?? '3');
+  const rawThreshold = Number(c.req.query('threshold') ?? '3');
+  const threshold = Number.isFinite(rawThreshold) ? Math.max(0, Math.floor(rawThreshold)) : 3;
   const items = await getLowStockVariants(c.env.DB, threshold);
   return c.json({ success: true, data: { items, total: items.length } });
 });
-
-// ─── PATCH /api/admin/inventory/:variantId — single stock update ─────────────
 
 const adjustSchema = z.object({
   stock: z.number().int().min(0, 'Stock cannot be negative'),
@@ -41,12 +43,29 @@ adminInventory.patch('/:variantId', zValidator('json', adjustSchema), async (c) 
   const ip = c.req.header('CF-Connecting-IP') ?? null;
   const { stock } = c.req.valid('json');
 
-  await adjustStock(c.env.DB, variantId, stock);
+  const result = await adjustStock(c.env.DB, variantId, stock, adminId);
+  if (!result.updated) {
+    if (result.reservedStock !== undefined) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'STOCK_CONFLICT',
+            message: `Cannot adjust stock to ${stock} below currently reserved holds (${result.reservedStock}).`,
+            status: 409,
+          },
+        },
+        409,
+      );
+    }
+    return c.json(
+      { success: false, error: { code: 'NOT_FOUND', message: 'Variant not found.', status: 404 } },
+      404,
+    );
+  }
 
-  // Invalidate catalog cache (stock affects availability display)
-  await invalidateCatalogCache(c.env.CATALOG_KV);
+  await bumpCatalogVersion(c.env.CATALOG_KV);
 
-  // Log
   await c.env.DB
     .prepare(
       `INSERT INTO admin_logs (id, admin_id, action, entity_type, entity_id, metadata, ip_address, created_at)
@@ -58,13 +77,11 @@ adminInventory.patch('/:variantId', zValidator('json', adjustSchema), async (c) 
   return c.json({ success: true, data: { variantId, stock } });
 });
 
-// ─── POST /api/admin/inventory/bulk-adjust ───────────────────────────────────
-
 const bulkAdjustSchema = z.object({
   adjustments: z
     .array(
       z.object({
-        variantId: z.string(),
+        variantId: z.string().min(1),
         newStock: z.number().int().min(0),
       }),
     )
@@ -77,19 +94,18 @@ adminInventory.post('/bulk-adjust', zValidator('json', bulkAdjustSchema), async 
   const ip = c.req.header('CF-Connecting-IP') ?? null;
   const { adjustments } = c.req.valid('json');
 
-  await bulkAdjustStock(c.env.DB, adjustments);
-  await invalidateCatalogCache(c.env.CATALOG_KV);
+  const outcome = await bulkAdjustStock(c.env.DB, adjustments, adminId);
+  await bumpCatalogVersion(c.env.CATALOG_KV);
 
   await c.env.DB
     .prepare(
       `INSERT INTO admin_logs (id, admin_id, action, entity_type, entity_id, metadata, ip_address, created_at)
        VALUES (?1, ?2, 'BULK_ADJUST_STOCK', 'product_variant', 'bulk', ?3, ?4, ?5)`,
     )
-    .bind(generateId('log_'), adminId, JSON.stringify({ count: adjustments.length }), ip, nowIso())
+    .bind(generateId('log_'), adminId, JSON.stringify(outcome), ip, nowIso())
     .run();
 
-  return c.json({ success: true, data: { updated: adjustments.length } });
+  return c.json({ success: true, data: outcome });
 });
 
 export default adminInventory;
-

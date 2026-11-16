@@ -2,13 +2,17 @@
 
 export const COOKIE_REFRESH_TOKEN = 'dd_refresh';
 export const COOKIE_PATH = '/api/auth';
-export const ACCESS_TOKEN_EXPIRY = '30d';
+export const ACCESS_TOKEN_EXPIRY = '15m';
 export const REFRESH_TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 90; // 90 days
 
-// Paise constants (all monetary values stored as integer paise)
-export const FREE_SHIPPING_THRESHOLD_PAISE = 500_000;  // ₹5,000
-export const STANDARD_SHIPPING_PAISE = 25_000;          // ₹250
-export const TAX_RATE = 0.12;                           // 12% GST
+// Paise constants (defaults — runtime overrides resolved via config/policy.ts)
+export const FREE_SHIPPING_THRESHOLD_PAISE = 500_000;  // ₹5,000 default
+export const STANDARD_SHIPPING_PAISE = 0;               // Configurable via STANDARD_SHIPPING_PAISE env
+export const TAX_RATE = 0.12;                           // Default 12% GST bps = 1200 (configurable via env/product)
+export const DEFAULT_GST_RATE_BPS = 1200;               // 12.00% default until CA confirms HSN overrides
+export const GATEWAY_FETCH_TIMEOUT_MS = 8_000;
+export const CASHFREE_WEBHOOK_MAX_AGE_SECONDS = 300;
+export const D1_MAX_BATCH_SIZE = 50;
 
 // OTP
 export const OTP_EXPIRY_MINUTES = 10;

@@ -12,12 +12,14 @@
 # Generate: openssl rand -hex 32  (outputs 64 hex characters)
 # Minimum: 32 characters. NEVER share or commit this value.
 JWT_SECRET="dev_replace_with_64_char_random_string_before_production_use_openssl"
+JWT_SECRET_PREV=""
 
 # ── 2. Resend Transactional Email ─────────────────────────────────────────────
 # From: resend.com → API Keys → Create API Key
 # Format: re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # Emails sent: OTP, order confirmation, dispatch, delivery, contact notification
 RESEND_API_KEY="re_your_resend_api_key_here"
+RESEND_FROM_EMAIL="DEYNOLD DANNY <concierge@deynolddanny.com>"
 
 # ── 3. Razorpay — Indian Payment Gateway ──────────────────────────────────────
 # From: razorpay.com → Settings → API Keys
@@ -32,10 +34,12 @@ RAZORPAY_WEBHOOK_SECRET="your_razorpay_webhook_secret_here"
 # Your Shiprocket login credentials (same as app.shiprocket.in login)
 SHIPROCKET_EMAIL="your_shiprocket_account_email@example.com"
 SHIPROCKET_PASSWORD="your_shiprocket_password_here"
+# Shared secret header (`x-api-key`) configured in Shiprocket Webhook settings
+SHIPROCKET_WEBHOOK_TOKEN="replace_with_random_shiprocket_webhook_secret"
 # From: app.shiprocket.in → Settings → Channels → Channel ID (numeric)
 SHIPROCKET_CHANNEL_ID=""
 # Your warehouse/origin pincode (6 digits)
-SHIPROCKET_PICKUP_PINCODE="400001"
+SHIPROCKET_PICKUP_PINCODE=""
 
 # ── 5. Admin Access ───────────────────────────────────────────────────────────
 # Comma-separated list of admin email addresses.

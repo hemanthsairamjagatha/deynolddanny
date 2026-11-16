@@ -4,16 +4,14 @@ import { z } from 'zod';
 import type { Env } from '../types/bindings.js';
 import { formatPaiseToDisplay } from '../services/money.js';
 
+import { nowIso } from '../db/client.js';
+
 const coupons = new Hono<{ Bindings: Env }>();
 
 const validateCouponSchema = z.object({
   code: z.string().min(1).max(50),
   cartSubtotalPaise: z.number().int().min(1),
 });
-
-// ─── POST /api/coupons/validate ─────────────────────────────────────────────
-// Real-time coupon validation WITHOUT committing usage (pure read-only check)
-// Use this for live UI feedback. The actual commitment happens inside /api/checkout.
 
 coupons.post('/validate', zValidator('json', validateCouponSchema), async (c) => {
   const { code, cartSubtotalPaise } = c.req.valid('json');
@@ -26,10 +24,10 @@ coupons.post('/validate', zValidator('json', validateCouponSchema), async (c) =>
        FROM coupons
        WHERE code = ?1 COLLATE NOCASE
          AND is_active = 1
-         AND (expires_at IS NULL OR expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+         AND (expires_at IS NULL OR expires_at > ?2)
          AND (usage_limit IS NULL OR used_count < usage_limit)`,
     )
-    .bind(code)
+    .bind(code.trim(), nowIso())
     .first<{
       id: string;
       code: string;
@@ -68,7 +66,8 @@ coupons.post('/validate', zValidator('json', validateCouponSchema), async (c) =>
   // Calculate discount — read-only, no DB write
   let discountPaise = 0;
   if (coupon.discount_type === 'percentage') {
-    discountPaise = Math.round(cartSubtotalPaise * (coupon.discount_value / 100));
+    const cappedPct = Math.min(100, Math.max(0, coupon.discount_value));
+    discountPaise = Math.round(cartSubtotalPaise * (cappedPct / 100));
     if (coupon.max_discount_paise) {
       discountPaise = Math.min(discountPaise, coupon.max_discount_paise);
     }

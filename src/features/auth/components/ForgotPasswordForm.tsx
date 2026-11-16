@@ -37,11 +37,14 @@ export const ForgotPasswordForm: React.FC = () => {
       {/* Editorial Header */}
       <div className="text-center pb-8 border-b border-neutral-100">
         <span className="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
-          Security Assistance
+          Passwordless Access
         </span>
         <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-neutral-900 font-serif">
-          Reset Password
+          Request Access Code
         </h1>
+        <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
+          DEYNOLD DANNY uses one-time 6-digit verification codes instead of static passwords.
+        </p>
       </div>
 
       {errorMessage && (
@@ -89,7 +92,7 @@ export const ForgotPasswordForm: React.FC = () => {
                 DISPATCHING...
               </span>
             ) : (
-              'SEND RECOVERY LINK'
+              'SEND 6-DIGIT ACCESS CODE'
             )}
           </button>
         </form>
@@ -102,10 +105,10 @@ export const ForgotPasswordForm: React.FC = () => {
               </svg>
             </div>
             <h2 className="text-sm font-medium text-neutral-900 uppercase tracking-wider mb-1">
-              Instructions Dispatched
+              Verification Code Dispatched
             </h2>
             <p className="text-xs text-neutral-600 leading-relaxed">
-              If an account is associated with <span className="font-semibold text-neutral-900">{email}</span>, you will receive an email with reset instructions shortly.
+              If an account is associated with <span className="font-semibold text-neutral-900">{email}</span>, a 6-digit verification code has been dispatched. Enter it on the Sign In page within 15 minutes.
             </p>
           </div>
 
@@ -131,7 +134,7 @@ export const ForgotPasswordForm: React.FC = () => {
       {/* Back to Sign In Link */}
       {!isSubmitted && (
         <div className="mt-8 pt-6 border-t border-neutral-100 text-center text-xs text-neutral-600">
-          <span>Remember your password? </span>
+          <span>Already have a verification code? </span>
           <a
             href="/account/sign-in"
             className="font-medium text-neutral-900 underline underline-offset-4 hover:text-black transition-colors"

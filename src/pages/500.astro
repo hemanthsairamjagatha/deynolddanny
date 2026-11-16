@@ -1,0 +1,36 @@
+---
+// src/pages/500.astro
+import StorefrontLayout from '../layouts/StorefrontLayout.astro';
+---
+
+<StorefrontLayout
+  title="Temporary Service Interruption | DEYNOLD DANNY"
+  description="An unexpected interruption occurred while rendering your request."
+  noindex={true}
+>
+  <main id="main-content" class="min-h-[65vh] bg-white flex items-center justify-center px-6 py-20">
+    <div class="max-w-lg text-center space-y-6">
+      <p class="text-[11px] uppercase tracking-[0.28em] text-neutral-400 font-medium">Error 500</p>
+      <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900">
+        We encountered an unexpected interruption
+      </h1>
+      <p class="text-sm text-neutral-600 leading-relaxed">
+        Our atelier engineering team has been alerted. Please reload the page or contact Client Concierge for immediate assistance.
+      </p>
+      <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/"
+          class="inline-flex min-h-[44px] items-center justify-center bg-neutral-900 px-6 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-black"
+        >
+          Return Home
+        </a>
+        <a
+          href="/contact"
+          class="inline-flex min-h-[44px] items-center justify-center border border-neutral-300 bg-white px-6 py-3 text-xs font-medium uppercase tracking-[0.16em] text-neutral-900 transition-colors hover:border-black"
+        >
+          Client Concierge
+        </a>
+      </div>
+    </div>
+  </main>
+</StorefrontLayout>

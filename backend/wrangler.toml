@@ -3,65 +3,153 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+# Local development defaults only.
+# Staging and production MUST deploy with `--env staging` or `--env production`
+# and configure secrets via `wrangler secret put <KEY> --env <ENV>`.
 [vars]
-ENVIRONMENT = "production"
-FRONTEND_URL = "https://deynolddanny.pixenox.com"
-BACKEND_URL = "https://deynold-danny-backend.deynolddanny.workers.dev"
-ADMIN_URL = "https://deynolddanny.pixenox.com"
-MEDIA_BUCKET_PUBLIC_URL = "http://localhost:8787/media"
-RAZORPAY_KEY_ID = "rzp_test_placeholder"
-SHIPROCKET_PICKUP_PINCODE = "400001"
+ENVIRONMENT = "development"
+FRONTEND_URL = "http://localhost:4321"
+BACKEND_URL = "http://127.0.0.1:8787"
+ADMIN_URL = "http://localhost:4321"
+MEDIA_BUCKET_PUBLIC_URL = "http://127.0.0.1:8787/media"
+SHIPROCKET_PICKUP_PINCODE = ""
 SHIPROCKET_CHANNEL_ID = ""
 CASHFREE_API_URL = "https://sandbox.cashfree.com/pg"
 CASHFREE_API_VERSION = "2023-08-01"
+FREE_SHIPPING_THRESHOLD_PAISE = "500000"
+STANDARD_SHIPPING_PAISE = "0"
+DEFAULT_GST_RATE_BPS = "1200"
+TAX_INCLUSIVE = "true"
+ENABLE_TEST_CHECKOUT_FALLBACK = "false"
+AUTO_REFUND_DUPLICATE_CAPTURE = "false"
+COURIER_FAIL_OPEN = "false"
+SINGLE_USE_COUPONS_PER_USER = "true"
+RETURN_WINDOW_DAYS = "14"
 
 # Cloudflare D1 Database
 [[d1_databases]]
 binding = "DB"
 database_name = "deynold-danny-db"
 database_id = "e7a8af53-0174-4e60-8ef6-bf65acb5ae92"
+migrations_dir = "migrations"
 
 # Cloudflare KV (Catalog Edge Cache — read-only catalog caching)
 [[kv_namespaces]]
 binding = "CATALOG_KV"
 id = "1714f27a97d74d86bf98e151adc00862"
 
-# Cloudflare R2 (Product Image Storage - enable via Cloudflare Dashboard > R2 to activate)
-# [[r2_buckets]]
-# binding = "MEDIA_BUCKET"
-# bucket_name = "deynold-danny-assets"
-
-# Cloudflare Queues (Optional async email dispatch - emails currently handled via ctx.waitUntil)
-# [[queues.producers]]
-# binding = "EMAIL_QUEUE"
-# queue = "deynold-danny-emails"
-#
-# [[queues.consumers]]
-# queue = "deynold-danny-emails"
-# max_batch_size = 10
-# max_batch_timeout = 30
-
-# Scheduled Cron: Release expired stock reservations every 5 minutes
+# Scheduled Cron: Release expired stock reservations & clean old rate limits
 [triggers]
 crons = ["*/5 * * * *"]
 
-# Production environment overrides
+# -----------------------------------------------------------------------------
+# Staging environment
+# -----------------------------------------------------------------------------
+[env.staging]
+name = "deynold-danny-backend-staging"
+[env.staging.vars]
+ENVIRONMENT = "staging"
+FRONTEND_URL = "https://deynolddanny.pixenox.com"
+BACKEND_URL = "https://deynold-danny-backend.deynolddanny.workers.dev"
+ADMIN_URL = "https://deynolddanny.pixenox.com"
+MEDIA_BUCKET_PUBLIC_URL = "https://deynolddanny.pixenox.com/media"
+SHIPROCKET_PICKUP_PINCODE = ""
+SHIPROCKET_CHANNEL_ID = ""
+CASHFREE_API_URL = "https://sandbox.cashfree.com/pg"
+CASHFREE_API_VERSION = "2023-08-01"
+FREE_SHIPPING_THRESHOLD_PAISE = "500000"
+STANDARD_SHIPPING_PAISE = "0"
+DEFAULT_GST_RATE_BPS = "1200"
+TAX_INCLUSIVE = "true"
+ENABLE_TEST_CHECKOUT_FALLBACK = "false"
+AUTO_REFUND_DUPLICATE_CAPTURE = "false"
+COURIER_FAIL_OPEN = "false"
+SINGLE_USE_COUPONS_PER_USER = "true"
+RETURN_WINDOW_DAYS = "14"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "deynold-danny-db"
+database_id = "e7a8af53-0174-4e60-8ef6-bf65acb5ae92"
+migrations_dir = "migrations"
+
+[[env.staging.kv_namespaces]]
+binding = "CATALOG_KV"
+id = "1714f27a97d74d86bf98e151adc00862"
+
+[env.staging.triggers]
+crons = ["*/5 * * * *"]
+
+# -----------------------------------------------------------------------------
+# Production environment
+# -----------------------------------------------------------------------------
 [env.production]
+name = "deynold-danny-backend"
 [env.production.vars]
 ENVIRONMENT = "production"
 FRONTEND_URL = "https://deynolddanny.com"
 BACKEND_URL = "https://api.deynolddanny.com"
 ADMIN_URL = "https://admin.deynolddanny.com"
 MEDIA_BUCKET_PUBLIC_URL = "https://media.deynolddanny.com"
-SHIPROCKET_PICKUP_PINCODE = "400001"
+SHIPROCKET_PICKUP_PINCODE = ""
 SHIPROCKET_CHANNEL_ID = ""
+CASHFREE_API_URL = "https://api.cashfree.com/pg"
+CASHFREE_API_VERSION = "2023-08-01"
+FREE_SHIPPING_THRESHOLD_PAISE = "500000"
+STANDARD_SHIPPING_PAISE = "0"
+DEFAULT_GST_RATE_BPS = "1200"
+TAX_INCLUSIVE = "true"
+ENABLE_TEST_CHECKOUT_FALLBACK = "false"
+AUTO_REFUND_DUPLICATE_CAPTURE = "false"
+COURIER_FAIL_OPEN = "false"
+SINGLE_USE_COUPONS_PER_USER = "true"
+RETURN_WINDOW_DAYS = "14"
 
-# Secrets to be configured via `wrangler secret put <KEY>`:
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "deynold-danny-db"
+database_id = "e7a8af53-0174-4e60-8ef6-bf65acb5ae92"
+migrations_dir = "migrations"
+
+[[env.production.kv_namespaces]]
+binding = "CATALOG_KV"
+id = "1714f27a97d74d86bf98e151adc00862"
+
+[env.production.triggers]
+crons = ["*/5 * * * *"]
+
+# Cloudflare R2 (Uncomment once bucket is created in Cloudflare Dashboard > R2)
+# [[env.production.r2_buckets]]
+# binding = "MEDIA_BUCKET"
+# bucket_name = "deynold-danny-assets"
+
+# Cloudflare Queues (Uncomment once Paid Workers / Queues plan is active)
+# [[env.production.queues.producers]]
+# binding = "EMAIL_QUEUE"
+# queue = "deynold-danny-emails"
+#
+# [[env.production.queues.consumers]]
+# queue = "deynold-danny-emails"
+# max_batch_size = 10
+# max_batch_timeout = 30
+
+# Secrets to be configured via `wrangler secret put <KEY> --env <staging|production>`:
 # - JWT_SECRET
+# - JWT_SECRET_PREV               (optional previous secret during key rotation)
 # - RESEND_API_KEY
+# - RESEND_FROM_EMAIL             (verified Resend sender e.g. "DEYNOLD DANNY <concierge@deynolddanny.com>")
 # - RAZORPAY_KEY_ID
 # - RAZORPAY_KEY_SECRET
 # - RAZORPAY_WEBHOOK_SECRET
 # - SHIPROCKET_EMAIL
 # - SHIPROCKET_PASSWORD
+# - SHIPROCKET_WEBHOOK_TOKEN      (shared x-api-key header configured in Shiprocket webhook settings)
 # - ADMIN_EMAILS
+# - CLOUDFLARE_ACCESS_AUD         (optional Cloudflare Access AUD tag for zero-trust admin defense-in-depth)
+# - CLOUDFLARE_ACCESS_TEAM_DOMAIN (optional e.g. https://deynolddanny.cloudflareaccess.com)
+# - PAYMENT_UPI_MAX_PAISE         (optional UPI ceiling once confirmed by provider, e.g. 10000000)
+# - PAN_VERIFICATION_THRESHOLD_PAISE (optional statutory PAN threshold once CA confirms, e.g. 20000000)
+# - EWAY_BILL_THRESHOLD_PAISE     (optional statutory E-Way threshold once CA confirms, e.g. 5000000)
+# - INVOICE_RETENTION_YEARS       (optional statutory archival retention years once CA confirms)
+# - CASHFREE_APP_ID               (optional legacy fallback)
+# - CASHFREE_SECRET_KEY           (optional legacy fallback)

@@ -9,9 +9,10 @@ import {
 } from '../config/constants.js';
 
 export interface JwtPayload {
-  sub: string;    // userId
+  sub: string;
   email: string;
   role: string;
+  ver?: number;
 }
 
 /**
@@ -19,7 +20,12 @@ export interface JwtPayload {
  */
 export async function signAccessToken(payload: JwtPayload, secret: string): Promise<string> {
   const key = new TextEncoder().encode(secret);
-  return new SignJWT({ sub: payload.sub, email: payload.email, role: payload.role })
+  return new SignJWT({
+    sub: payload.sub,
+    email: payload.email,
+    role: payload.role,
+    ver: payload.ver ?? 1,
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)
@@ -28,55 +34,80 @@ export async function signAccessToken(payload: JwtPayload, secret: string): Prom
 }
 
 /**
- * Verifies an access token and returns the decoded payload.
- * Throws on invalid/expired tokens — callers must catch.
+ * Verifies an access token against primary JWT_SECRET and optional rotation secret JWT_SECRET_PREV.
+ * Throws on invalid/expired tokens.
  */
-export async function verifyAccessToken(token: string, secret: string): Promise<JwtPayload> {
+export async function verifyAccessToken(
+  token: string,
+  secret: string,
+  prevSecret?: string,
+): Promise<JwtPayload> {
   const key = new TextEncoder().encode(secret);
-  const { payload } = await jwtVerify(token, key, { issuer: 'deynold-danny' });
-  return payload as unknown as JwtPayload;
+  try {
+    const { payload } = await jwtVerify(token, key, { issuer: 'deynold-danny' });
+    return payload as unknown as JwtPayload;
+  } catch (err) {
+    if (prevSecret && prevSecret.length >= 16) {
+      const prevKey = new TextEncoder().encode(prevSecret);
+      const { payload } = await jwtVerify(token, prevKey, { issuer: 'deynold-danny' });
+      return payload as unknown as JwtPayload;
+    }
+    throw err;
+  }
+}
+
+function buildCookieAttributes(c: Context<{ Bindings: Env }>, maxAge: number): string[] {
+  const reqUrl = new URL(c.req.url);
+  const isHttps =
+    reqUrl.protocol === 'https:' ||
+    c.req.header('x-forwarded-proto') === 'https';
+
+  const originHeader = c.req.header('Origin');
+  let isCrossSite = false;
+  if (originHeader) {
+    try {
+      const originHost = new URL(originHeader).host;
+      isCrossSite = originHost !== reqUrl.host;
+    } catch {
+      isCrossSite = true;
+    }
+  }
+
+  const attrs = ['HttpOnly', `Max-Age=${maxAge}`, `Path=${COOKIE_PATH}`];
+
+  if (isHttps) {
+    attrs.push('Secure');
+    attrs.push(isCrossSite ? 'SameSite=None' : 'SameSite=Lax');
+  } else {
+    // Local plain-HTTP dev: SameSite=Lax without Secure so http://localhost preserves cookies
+    attrs.push('SameSite=Lax');
+  }
+
+  return attrs;
 }
 
 /**
- * Sets an HttpOnly Secure SameSite=None refresh-token cookie (cross-origin compatible).
+ * Sets an HttpOnly refresh-token cookie compatible with both same-origin BFF proxy (SameSite=Lax)
+ * and explicit cross-origin HTTPS admin dashboards (SameSite=None; Secure).
  */
 export function setRefreshCookie(c: Context<{ Bindings: Env }>, token: string): void {
-  c.header(
-    'Set-Cookie',
-    [
-      `${COOKIE_REFRESH_TOKEN}=${token}`,
-      'HttpOnly',
-      'Secure',
-      'SameSite=None',
-      `Max-Age=${REFRESH_TOKEN_EXPIRY_SECONDS}`,
-      `Path=${COOKIE_PATH}`,
-    ].join('; '),
-  );
+  const attrs = buildCookieAttributes(c, REFRESH_TOKEN_EXPIRY_SECONDS);
+  c.header('Set-Cookie', [`${COOKIE_REFRESH_TOKEN}=${token}`, ...attrs].join('; '));
 }
 
 /**
  * Clears the refresh-token cookie by setting Max-Age=0.
  */
 export function clearRefreshCookie(c: Context<{ Bindings: Env }>): void {
-  c.header(
-    'Set-Cookie',
-    [
-      `${COOKIE_REFRESH_TOKEN}=`,
-      'HttpOnly',
-      'Secure',
-      'SameSite=None',
-      'Max-Age=0',
-      `Path=${COOKIE_PATH}`,
-    ].join('; '),
-  );
+  const attrs = buildCookieAttributes(c, 0);
+  c.header('Set-Cookie', [`${COOKIE_REFRESH_TOKEN}=`, ...attrs].join('; '));
 }
 
 /**
  * Extracts the refresh token value from the Cookie header.
- * Returns null if not present.
  */
 export function getRefreshTokenFromCookie(c: Context): string | null {
   const cookieHeader = c.req.header('Cookie') ?? '';
-  const match = cookieHeader.match(new RegExp(`${COOKIE_REFRESH_TOKEN}=([^;]+)`));
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_REFRESH_TOKEN}=([^;]+)`));
   return match?.[1] ?? null;
 }

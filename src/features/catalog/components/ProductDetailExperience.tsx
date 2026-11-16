@@ -1,9 +1,13 @@
-import React, { useState, useRef } from 'react';
-import type { ProductCardData } from '../types/product.types';
+import React, { useState, useRef, useEffect } from 'react';
+import type { ProductCardData, ProductVariant } from '../types/product.types';
 import { ProductLightbox } from './ProductLightbox';
 import { FitFinderDialog } from '../fit-finder/FitFinderDialog';
 import { SizeGuideDialog } from '../size-guide/SizeGuideDialog';
 import { addToCart, openCart } from '../../cart/store/cart.store';
+import { WishlistButton } from '../../wishlist/components/WishlistButton';
+import { apiFetch } from '../../../lib/api/client';
+import { fetchStorefrontConfigApi } from '../../checkout/api/checkout.api';
+import { ecommerceConfig } from '../../../config/ecommerce.config';
 
 interface ProductDetailExperienceProps {
   product: ProductCardData;
@@ -40,11 +44,9 @@ const DetailAccordion: React.FC<DetailAccordionProps> = ({ id, title, isOpen, on
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M6 9l6 6 6-6" />
       </svg>
     </button>
-    {isOpen && (
-      <div id={id} className="pb-4 space-y-2 text-[12px] leading-[1.65] text-neutral-800">
-        {children}
-      </div>
-    )}
+    <div id={id} hidden={!isOpen} className="pb-4 space-y-2 text-[12px] leading-[1.65] text-neutral-800">
+      {children}
+    </div>
   </div>
 );
 
@@ -61,7 +63,65 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
   const [copied, setCopied] = useState(false);
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
   const [isCompositionOpen, setIsCompositionOpen] = useState(false);
+  const [liveVariants, setLiveVariants] = useState<ProductVariant[]>(product.variants || []);
+  const [livePrice, setLivePrice] = useState<string>(product.price);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(
+    ecommerceConfig.freeShippingThreshold,
+  );
   const galleryScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const slug = product.slug || product.id;
+    apiFetch<{ price?: string; variants?: Array<any> }>(
+      `/api/products/${encodeURIComponent(slug)}/availability`,
+      { skipAuthRefresh: true },
+    )
+      .then((res) => {
+        if (res.success && res.data) {
+          if (res.data.price) setLivePrice(res.data.price);
+          if (Array.isArray(res.data.variants) && res.data.variants.length > 0) {
+            setLiveVariants(
+              res.data.variants.map((v) => ({
+                id: v.id,
+                sku: v.id,
+                size: v.size,
+                colorName: v.colorName || 'Default',
+                colorHex: v.colorHex || '#111111',
+                stock: v.availableStock ?? 0,
+                reservedStock: 0,
+                inStock: Boolean(v.inStock),
+              })),
+            );
+          }
+        }
+      })
+      .catch(() => {});
+
+    fetchStorefrontConfigApi()
+      .then((res) => {
+        if (res.success && res.data && typeof res.data.freeShippingThresholdPaise === 'number') {
+          setFreeShippingThreshold(Math.round(res.data.freeShippingThresholdPaise / 100));
+        }
+      })
+      .catch(() => {});
+  }, [product.id, product.slug]);
+
+  useEffect(() => {
+    if (isPaused || isLightboxOpen) return;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      const container = galleryScrollRef.current;
+      if (!container) return;
+      const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 20;
+      container.scrollTo({
+        left: atEnd ? 0 : container.scrollLeft + 506,
+        behavior: 'smooth',
+      });
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [isPaused, isLightboxOpen]);
 
   // Compute active images based on color or product default images
   const colors = product.colors && product.colors.length > 0
@@ -135,16 +195,33 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       setSizeError(true);
       return;
     }
+
+    const activeSize = selectedSize || 'UNI';
+    const matchedVariant =
+      liveVariants.find(
+        (v) =>
+          v.size.toLowerCase() === activeSize.toLowerCase() &&
+          (!currentColor?.name || v.colorName.toLowerCase() === currentColor.name.toLowerCase()),
+      ) || liveVariants.find((v) => v.size.toLowerCase() === activeSize.toLowerCase());
+
+    if (matchedVariant && matchedVariant.inStock === false) {
+      setSizeError(true);
+      return;
+    }
+
     setSizeError(false);
     setIsAdding(true);
 
     addToCart({
       id: product.id,
+      slug: product.slug,
       title: product.title,
-      price: product.price,
+      price: livePrice,
       priceNum: product.priceNum,
+      color: currentColor?.name,
+      variantId: matchedVariant?.id,
       img: currentColor.swatchImg || currentColor.img || product.defaultImg,
-      size: selectedSize || 'UNI'
+      size: activeSize
     });
 
     setTimeout(() => {
@@ -252,12 +329,10 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               <a href="/" className="hover:text-black transition-colors">HOME</a>
               <span>&gt;</span>
               <a href="/categories" className="hover:text-black transition-colors">
-                {product.category ? product.category.toUpperCase() : 'CLOTHING'}
+                {product.category ? product.category.toUpperCase() : 'ATELIER'}
               </a>
               <span>&gt;</span>
-              <span>DRESSES AND OUTFITS</span>
-              <span>&gt;</span>
-              <span>{product.subCategory ? product.subCategory.toUpperCase() : 'SHORT DRESSES'}</span>
+              <span>{(product.tag || product.gender || 'COLLECTION').toUpperCase()}</span>
               <span>&gt;</span>
               <span className="text-neutral-800 font-semibold truncate max-w-[180px]">
                 {product.title.toUpperCase()}
@@ -271,7 +346,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               </span>
             ) : (
               <span className="text-black font-semibold text-[13px] flex-shrink-0">
-                {product.price}
+                {livePrice}
               </span>
             )}
           </div>
@@ -486,9 +561,9 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             }}
           />
 
-          {/* Row 8: Share Section (div.product-info-wishlist.d-flex.flex-column: 486 x 56, padding: 16px 0px, 14px) */}
+          {/* Row 8: Share & Save to Wishlist Section */}
           <div
-            className="product-info-wishlist d-flex flex-column flex items-center justify-between"
+            className="product-info-wishlist d-flex flex items-center justify-between gap-4"
             style={{
               width: '486px',
               maxWidth: '100%',
@@ -508,6 +583,23 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               </svg>
               <span>{copied ? 'Link copied to clipboard!' : 'Share this product'}</span>
             </button>
+
+            <div className="inline-flex items-center gap-1.5">
+              <span className="text-[12px] text-neutral-600">Save</span>
+              <WishlistButton
+                item={{
+                  id: product.id,
+                  slug: product.slug,
+                  title: product.title,
+                  price: livePrice,
+                  priceNum: product.priceNum,
+                  image: currentColor?.img || product.defaultImg,
+                  link: product.link,
+                  category: product.category,
+                  sizes: product.sizes,
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -524,9 +616,11 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
           <div className="min-w-0 w-full">
             <div className="mb-5 space-y-1 text-[13px] leading-[1.6] text-black">
               <p>
-                <strong className="font-semibold">Free shipping</strong>{' '}
-                on orders with minimum amount of{' '}
-                {product.price.includes('€') ? '€200' : '₹10,000'}.
+                <strong className="font-semibold">Complimentary express shipping</strong>{' '}
+                on orders above{' '}
+                {product.price.includes('€')
+                  ? '€200'
+                  : `₹${freeShippingThreshold.toLocaleString('en-IN')}`}.
               </p>
               <p className="font-semibold">Free return</p>
             </div>
@@ -699,6 +793,9 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
         isOpen={isSizeGuideOpen}
         onClose={() => setIsSizeGuideOpen(false)}
         productTitle={product.title}
+        category={product.category}
+        gender={product.gender}
+        sizes={product.sizes}
       />
     </div>
   );

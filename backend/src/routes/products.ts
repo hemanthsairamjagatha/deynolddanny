@@ -2,7 +2,13 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import type { Env } from '../types/bindings.js';
-import type { ApiProductCard, ApiProductDetail, ApiVariant, ApiGalleryGroup, ApiCrossSellItem } from '../types/api.js';
+import type {
+  ApiProductCard,
+  ApiProductDetail,
+  ApiVariant,
+  ApiGalleryGroup,
+  ApiCrossSellItem,
+} from '../types/api.js';
 import type { DbProduct, DbProductVariant } from '../types/models.js';
 import { authOptional } from '../middleware/auth.js';
 import {
@@ -15,11 +21,13 @@ import {
 } from '../db/queries/products.js';
 import { getCatalogCache, setCatalogCache } from '../services/cache.js';
 import { formatPaiseToDisplay, paiseToRupees } from '../services/money.js';
-import { KV_CATALOG_TTL_SECONDS, KV_PRODUCT_TTL_SECONDS, DEFAULT_PAGE_SIZE } from '../config/constants.js';
+import {
+  KV_CATALOG_TTL_SECONDS,
+  KV_PRODUCT_TTL_SECONDS,
+  DEFAULT_PAGE_SIZE,
+} from '../config/constants.js';
 
 const products = new Hono<{ Bindings: Env }>();
-
-// ─── Mapper helpers ─────────────────────────────────────────────────────────
 
 function mapProductCard(p: DbProduct, variants: DbProductVariant[]): ApiProductCard {
   const uniqueSizes = [...new Set(variants.map((v) => v.size))];
@@ -54,6 +62,14 @@ function safeParseJson(raw: string | null): string[] {
   }
 }
 
+async function getCatalogCacheVersion(kv: KVNamespace): Promise<string> {
+  try {
+    return (await kv.get('catalog:version', 'text')) || 'v1';
+  } catch {
+    return 'v1';
+  }
+}
+
 // ─── GET /api/products ───────────────────────────────────────────────────────
 
 const listQuerySchema = z.object({
@@ -67,9 +83,9 @@ const listQuerySchema = z.object({
 
 products.get('/', zValidator('query', listQuerySchema), async (c) => {
   const query = c.req.valid('query');
-  const cacheKey = `catalog:list:${JSON.stringify(query)}`;
+  const ver = await getCatalogCacheVersion(c.env.CATALOG_KV);
+  const cacheKey = `catalog:${ver}:list:${JSON.stringify(query)}`;
 
-  // Check KV cache first
   const cached = await getCatalogCache<unknown>(c.env.CATALOG_KV, cacheKey);
   if (cached) {
     return c.json({ success: true, data: cached }, 200, {
@@ -86,14 +102,18 @@ products.get('/', zValidator('query', listQuerySchema), async (c) => {
     featured: query.featured,
   });
 
-  // Fetch variants for all products in a single batch
-  const variantBatch = await c.env.DB.batch(
-    result.products.map((p) =>
-      c.env.DB
-        .prepare(`SELECT * FROM product_variants WHERE product_id = ?1 AND is_active = 1 ORDER BY size ASC`)
-        .bind(p.id),
-    ),
-  );
+  const variantBatch =
+    result.products.length > 0
+      ? await c.env.DB.batch(
+          result.products.map((p) =>
+            c.env.DB
+              .prepare(
+                `SELECT * FROM product_variants WHERE product_id = ?1 AND is_active = 1 ORDER BY sort_order ASC, size ASC`,
+              )
+              .bind(p.id),
+          ),
+        )
+      : [];
 
   const productCards: ApiProductCard[] = result.products.map((p, i) => {
     const variants = (variantBatch[i]?.results ?? []) as DbProductVariant[];
@@ -108,7 +128,6 @@ products.get('/', zValidator('query', listQuerySchema), async (c) => {
     totalPages: result.totalPages,
   };
 
-  // Write to KV cache (non-blocking)
   c.executionCtx.waitUntil(
     setCatalogCache(c.env.CATALOG_KV, cacheKey, responseData, KV_CATALOG_TTL_SECONDS),
   );
@@ -118,13 +137,109 @@ products.get('/', zValidator('query', listQuerySchema), async (c) => {
   });
 });
 
+// ─── GET /api/products/search?q= (must stay BEFORE /:slug route) ─────────────
+
+products.get('/search', async (c) => {
+  const q = c.req.query('q')?.trim();
+  if (!q || q.length < 2) {
+    return c.json({ success: true, data: { items: [] } });
+  }
+
+  const rows = await searchProducts(c.env.DB, q, 12);
+  const items = rows.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    badge: p.badge ?? null,
+    defaultImg: p.default_img,
+    hoverImg: p.hover_img,
+    link: `/products/${p.slug}`,
+    price: formatPaiseToDisplay(p.price_paise),
+    priceNum: paiseToRupees(p.price_paise),
+    pricePaise: p.price_paise,
+  }));
+
+  return c.json({ success: true, data: { items } });
+});
+
+// ─── GET /api/products/:slug/availability (Uncached real-time stock feed) ──────
+
+products.get('/:slug/availability', async (c) => {
+  const slug = c.req.param('slug');
+  const product = await getProductBySlug(c.env.DB, slug);
+  if (!product) {
+    return c.json(
+      { success: false, error: { code: 'NOT_FOUND', message: 'Product not found.', status: 404 } },
+      404,
+    );
+  }
+
+  const variants = await getProductVariants(c.env.DB, product.id);
+  return c.json(
+    {
+      success: true,
+      data: {
+        productId: product.id,
+        slug: product.slug,
+        pricePaise: product.price_paise,
+        price: formatPaiseToDisplay(product.price_paise),
+        variants: variants.map((v) => {
+          const available = Math.max(0, v.stock - v.reserved_stock);
+          return {
+            id: v.id,
+            size: v.size,
+            colorName: v.color_name,
+            colorHex: v.color_hex,
+            inStock: available > 0,
+            availableStock: available,
+          };
+        }),
+      },
+    },
+    200,
+    { 'Cache-Control': 'no-store' },
+  );
+});
+
+// ─── POST /api/products/:slug/restock-notify ─────────────────────────────────
+
+const restockSchema = z.object({
+  email: z.string().email().toLowerCase(),
+  variantId: z.string().optional(),
+});
+
+products.post('/:slug/restock-notify', zValidator('json', restockSchema), async (c) => {
+  const slug = c.req.param('slug');
+  const { email, variantId } = c.req.valid('json');
+  const product = await getProductBySlug(c.env.DB, slug);
+  if (!product) {
+    return c.json(
+      { success: false, error: { code: 'NOT_FOUND', message: 'Product not found.', status: 404 } },
+      404,
+    );
+  }
+
+  await c.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO restock_subscriptions (id, product_id, variant_id, email, status, created_at)
+       VALUES (hex(randomblob(8)), ?1, ?2, ?3, 'active', strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+    )
+    .bind(product.id, variantId ?? null, email)
+    .run();
+
+  return c.json({
+    success: true,
+    data: { subscribed: true, message: 'You will be notified when this size returns to stock.' },
+  });
+});
+
 // ─── GET /api/products/:slug ─────────────────────────────────────────────────
 
 products.get('/:slug', authOptional, async (c) => {
   const slug = c.req.param('slug');
-  const cacheKey = `catalog:product:${slug}`;
+  const ver = await getCatalogCacheVersion(c.env.CATALOG_KV);
+  const cacheKey = `catalog:${ver}:product:${slug}`;
 
-  // Check KV cache
   const cached = await getCatalogCache<ApiProductDetail>(c.env.CATALOG_KV, cacheKey);
   if (cached) {
     return c.json({ success: true, data: cached }, 200, {
@@ -140,24 +255,24 @@ products.get('/:slug', authOptional, async (c) => {
     );
   }
 
-  // Fetch variants, images, cross-sells in parallel
   const [variants, images, crossSells] = await Promise.all([
     getProductVariants(c.env.DB, product.id),
     getProductImages(c.env.DB, product.id),
     getProductCrossSells(c.env.DB, product.id),
   ]);
 
-  // Map variants — never expose raw stock
-  const apiVariants: ApiVariant[] = variants.map((v) => ({
-    id: v.id,
-    size: v.size,
-    colorName: v.color_name,
-    colorHex: v.color_hex,
-    inStock: v.stock - v.reserved_stock > 0,
-    availableStock: v.stock - v.reserved_stock,
-  }));
+  const apiVariants: ApiVariant[] = variants.map((v) => {
+    const available = Math.max(0, v.stock - v.reserved_stock);
+    return {
+      id: v.id,
+      size: v.size,
+      colorName: v.color_name,
+      colorHex: v.color_hex,
+      inStock: available > 0,
+      availableStock: available,
+    };
+  });
 
-  // Group gallery by color_name
   const galleryMap = new Map<string, string[]>();
   for (const img of images) {
     if (!galleryMap.has(img.color_name)) galleryMap.set(img.color_name, []);
@@ -168,8 +283,7 @@ products.get('/:slug', authOptional, async (c) => {
     images: imgs,
   }));
 
-  // Cross-sells
-  const mapCrossSell = (cs: typeof crossSells[number]): ApiCrossSellItem => ({
+  const mapCrossSell = (cs: (typeof crossSells)[number]): ApiCrossSellItem => ({
     id: cs.id,
     title: cs.title,
     price: formatPaiseToDisplay(cs.price_paise),
@@ -203,7 +317,6 @@ products.get('/:slug', authOptional, async (c) => {
     crossSells: { styleItWith, related },
   };
 
-  // Cache product detail (60s)
   c.executionCtx.waitUntil(
     setCatalogCache(c.env.CATALOG_KV, cacheKey, detail, KV_PRODUCT_TTL_SECONDS),
   );
@@ -213,31 +326,4 @@ products.get('/:slug', authOptional, async (c) => {
   });
 });
 
-// ─── GET /api/products/search?q= ────────────────────────────────────────────
-
-products.get('/search', async (c) => {
-  const q = c.req.query('q')?.trim();
-  if (!q || q.length < 2) {
-    return c.json({ success: true, data: { items: [] } });
-  }
-
-  const rows = await searchProducts(c.env.DB, q, 10);
-
-  // Minimal card for search results (no variants needed)
-  const items = rows.map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    title: p.title,
-    badge: p.badge ?? null,
-    defaultImg: p.default_img,
-    link: `/products/${p.slug}`,
-    price: formatPaiseToDisplay(p.price_paise),
-    priceNum: paiseToRupees(p.price_paise),
-    pricePaise: p.price_paise,
-  }));
-
-  return c.json({ success: true, data: { items } });
-});
-
 export default products;
-

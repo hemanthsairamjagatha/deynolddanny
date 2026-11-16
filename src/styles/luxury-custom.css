@@ -464,9 +464,11 @@ label:focus-visible {
   position: fixed;
   top: 0;
   left: 0;
-  width: 88%;
+  width: min(88vw, 440px);
   max-width: 440px;
   height: 100vh;
+  height: 100dvh;
+  box-sizing: border-box;
   background-color: var(--color-white);
   z-index: 1020;
   transform: translateX(-100%);
@@ -926,8 +928,8 @@ label:focus-visible {
   }
 
   .header-icon-link {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
 
   .hero-search-strip {
@@ -3215,6 +3217,7 @@ shipping-bar,
     width: 100vw;
     max-width: 100vw;
     min-height: 100vh;
+    min-height: 100dvh;
   }
   .cart-drawer-inner {
     padding: 0;
@@ -3249,5 +3252,56 @@ shipping-bar,
   .cart-item-img {
     width: 105px;
     height: 135px;
+  }
+}
+
+/* Prevent horizontal document overflow while preserving position: sticky */
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+/* WCAG 2.2 minimum interactive touch target on swatches & carousel arrows */
+.color-swatch__item::after,
+#thread-of-mastery .color-swatch__item::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.mastery-arrow-btn,
+.mastery-nav-arrow {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+/* Mobile container specificity overrides for section wrappers */
+@media (max-width: 768px) {
+  .site-header .container,
+  .header-top-inner,
+  .mastery-container,
+  .mastery-section .container,
+  #thread-of-mastery .container,
+  #new-arrival .container {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+
+  .mastery-section,
+  .style-layering-section {
+    overflow-x: clip;
+  }
+}
+
+/* Respect OS reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

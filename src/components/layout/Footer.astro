@@ -26,6 +26,7 @@
           <li><a href="/legal/privacy-policy" class="footer-link">PRIVACY POLICY</a></li>
           <li><a href="/legal/shipping-returns" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
           <li><a href="/legal/terms" class="footer-link">TERMS AND CONDITION</a></li>
+          <li><button type="button" class="footer-link footer-consent-trigger">COOKIE PREFERENCES</button></li>
         </ul>
       </div>
 
@@ -96,7 +97,7 @@
       statusMsg.style.color = '#737373';
 
       try {
-        const res = await fetch('https://deynold-danny-backend.deynolddanny.workers.dev/api/newsletter/subscribe', {
+        const res = await fetch('/api/newsletter/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
@@ -124,6 +125,14 @@
   searchTriggers.forEach((btn) => {
     btn.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('open-search-modal'));
+    });
+  });
+
+  // Footer DPDP consent preferences trigger
+  const consentTriggers = document.querySelectorAll('.footer-consent-trigger');
+  consentTriggers.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('dd:open-consent-preferences'));
     });
   });
 </script>

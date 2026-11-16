@@ -2,8 +2,11 @@
  * DEYNOLD DANNY — Shiprocket Logistics & Courier Integration
  *
  * Implements authentication (with KV caching), order creation, AWB generation,
- * pickup requests, live tracking, and pincode serviceability checks.
+ * pickup requests, cancellation, live tracking, and pincode serviceability checks
+ * with strict network timeouts and fail-closed defaults.
  */
+
+import { GATEWAY_FETCH_TIMEOUT_MS } from '../config/constants.js';
 
 const SHIPROCKET_API_BASE = 'https://apiv2.shiprocket.in/v1/external';
 
@@ -11,17 +14,18 @@ export interface ShiprocketItem {
   name: string;
   sku: string;
   units: number;
-  selling_price: number; // in rupees
+  selling_price: number; // Net unit selling price in rupees (after line-item discount)
   discount?: number;
   tax?: number;
+  hsn?: string;
 }
 
 export interface ShiprocketCreateOrderPayload {
-  orderId: string;          // Our internal DB order ID
-  orderNumber: string;      // e.g. "DD-102938"
-  orderDate: string;        // "YYYY-MM-DD HH:mm"
-  channelId?: string;       // Custom channel ID if configured
-  pickupLocation?: string;  // Default 'Primary'
+  orderId: string;
+  orderNumber: string;
+  orderDate: string;
+  channelId?: string;
+  pickupLocation?: string;
   billingCustomerName: string;
   billingLastName?: string;
   billingAddress: string;
@@ -45,10 +49,12 @@ export interface ShiprocketCreateOrderPayload {
   orderItems: ShiprocketItem[];
   paymentMethod: 'Prepaid' | 'COD';
   subTotalRupees: number;
-  lengthCm?: number;        // default 30
-  breadthCm?: number;       // default 25
-  heightCm?: number;        // default 5
-  weightKg?: number;        // default 0.5
+  totalDiscountRupees?: number;
+  shippingChargesRupees?: number;
+  lengthCm?: number;
+  breadthCm?: number;
+  heightCm?: number;
+  weightKg?: number;
 }
 
 export interface ShiprocketTrackingActivity {
@@ -67,9 +73,6 @@ export interface ShiprocketTrackingResult {
   activityHistory: ShiprocketTrackingActivity[];
 }
 
-/**
- * Retrieves Shiprocket authentication token, cached in KV for 23 hours
- */
 export async function getShiprocketToken(
   kv: KVNamespace,
   email: string,
@@ -81,11 +84,12 @@ export async function getShiprocketToken(
     const cached = await kv.get(cacheKey, 'text');
     if (cached) return cached;
   } catch {
-    // KV read fail is non-fatal: proceed to fresh auth
+    // KV read fail is non-fatal
   }
 
   const response = await fetch(`${SHIPROCKET_API_BASE}/auth/login`, {
     method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
@@ -101,7 +105,6 @@ export async function getShiprocketToken(
   }
 
   try {
-    // Cache for 23 hours (tokens expire after 24h)
     await kv.put(cacheKey, data.token, { expirationTtl: 23 * 3600 });
   } catch {
     // Non-fatal
@@ -110,9 +113,6 @@ export async function getShiprocketToken(
   return data.token;
 }
 
-/**
- * Creates an order on Shiprocket
- */
 export async function createShiprocketOrder(
   token: string,
   payload: ShiprocketCreateOrderPayload,
@@ -147,6 +147,8 @@ export async function createShiprocketOrder(
     shipping_phone: payload.shippingPhone,
     order_items: payload.orderItems,
     payment_method: payload.paymentMethod,
+    shipping_charges: payload.shippingChargesRupees ?? 0,
+    total_discount: payload.totalDiscountRupees ?? 0,
     sub_total: payload.subTotalRupees,
     length: payload.lengthCm || 30,
     breadth: payload.breadthCm || 25,
@@ -156,6 +158,7 @@ export async function createShiprocketOrder(
 
   const response = await fetch(url, {
     method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -172,7 +175,6 @@ export async function createShiprocketOrder(
     order_id: number;
     shipment_id: number;
     status: string;
-    status_code?: number;
   };
 
   if (!data.shipment_id) {
@@ -185,25 +187,18 @@ export async function createShiprocketOrder(
   };
 }
 
-/**
- * Assigns AWB code to an existing shipment
- */
 export async function assignShiprocketAWB(
   token: string,
   shipmentId: number,
   courierId?: number,
 ): Promise<{ awbCode: string; courierName: string }> {
   const url = `${SHIPROCKET_API_BASE}/courier/assign/awb`;
-
-  const payload: Record<string, unknown> = {
-    shipment_id: shipmentId,
-  };
-  if (courierId) {
-    payload.courier_id = courierId;
-  }
+  const payload: Record<string, unknown> = { shipment_id: shipmentId };
+  if (courierId) payload.courier_id = courierId;
 
   const response = await fetch(url, {
     method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -223,7 +218,6 @@ export async function assignShiprocketAWB(
         courier_name?: string;
       };
     };
-    awb_assign_status?: number;
   };
 
   const awbCode = data.response?.data?.awb_code;
@@ -236,9 +230,6 @@ export async function assignShiprocketAWB(
   return { awbCode, courierName };
 }
 
-/**
- * Schedules a courier pickup request for the shipment
- */
 export async function generateShiprocketPickup(
   token: string,
   shipmentIds: number[],
@@ -247,6 +238,7 @@ export async function generateShiprocketPickup(
 
   const response = await fetch(url, {
     method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -259,13 +251,36 @@ export async function generateShiprocketPickup(
     throw new Error(`Shiprocket generatePickup failed (${response.status}): ${errorBody}`);
   }
 
-  const data = (await response.json()) as { pickup_status?: number };
+  const data = (await response.json()) as { pickup_status?: number; response?: { data?: string } };
+  const isOk = data.pickup_status === 1;
+  if (!isOk) {
+    throw new Error(`Shiprocket pickup rejected (pickup_status=${data.pickup_status ?? 'unknown'})`);
+  }
   return { success: true, pickupStatus: data.pickup_status };
 }
 
-/**
- * Tracks shipment by AWB code
- */
+export async function cancelShiprocketOrder(
+  token: string,
+  shiprocketOrderIds: number[],
+): Promise<{ success: boolean }> {
+  const url = `${SHIPROCKET_API_BASE}/orders/cancel`;
+  const response = await fetch(url, {
+    method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ids: shiprocketOrderIds }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Shiprocket cancelOrder failed (${response.status}): ${errorBody}`);
+  }
+  return { success: true };
+}
+
 export async function trackShiprocketShipment(
   token: string,
   awbCode: string,
@@ -274,6 +289,7 @@ export async function trackShiprocketShipment(
 
   const response = await fetch(url, {
     method: 'GET',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
@@ -287,9 +303,10 @@ export async function trackShiprocketShipment(
 
   const json = (await response.json()) as any;
   const trackingData = json?.tracking_data;
-  const trackUrl = trackingData?.track_url;
   const shipmentTrack = trackingData?.shipment_track?.[0] || {};
-  const activities: ShiprocketTrackingActivity[] = (trackingData?.shipment_track_activities || []).map((act: any) => ({
+  const activities: ShiprocketTrackingActivity[] = (
+    trackingData?.shipment_track_activities || []
+  ).map((act: any) => ({
     date: act.date || '',
     status: act.status || '',
     activity: act.activity || '',
@@ -306,9 +323,6 @@ export async function trackShiprocketShipment(
   };
 }
 
-/**
- * Checks delivery pincode serviceability and estimated delivery
- */
 export async function checkShiprocketPincode(
   token: string,
   pickupPostcode: string,
@@ -321,12 +335,17 @@ export async function checkShiprocketPincode(
   courierCompanyId?: number;
   estimatedDeliveryDays?: number;
 }> {
+  if (!/^\d{6}$/.test(pickupPostcode) || !/^\d{6}$/.test(deliveryPostcode)) {
+    throw new Error('Both pickup and delivery pincodes must be 6-digit Indian pincodes');
+  }
+
   const url = `${SHIPROCKET_API_BASE}/courier/serviceability/?pickup_postcode=${encodeURIComponent(
     pickupPostcode,
   )}&delivery_postcode=${encodeURIComponent(deliveryPostcode)}&weight=${weightKg}&cod=${isCod ? 1 : 0}`;
 
   const response = await fetch(url, {
     method: 'GET',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
@@ -334,7 +353,7 @@ export async function checkShiprocketPincode(
   });
 
   if (!response.ok) {
-    return { serviceable: false };
+    throw new Error(`Shiprocket serviceability HTTP ${response.status}`);
   }
 
   const json = (await response.json()) as any;
@@ -348,6 +367,8 @@ export async function checkShiprocketPincode(
     serviceable: true,
     courierName: recommendedCourier.courier_name,
     courierCompanyId: recommendedCourier.courier_company_id,
-    estimatedDeliveryDays: recommendedCourier.etd_hours ? Math.ceil(recommendedCourier.etd_hours / 24) : 3,
+    estimatedDeliveryDays: recommendedCourier.etd_hours
+      ? Math.ceil(recommendedCourier.etd_hours / 24)
+      : 3,
   };
 }

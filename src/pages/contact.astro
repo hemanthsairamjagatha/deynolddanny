@@ -1,13 +1,14 @@
 ---
 // src/pages/contact.astro
 import StorefrontLayout from '../layouts/StorefrontLayout.astro';
+import { ContactForm } from '../features/contact/components/ContactForm';
 ---
 
 <StorefrontLayout
   title="Contact Atelier | DEYNOLD DANNY"
   description="Connect with the DEYNOLD DANNY client concierge and bespoke tailoring team."
 >
-  <main class="min-h-screen bg-white">
+  <main id="main-content" class="min-h-screen bg-white">
     <div class="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
       <nav aria-label="Breadcrumb" class="mb-8">
         <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
@@ -57,50 +58,9 @@ import StorefrontLayout from '../layouts/StorefrontLayout.astro';
         </div>
 
         <!-- Contact Form -->
-        <form class="space-y-5 bg-[#faf8f5] p-8 rounded-sm border border-neutral-200/80" onsubmit="alert('Thank you. Your message has been received by the client concierge.'); return false;">
-          <div class="space-y-1.5">
-            <label class="block text-xs uppercase tracking-wider font-medium text-neutral-800 font-mono">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Julian Vanderbilt"
-              class="w-full h-11 px-4 bg-white border border-neutral-300 text-xs rounded-sm focus:outline-none focus:border-neutral-900"
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-xs uppercase tracking-wider font-medium text-neutral-800 font-mono">
-              Email Address *
-            </label>
-            <input
-              type="email"
-              required
-              placeholder="client@deynolddanny.com"
-              class="w-full h-11 px-4 bg-white border border-neutral-300 text-xs rounded-sm focus:outline-none focus:border-neutral-900"
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-xs uppercase tracking-wider font-medium text-neutral-800 font-mono">
-              Message *
-            </label>
-            <textarea
-              rows="4"
-              required
-              placeholder="How may our concierge assist your sartorial journey?"
-              class="w-full p-4 bg-white border border-neutral-300 text-xs rounded-sm focus:outline-none focus:border-neutral-900"
-            ></textarea>
-          </div>
-
-          <button
-            type="submit"
-            class="w-full h-12 rounded-full bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest font-medium transition-all"
-          >
-            Send Inquiry
-          </button>
-        </form>
+        <div class="bg-[#faf8f5] p-8 rounded-sm border border-neutral-200/80">
+          <ContactForm client:load />
+        </div>
       </div>
     </div>
   </main>

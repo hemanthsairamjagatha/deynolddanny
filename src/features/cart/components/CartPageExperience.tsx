@@ -17,6 +17,8 @@ import {
   syncCartWithBackend
 } from '../store/cart.store';
 import { apiFetch } from '../../../lib/api/client';
+import { fetchStorefrontConfigApi } from '../../checkout/api/checkout.api';
+import { ecommerceConfig } from '../../../config/ecommerce.config';
 
 export const CartPageExperience: React.FC = () => {
   const items = useStore($cartItems);
@@ -26,12 +28,31 @@ export const CartPageExperience: React.FC = () => {
   const discount = useStore($discountNum);
   const finalTotalNum = useStore($totalPayableNum);
 
-  const [showGiftInput, setShowGiftInput] = useState(false);
-  const [giftCode, setGiftCode] = useState('');
   const [promoCode, setPromoCode] = useState('');
   const [isApplying, setIsApplying] = useState(false);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(
+    ecommerceConfig.freeShippingThreshold,
+  );
+  const [standardShipping, setStandardShipping] = useState<number>(
+    ecommerceConfig.standardShippingRate,
+  );
+
+  useEffect(() => {
+    fetchStorefrontConfigApi()
+      .then((res) => {
+        if (res.success && res.data) {
+          if (typeof res.data.freeShippingThresholdPaise === 'number') {
+            setFreeShippingThreshold(Math.round(res.data.freeShippingThresholdPaise / 100));
+          }
+          if (typeof res.data.standardShippingPaise === 'number') {
+            setStandardShipping(Math.round(res.data.standardShippingPaise / 100));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // When visiting the dedicated cart page, ensure any slide-over drawer is closed and sync
   useEffect(() => {
@@ -61,60 +82,31 @@ export const CartPageExperience: React.FC = () => {
       });
 
       if (res.success && res.data?.valid) {
-        const discountNum = res.data.discountPaise ? res.data.discountPaise / 100 : Math.min(500, subtotal);
+        const discountPaise = Number(res.data.discountPaise || 0);
+        const discountNum = Math.round(discountPaise / 100);
         applyCoupon({
           code: res.data.code || cleanCode,
+          discountType: res.data.discountType === 'fixed_amount' ? 'fixed_amount' : 'percentage',
+          discountValue: Number(res.data.discountValue || 0),
+          maxDiscountPaise: res.data.maxDiscountPaise ?? null,
+          discountPaise,
           discountNum,
-          discountFormatted: res.data.discountFormatted || `₹ ${discountNum.toLocaleString('en-IN')}`,
+          minOrderPaise: res.data.minOrderPaise ?? null,
         });
-        setCouponMessage(`Promotional code "${cleanCode}" applied successfully.`);
+        setCouponMessage(`Promotional code "${res.data.code || cleanCode}" applied successfully.`);
         setPromoCode('');
       } else {
-        // Fallback for welcome codes
-        if (cleanCode === 'WELCOME10') {
-          const discountNum = Math.min(500, subtotal);
-          applyCoupon({
-            code: 'WELCOME10',
-            discountNum,
-            discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
-          });
-          setCouponMessage(`Promotional code "WELCOME10" applied successfully.`);
-          setPromoCode('');
-        } else {
-          setCouponError(res.data?.error || 'Invalid promotional code or minimum order requirement not met.');
-        }
+        setCouponError(
+          res.data?.error ||
+            res.error?.message ||
+            'Invalid promotional code or minimum order requirement not met.',
+        );
       }
     } catch {
-      if (cleanCode === 'WELCOME10') {
-        const discountNum = Math.min(500, subtotal);
-        applyCoupon({
-          code: 'WELCOME10',
-          discountNum,
-          discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
-        });
-        setCouponMessage(`Promotional code "WELCOME10" applied successfully.`);
-        setPromoCode('');
-      } else {
-        setCouponError('Could not validate promotional code. Please try again.');
-      }
+      setCouponError('Could not validate promotional code. Please try again.');
     } finally {
       setIsApplying(false);
     }
-  };
-
-  const handleApplyGift = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = giftCode.trim().toUpperCase();
-    if (!clean) return;
-    const discountNum = Math.min(500, subtotal);
-    applyCoupon({
-      code: clean,
-      discountNum,
-      discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
-    });
-    setCouponMessage(`Gift card "${clean}" applied successfully.`);
-    setGiftCode('');
-    setShowGiftInput(false);
   };
 
   const handleRemoveCoupon = () => {
@@ -274,19 +266,15 @@ export const CartPageExperience: React.FC = () => {
 
                       {/* Remove Button */}
                       <div className="cart-remove-button">
-                        <a
-                          href="#"
+                        <button
+                          type="button"
                           className="button button--tertiary cart-item-remove font-montserrat"
-                          role="link"
-                          aria-label="Remove"
+                          aria-label={`Remove ${item.title} from bag`}
                           style={fontStyle}
-                          onClick={e => {
-                            e.preventDefault();
-                            removeFromCart(index);
-                          }}
+                          onClick={() => removeFromCart(index)}
                         >
                           Remove
-                        </a>
+                        </button>
                       </div>
                     </div>
                   </li>
@@ -347,62 +335,6 @@ export const CartPageExperience: React.FC = () => {
                   )}
                 </div>
 
-                {/* Redeem Gift Card Row (Matching Image 2) */}
-                <div className="pb-5 border-b border-neutral-200 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {/* Gift Box Icon */}
-                      <svg
-                        className="w-5 h-5 text-neutral-900"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 12 20 22 4 22 4 12" />
-                        <rect x="2" y="7" width="20" height="5" />
-                        <line x1="12" y1="22" x2="12" y2="7" />
-                        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-                        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-                      </svg>
-                      <span className="text-sm sm:text-base font-semibold text-neutral-900" style={fontStyle}>
-                        Redeem Gift Card
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowGiftInput(!showGiftInput)}
-                      className="bg-black hover:bg-neutral-800 text-white text-xs font-bold tracking-wider px-5 py-2 uppercase transition-colors"
-                      style={fontStyle}
-                    >
-                      ADD
-                    </button>
-                  </div>
-
-                  {/* Expandable Gift Card Input */}
-                  {showGiftInput && (
-                    <form onSubmit={handleApplyGift} className="mt-4 flex gap-2">
-                      <input
-                        type="text"
-                        value={giftCode}
-                        onChange={e => setGiftCode(e.target.value)}
-                        placeholder="ENTER CODE"
-                        className="flex-1 border border-neutral-300 px-3 py-2 text-xs uppercase tracking-wider focus:outline-none focus:border-black"
-                        style={fontStyle}
-                      />
-                      <button
-                        type="submit"
-                        className="bg-black hover:bg-neutral-800 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors"
-                        style={fontStyle}
-                      >
-                        APPLY
-                      </button>
-                    </form>
-                  )}
-                </div>
-
                 {/* ORDER SUMMARY Heading */}
                 <h2
                   className="text-base sm:text-lg font-bold tracking-normal text-neutral-900 uppercase mb-5"
@@ -422,7 +354,13 @@ export const CartPageExperience: React.FC = () => {
                   {/* Shipping */}
                   <div className="flex justify-between items-center text-[16.24px]" style={{ ...fontStyle, fontSize: '16.24px' }}>
                     <span className="text-neutral-700 font-normal" style={{ fontSize: '16.24px' }}>Shipping</span>
-                    <span className="font-semibold text-emerald-600" style={{ fontSize: '16.24px' }}>FREE</span>
+                    {subtotal >= freeShippingThreshold ? (
+                      <span className="font-semibold text-emerald-600" style={{ fontSize: '16.24px' }}>FREE</span>
+                    ) : (
+                      <span className="text-neutral-900 font-normal" style={{ fontSize: '16.24px' }}>
+                        ₹{standardShipping.toLocaleString('en-IN')}
+                      </span>
+                    )}
                   </div>
 
                   {/* Coupon Discount */}

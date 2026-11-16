@@ -1,55 +1,80 @@
 /**
- * Inbound webhook handlers for third-party delivery services.
- *
- * Shiprocket sends POST requests here when shipment status changes.
- * We update our order status and notify the customer accordingly.
- *
- * Webhook URL to register in Shiprocket:
- *   https://api.deynolddanny.com/api/webhooks/shiprocket
+ * Inbound webhook handlers for Shiprocket courier lifecycle updates.
+ * Authenticated via constant-time shared token (`x-api-key` matching `SHIPROCKET_WEBHOOK_TOKEN`)
+ * and deduplicated via `webhook_events`.
  */
 
 import { Hono } from 'hono';
 import type { Env } from '../types/bindings.js';
 import { sendOrderDeliveredEmail } from '../services/resend.js';
-import { nowIso } from '../db/client.js';
+import { nowIso, runBatch } from '../db/client.js';
+import { generateId, sha256Hex, timingSafeEqualStrings } from '../services/crypto.js';
+import { appendOrderAuditLog } from '../services/orderLifecycle.js';
 
 const webhooks = new Hono<{ Bindings: Env }>();
 
-// ─── POST /api/webhooks/shiprocket ──────────────────────────────────────────
-
 webhooks.post('/shiprocket', async (c) => {
   const env = c.env;
+  const receivedToken = c.req.header('x-api-key') || c.req.header('x-shiprocket-signature') || '';
+  const configuredToken = env.SHIPROCKET_WEBHOOK_TOKEN || '';
 
+  // Fail closed when token is unset in non-development OR mismatched in any env
+  if (!configuredToken) {
+    if (env.ENVIRONMENT !== 'development') {
+      return c.json(
+        { success: false, error: { code: 'WEBHOOK_UNCONFIGURED', message: 'Shiprocket webhook secret not configured.', status: 503 } },
+        503,
+      );
+    }
+  } else if (!receivedToken || !timingSafeEqualStrings(receivedToken, configuredToken)) {
+    return c.json(
+      { success: false, error: { code: 'FORBIDDEN', message: 'Invalid Shiprocket webhook authentication token.', status: 403 } },
+      403,
+    );
+  }
+
+  const rawBody = await c.req.text();
   let event: Record<string, unknown>;
   try {
-    event = await c.req.json<Record<string, unknown>>();
+    event = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
     return c.json(
-      {
-        success: false,
-        error: { code: 'BAD_REQUEST', message: 'Invalid JSON body.', status: 400 },
-      },
+      { success: false, error: { code: 'BAD_REQUEST', message: 'Invalid JSON body.', status: 400 } },
       400,
     );
   }
 
-  // Shiprocket payload shape varies by plan — handle multiple field names
-  const awb = (
-    (event.awb_code ?? event.awb ?? event.tracking_id) as string | undefined
-  );
+  const awb = (event.awb_code ?? event.awb ?? event.tracking_id) as string | undefined;
   const shiprocketOrderId = (
-    (event.shipment_id ?? event.order_id ?? event.shiprocket_order_id) as string | number | undefined
-  );
+    event.shipment_id ?? event.order_id ?? event.shiprocket_order_id
+  ) as string | number | undefined;
   const statusCode = (
-    (event.current_status ?? event.status ?? event.shipment_status) as string | undefined
-  );
+    event.current_status ?? event.status ?? event.shipment_status
+  ) as string | undefined;
 
   if (!awb && !shiprocketOrderId) {
-    // Acknowledge without processing — unknown or test payload
     return c.json({ success: true, data: { received: true, ignored: true } });
   }
 
-  // Look up our order by AWB first, then by shiprocket_order_id
+  const eventId = `sr:${awb || shiprocketOrderId}:${statusCode || ''}:${await sha256Hex(rawBody)}`;
+  const dedupeRes = await env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO webhook_events (id, gateway, event_id, event_type, payload_hash, status, received_at)
+       VALUES (?1, 'shiprocket', ?2, ?3, ?4, 'processing', ?5)`,
+    )
+    .bind(
+      generateId('whk_'),
+      eventId,
+      String(statusCode || 'UNKNOWN'),
+      await sha256Hex(rawBody),
+      nowIso(),
+    )
+    .run();
+
+  if ((dedupeRes.meta.changes ?? 0) === 0) {
+    return c.json({ success: true, data: { received: true, deduplicated: true } });
+  }
+
   type OrderRow = {
     id: string;
     order_number: string;
@@ -60,162 +85,114 @@ webhooks.post('/shiprocket', async (c) => {
   };
 
   let order: OrderRow | null = null;
-
   if (awb) {
     order = await env.DB
       .prepare(
         `SELECT id, order_number, status, user_id, courier_partner, tracking_number
-         FROM orders WHERE shiprocket_awb = ?1 LIMIT 1`,
+         FROM orders WHERE shiprocket_awb = ?1 OR tracking_number = ?1 LIMIT 1`,
       )
       .bind(awb)
       .first<OrderRow>();
   }
-
   if (!order && shiprocketOrderId) {
     order = await env.DB
       .prepare(
         `SELECT id, order_number, status, user_id, courier_partner, tracking_number
-         FROM orders WHERE shiprocket_order_id = ?1 LIMIT 1`,
+         FROM orders WHERE shiprocket_order_id = ?1 OR shiprocket_shipment_id = ?1 LIMIT 1`,
       )
       .bind(String(shiprocketOrderId))
       .first<OrderRow>();
   }
 
+  const now = nowIso();
   if (!order) {
-    // Not our order — Shiprocket may send test events or events for old orders
+    await env.DB
+      .prepare(`UPDATE webhook_events SET status = 'ignored', processed_at = ?1 WHERE gateway = 'shiprocket' AND event_id = ?2`)
+      .bind(now, eventId)
+      .run();
     return c.json({ success: true, data: { received: true, not_found: true } });
   }
 
   const normalizedStatus = (statusCode ?? '').toUpperCase().trim();
-  const now = nowIso();
+  let actionTaken = 'ignored';
 
-  // ── DELIVERED ─────────────────────────────────────────────────────────────
-  if (
-    normalizedStatus.includes('DELIVERED') &&
-    !normalizedStatus.includes('RTO DELIVERED')
-  ) {
+  if (normalizedStatus.includes('DELIVERED') && !normalizedStatus.includes('RTO')) {
     if (order.status !== 'delivered') {
-      await env.DB
-        .prepare(
-          `UPDATE orders
-           SET status = 'delivered', delivered_at = ?1, updated_at = ?1
-           WHERE id = ?2`,
-        )
-        .bind(now, order.id)
-        .run();
+      await runBatch(env.DB, [
+        env.DB
+          .prepare(
+            `UPDATE orders SET status = 'delivered', delivered_at = COALESCE(delivered_at, ?1), updated_at = ?1 WHERE id = ?2`,
+          )
+          .bind(now, order.id),
+      ]);
+      await appendOrderAuditLog(env.DB, order.id, 'delivered', `Shiprocket AWB ${awb ?? ''}`, 'shiprocket_webhook');
+      actionTaken = 'delivered';
 
-      await _auditLog(env, order.id, 'status_change', 'Delivered — Shiprocket webhook', now);
-
-      // Notify customer (non-blocking)
       const userRow = await env.DB
         .prepare(`SELECT email FROM users WHERE id = ?1`)
         .bind(order.user_id)
         .first<{ email: string }>();
 
-      if (userRow && env.RESEND_API_KEY) {
+      if (userRow?.email) {
         c.executionCtx.waitUntil(
-          sendOrderDeliveredEmail(env.RESEND_API_KEY, userRow.email, order.order_number),
+          sendOrderDeliveredEmail(
+            env.RESEND_API_KEY,
+            userRow.email,
+            order.order_number,
+            env.RESEND_FROM_EMAIL,
+          ).catch((e) => console.error('[Shiprocket Webhook] delivery email fail:', e)),
         );
       }
     }
-
-    return c.json({ success: true, data: { received: true, action: 'delivered' } });
-  }
-
-  // ── RTO INITIATED (Return to Origin) ──────────────────────────────────────
-  if (
-    normalizedStatus === 'RTO INITIATED' ||
-    normalizedStatus === 'RTO' ||
+  } else if (
+    normalizedStatus.includes('RTO') ||
     normalizedStatus === 'RETURN INITIATED' ||
-    normalizedStatus === 'RETURN_INITIATED' ||
-    normalizedStatus.startsWith('RTO')
+    normalizedStatus === 'RETURN_INITIATED'
   ) {
-    if (order.status !== 'returned' && order.status !== 'cancelled') {
+    if (!['returned', 'cancelled', 'refunded'].includes(order.status)) {
       await env.DB
-        .prepare(
-          `UPDATE orders SET status = 'returned', updated_at = ?1 WHERE id = ?2`,
-        )
+        .prepare(`UPDATE orders SET status = 'returned', updated_at = ?1 WHERE id = ?2`)
         .bind(now, order.id)
         .run();
-
-      await _auditLog(env, order.id, 'status_change', `RTO — ${statusCode} — Shiprocket webhook`, now);
+      await appendOrderAuditLog(env.DB, order.id, 'status_change', `RTO — ${statusCode}`, 'shiprocket_webhook');
+      actionTaken = 'rto_initiated';
     }
-
-    return c.json({ success: true, data: { received: true, action: 'rto_initiated' } });
-  }
-
-  // ── NDR (Non-Delivery Report) ──────────────────────────────────────────────
-  if (
+  } else if (
     normalizedStatus.includes('NDR') ||
     normalizedStatus === 'UNDELIVERED' ||
-    normalizedStatus === 'DELIVERY FAILED' ||
-    normalizedStatus === 'DELIVERY_FAILED'
+    normalizedStatus.includes('DELIVERY FAILED')
   ) {
-    // Log NDR — do NOT cancel automatically; Shiprocket will re-attempt delivery
-    await _auditLog(env, order.id, 'ndr', `NDR — ${statusCode ?? 'unknown'} — Shiprocket webhook`, now);
-
-    // Transition to ndr_pending only if currently 'shipped'
+    await appendOrderAuditLog(env.DB, order.id, 'ndr', `NDR — ${statusCode ?? 'unknown'}`, 'shiprocket_webhook');
     if (order.status === 'shipped') {
       await env.DB
-        .prepare(
-          `UPDATE orders SET status = 'ndr_pending', updated_at = ?1
-           WHERE id = ?2 AND status = 'shipped'`,
-        )
+        .prepare(`UPDATE orders SET status = 'ndr_pending', updated_at = ?1 WHERE id = ?2 AND status = 'shipped'`)
         .bind(now, order.id)
         .run();
     }
-
-    return c.json({ success: true, data: { received: true, action: 'ndr_logged' } });
-  }
-
-  // ── PICKUP EVENTS ─────────────────────────────────────────────────────────
-  if (
-    normalizedStatus.includes('PICKUP SCHEDULED') ||
-    normalizedStatus.includes('PICKUP GENERATED') ||
-    normalizedStatus.includes('PICKED UP')
+    actionTaken = 'ndr_logged';
+  } else if (
+    normalizedStatus.includes('PICKUP') ||
+    normalizedStatus.includes('IN TRANSIT') ||
+    normalizedStatus.includes('IN_TRANSIT') ||
+    normalizedStatus.includes('OUT FOR DELIVERY') ||
+    normalizedStatus.includes('SHIPPED')
   ) {
-    if (order.status === 'confirmed') {
+    if (['confirmed', 'processing', 'ndr_pending'].includes(order.status)) {
       await env.DB
-        .prepare(
-          `UPDATE orders SET status = 'shipped', updated_at = ?1 WHERE id = ?2`,
-        )
+        .prepare(`UPDATE orders SET status = 'shipped', shipped_at = COALESCE(shipped_at, ?1), updated_at = ?1 WHERE id = ?2`)
         .bind(now, order.id)
         .run();
-
-      await _auditLog(env, order.id, 'status_change', `Pickup — ${statusCode} — Shiprocket webhook`, now);
+      await appendOrderAuditLog(env.DB, order.id, 'status_change', `Courier update — ${statusCode}`, 'shiprocket_webhook');
+      actionTaken = 'in_transit';
     }
-
-    return c.json({ success: true, data: { received: true, action: 'pickup_updated' } });
   }
 
-  // ── Unknown event — ack without action ───────────────────────────────────
-  return c.json({
-    success: true,
-    data: { received: true, status: normalizedStatus, ignored: true },
-  });
+  await env.DB
+    .prepare(`UPDATE webhook_events SET status = 'processed', order_id = ?1, processed_at = ?2 WHERE gateway = 'shiprocket' AND event_id = ?3`)
+    .bind(order.id, nowIso(), eventId)
+    .run();
+
+  return c.json({ success: true, data: { received: true, action: actionTaken } });
 });
 
-// ─── Helper: write to order_audit_logs ───────────────────────────────────────
-
-async function _auditLog(
-  env: Env,
-  orderId: string,
-  action: string,
-  detail: string,
-  now: string,
-): Promise<void> {
-  try {
-    await env.DB
-      .prepare(
-        `INSERT INTO order_audit_logs (id, order_id, action, detail, performed_by, created_at)
-         VALUES (hex(randomblob(8)), ?1, ?2, ?3, 'shiprocket_webhook', ?4)`,
-      )
-      .bind(orderId, action, detail, now)
-      .run();
-  } catch {
-    // Audit log failure must never crash the webhook response
-  }
-}
-
 export default webhooks;
-

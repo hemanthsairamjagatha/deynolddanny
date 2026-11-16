@@ -4,33 +4,34 @@ export interface NavItem {
 }
 
 export const primaryNavItems: NavItem[] = [
-  { label: 'Women', href: '#women' },
-  { label: 'Men', href: '#men' },
-  { label: 'Shop by Occasion', href: '#occasion' },
-  { label: 'Shop by Category', href: '#category' },
-  { label: 'Shop by Fabric', href: '#fabric' },
-  { label: 'Journal', href: '#journal' }
+  { label: 'Women', href: '/categories/clothing' },
+  { label: 'Men', href: '/categories/shirts' },
+  { label: 'Shop by Occasion', href: '/#new-arrival' },
+  { label: 'Shop by Category', href: '/categories' },
+  { label: 'Shop by Fabric', href: '/#thread-of-mastery' },
+  { label: 'Journal', href: '/#latest-news' }
 ];
 
 export const drawerCollectionsNavItems: NavItem[] = [
-  { label: 'Women', href: '#women' },
-  { label: 'Men', href: '#men' },
-  { label: 'Shop by Occasion', href: '#occasion' },
-  { label: 'Shop by Category', href: '#category' },
-  { label: 'Shop by Fabric', href: '#fabric' },
-  { label: 'Journal', href: '#journal' }
+  { label: 'Women', href: '/categories/clothing' },
+  { label: 'Men', href: '/categories/shirts' },
+  { label: 'Shop by Occasion', href: '/#new-arrival' },
+  { label: 'Shop by Category', href: '/categories' },
+  { label: 'Shop by Fabric', href: '/#thread-of-mastery' },
+  { label: 'Journal', href: '/#latest-news' }
 ];
 
 export const footerGetToKnowUs: NavItem[] = [
-  { label: 'SEARCH', href: '#search' },
-  { label: 'ABOUT US', href: '#about-us' },
-  { label: 'CONTACT US', href: '#contact-us' }
+  { label: 'SEARCH', href: '/search' },
+  { label: 'ABOUT US', href: '/#thread-of-mastery' },
+  { label: 'CONTACT US', href: '/contact' }
 ];
 
 export const footerCustomerCare: NavItem[] = [
-  { label: 'RETURN AND EXCHANGE POLICY', href: '#return-exchange' },
-  { label: 'PRIVACY POLICY', href: '#privacy-policy' },
-  { label: 'SHIPPING & DELIVERY', href: '#shipping-delivery' },
-  { label: 'TERMS AND CONDITION', href: '#terms-condition' }
+  { label: 'TRACK YOUR ORDER', href: '/orders/track' },
+  { label: 'RETURN AND EXCHANGE POLICY', href: '/legal/shipping-returns' },
+  { label: 'PRIVACY POLICY', href: '/legal/privacy-policy' },
+  { label: 'SHIPPING & DELIVERY', href: '/legal/shipping-returns' },
+  { label: 'TERMS AND CONDITION', href: '/legal/terms' }
 ];
 

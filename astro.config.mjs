@@ -4,10 +4,25 @@ import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
+  site: process.env.PUBLIC_SITE_URL || 'https://deynolddanny.com',
   integrations: [
     react(),
     tailwind({
       applyBaseStyles: false
     })
-  ]
+  ],
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: process.env.PUBLIC_BACKEND_URL || 'http://127.0.0.1:8787',
+          changeOrigin: true,
+        },
+        '/health': {
+          target: process.env.PUBLIC_BACKEND_URL || 'http://127.0.0.1:8787',
+          changeOrigin: true,
+        },
+      },
+    },
+  },
 });

@@ -1,17 +1,19 @@
 // Cashfree Payments integration for DEYNOLD DANNY
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import {
+  CASHFREE_WEBHOOK_MAX_AGE_SECONDS,
+  GATEWAY_FETCH_TIMEOUT_MS,
+} from '../config/constants.js';
+import { timingSafeEqualStrings } from './crypto.js';
 
 export interface CashfreeOrderPayload {
-  orderId: string;          // our internal order ID used as cf order_id reference
-  orderAmount: number;      // in rupees (float) — Cashfree accepts decimal rupees
+  orderId: string;
+  orderAmount: number;
   customerPhone: string;
   customerEmail: string;
   customerName: string;
-  returnUrl: string;        // redirect after payment
-  notifyUrl: string;        // webhook URL
+  returnUrl: string;
+  notifyUrl: string;
 }
 
 interface CashfreeCreateResponse {
@@ -24,18 +26,18 @@ interface CashfreeCreateResponse {
 interface CashfreeOrderResponse {
   cf_order_id: string;
   order_status: string;
+  order_amount?: number;
+  order_currency?: string;
   payments?: {
     cf_payment_id: string;
     payment_status: string;
+    payment_amount?: number;
+    payment_currency?: string;
     payment_method?: { [key: string]: unknown };
     [key: string]: unknown;
   }[];
   [key: string]: unknown;
 }
-
-// ---------------------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------------------
 
 function buildHeaders(appId: string, secretKey: string, apiVersion: string): Headers {
   const headers = new Headers();
@@ -47,25 +49,14 @@ function buildHeaders(appId: string, secretKey: string, apiVersion: string): Hea
   return headers;
 }
 
-function extractPaymentMethod(
-  payments: CashfreeOrderResponse['payments'],
-): string | null {
+function extractPaymentMethod(payments: CashfreeOrderResponse['payments']): string | null {
   if (!payments || payments.length === 0) return null;
   const latest = payments[payments.length - 1];
   if (!latest?.payment_method) return null;
-  // payment_method is an object whose key is the method name, e.g. { upi: {...} }
   const methodKey = Object.keys(latest.payment_method)[0];
   return methodKey ?? null;
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-/**
- * Creates a Cashfree order and returns the cf_order_id and payment_session_id
- * required by the Cashfree JS SDK to open the payment sheet.
- */
 export async function createCashfreeOrder(
   payload: CashfreeOrderPayload,
   appId: string,
@@ -91,6 +82,7 @@ export async function createCashfreeOrder(
 
   const response = await fetch(`${apiUrl}/orders`, {
     method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: buildHeaders(appId, secretKey, apiVersion),
     body: JSON.stringify(body),
   });
@@ -107,24 +99,27 @@ export async function createCashfreeOrder(
   }
 
   return {
-    cfOrderId: data.cf_order_id,
+    cfOrderId: String(data.cf_order_id),
     paymentSessionId: data.payment_session_id,
   };
 }
 
-/**
- * Fetches a Cashfree order status and the latest payment details.
- * Returns a normalised status string and payment identifiers.
- */
 export async function fetchCashfreeOrder(
   cfOrderId: string,
   appId: string,
   secretKey: string,
   apiUrl: string,
   apiVersion: string,
-): Promise<{ status: string; paymentId: string | null; paymentMethod: string | null }> {
-  const response = await fetch(`${apiUrl}/orders/${cfOrderId}`, {
+): Promise<{
+  status: string;
+  paymentId: string | null;
+  paymentMethod: string | null;
+  amountPaise: number | null;
+  currency: string | null;
+}> {
+  const response = await fetch(`${apiUrl}/orders/${encodeURIComponent(cfOrderId)}`, {
     method: 'GET',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: buildHeaders(appId, secretKey, apiVersion),
   });
 
@@ -134,21 +129,60 @@ export async function fetchCashfreeOrder(
   }
 
   const data = (await response.json()) as CashfreeOrderResponse;
-
   const payments = data.payments ?? [];
   const latestPayment = payments.length > 0 ? payments[payments.length - 1] : null;
+  const amountNum =
+    typeof data.order_amount === 'number'
+      ? data.order_amount
+      : typeof latestPayment?.payment_amount === 'number'
+        ? latestPayment.payment_amount
+        : null;
 
   return {
     status: data.order_status ?? 'UNKNOWN',
-    paymentId: latestPayment?.cf_payment_id ?? null,
+    paymentId: latestPayment?.cf_payment_id ? String(latestPayment.cf_payment_id) : null,
     paymentMethod: extractPaymentMethod(payments),
+    amountPaise: amountNum !== null ? Math.round(amountNum * 100) : null,
+    currency: (data.order_currency ?? latestPayment?.payment_currency ?? 'INR') as string,
+  };
+}
+
+export async function createCashfreeRefund(
+  orderId: string,
+  refundId: string,
+  amountRupeesFloat: string,
+  note: string,
+  appId: string,
+  secretKey: string,
+  apiUrl: string,
+  apiVersion: string,
+): Promise<{ cfRefundId: string; status: string }> {
+  const response = await fetch(`${apiUrl}/orders/${encodeURIComponent(orderId)}/refunds`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
+    headers: buildHeaders(appId, secretKey, apiVersion),
+    body: JSON.stringify({
+      refund_amount: parseFloat(amountRupeesFloat),
+      refund_id: refundId,
+      refund_note: note,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Cashfree createRefund error ${response.status}: ${text}`);
+  }
+
+  const data = (await response.json()) as { cf_refund_id?: string; refund_status?: string };
+  return {
+    cfRefundId: String(data.cf_refund_id || refundId),
+    status: data.refund_status || 'PENDING',
   };
 }
 
 /**
- * Verifies a Cashfree webhook signature.
+ * Verifies a Cashfree webhook signature AND enforces replay freshness (<= 300s).
  * Signature: Base64( HMAC-SHA256( timestamp + rawBody, secretKey ) )
- * Returns true if the computed signature matches the received one.
  */
 export async function verifyCashfreeSignature(
   rawBody: string,
@@ -156,29 +190,33 @@ export async function verifyCashfreeSignature(
   receivedSignature: string,
   secretKey: string,
 ): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secretKey);
-  const messageData = encoder.encode(timestamp + rawBody);
+  if (!timestamp || !receivedSignature || !secretKey) return false;
 
+  const rawTs = Number(timestamp);
+  if (!Number.isFinite(rawTs) || rawTs <= 0) return false;
+  // Support Cashfree seconds or milliseconds epochs
+  const tsSeconds = rawTs > 1e12 ? Math.floor(rawTs / 1000) : Math.floor(rawTs);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSeconds - tsSeconds) > CASHFREE_WEBHOOK_MAX_AGE_SECONDS) {
+    return false;
+  }
+
+  const encoder = new TextEncoder();
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    keyData,
+    encoder.encode(secretKey),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
   );
 
-  const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  const signatureBuffer = await crypto.subtle.sign(
+    'HMAC',
+    cryptoKey,
+    encoder.encode(timestamp + rawBody),
+  );
 
-  // Base64-encode the resulting HMAC bytes
   const signatureBytes = new Uint8Array(signatureBuffer);
   const base64Signature = btoa(String.fromCharCode(...signatureBytes));
-
-  // Constant-time comparison to prevent timing attacks
-  if (base64Signature.length !== receivedSignature.length) return false;
-  let result = 0;
-  for (let i = 0; i < base64Signature.length; i++) {
-    result |= base64Signature.charCodeAt(i) ^ receivedSignature.charCodeAt(i);
-  }
-  return result === 0;
+  return timingSafeEqualStrings(base64Signature, receivedSignature);
 }

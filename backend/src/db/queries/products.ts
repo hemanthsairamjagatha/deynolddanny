@@ -1,8 +1,7 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import type { DbProduct, DbProductVariant, DbProductImage, DbProductCrossSell } from '../../types/models.js';
+import type { DbProduct, DbProductVariant, DbProductImage } from '../../types/models.js';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../../config/constants.js';
-
-// ─── Types ─────────────────────────────────────────────────────────────────
+import { nowIso } from '../client.js';
 
 export interface ProductListOptions {
   section?: string;
@@ -21,7 +20,21 @@ export interface ProductListResult {
   totalPages: number;
 }
 
-// ─── List / Paginated ───────────────────────────────────────────────────────
+/**
+ * Sanitizes raw user search input into safe quoted FTS5 prefix tokens so special
+ * characters (`-`, `*`, `"`, `()`, boolean keywords) never throw SQL syntax errors.
+ */
+export function buildSafeFtsQuery(raw: string): string {
+  const tokens = raw
+    .trim()
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length >= 1)
+    .slice(0, 6);
+
+  if (tokens.length === 0) return '';
+  return tokens.map((t) => `"${t}"*`).join(' ');
+}
 
 export async function getProducts(
   db: D1Database,
@@ -36,8 +49,9 @@ export async function getProducts(
     featured,
   } = options;
 
-  const pageSize = Math.min(limit, MAX_PAGE_SIZE);
-  const offset = (Math.max(page, 1) - 1) * pageSize;
+  const pageSize = Math.min(Math.max(1, limit), MAX_PAGE_SIZE);
+  const safePage = Math.max(1, page);
+  const offset = (safePage - 1) * pageSize;
 
   const conditions: string[] = ['p.is_active = 1'];
   const bindings: (string | number)[] = [];
@@ -55,7 +69,6 @@ export async function getProducts(
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-
   const orderMap: Record<string, string> = {
     newest: 'p.created_at DESC',
     price_asc: 'p.price_paise ASC',
@@ -83,35 +96,25 @@ export async function getProducts(
   return {
     products,
     total,
-    page: Math.max(page, 1),
+    page: safePage,
     pageSize,
     totalPages: Math.ceil(total / pageSize),
   };
 }
 
-// ─── Single Product ─────────────────────────────────────────────────────────
-
-export async function getProductBySlug(
-  db: D1Database,
-  slug: string,
-): Promise<DbProduct | null> {
+export async function getProductBySlug(db: D1Database, slug: string): Promise<DbProduct | null> {
   return db
     .prepare(`SELECT * FROM products WHERE slug = ?1 AND is_active = 1`)
     .bind(slug)
     .first<DbProduct>();
 }
 
-export async function getProductById(
-  db: D1Database,
-  id: string,
-): Promise<DbProduct | null> {
+export async function getProductById(db: D1Database, id: string): Promise<DbProduct | null> {
   return db
     .prepare(`SELECT * FROM products WHERE id = ?1 AND is_active = 1`)
     .bind(id)
     .first<DbProduct>();
 }
-
-// ─── Variants ───────────────────────────────────────────────────────────────
 
 export async function getProductVariants(
   db: D1Database,
@@ -121,7 +124,7 @@ export async function getProductVariants(
     .prepare(
       `SELECT * FROM product_variants
        WHERE product_id = ?1 AND is_active = 1
-       ORDER BY size ASC`,
+       ORDER BY sort_order ASC, size ASC`,
     )
     .bind(productId)
     .all<DbProductVariant>();
@@ -138,8 +141,6 @@ export async function getVariantById(
     .first<DbProductVariant>();
 }
 
-// ─── Images ─────────────────────────────────────────────────────────────────
-
 export async function getProductImages(
   db: D1Database,
   productId: string,
@@ -154,8 +155,6 @@ export async function getProductImages(
     .all<DbProductImage>();
   return result.results ?? [];
 }
-
-// ─── Cross-sells ─────────────────────────────────────────────────────────────
 
 export interface CrossSellProduct extends DbProduct {
   relation_type: 'style_it_with' | 'related';
@@ -172,7 +171,7 @@ export async function getProductCrossSells(
     WHERE pcs.product_id = ?1
       AND p.is_active = 1
   `;
-  const bindings: (string)[] = [productId];
+  const bindings: string[] = [productId];
 
   if (relationType) {
     sql += ` AND pcs.relation_type = ?2`;
@@ -183,29 +182,44 @@ export async function getProductCrossSells(
   return result.results ?? [];
 }
 
-// ─── FTS Search ─────────────────────────────────────────────────────────────
-
 export async function searchProducts(
   db: D1Database,
   query: string,
   limit = 12,
 ): Promise<DbProduct[]> {
-  // products_fts is an FTS5 content table linked to products via rowid
-  const result = await db
-    .prepare(
-      `SELECT p.* FROM products p
-       INNER JOIN products_fts f ON f.rowid = p.rowid
-       WHERE products_fts MATCH ?1
-         AND p.is_active = 1
-       ORDER BY rank
-       LIMIT ?2`,
-    )
-    .bind(`${query}*`, limit)
-    .all<DbProduct>();
-  return result.results ?? [];
-}
+  const ftsQuery = buildSafeFtsQuery(query);
+  if (!ftsQuery) return [];
+  const safeLimit = Math.min(48, Math.max(1, Math.floor(limit)));
 
-// ─── Admin helpers ──────────────────────────────────────────────────────────
+  try {
+    const result = await db
+      .prepare(
+        `SELECT p.* FROM products p
+         INNER JOIN products_fts f ON f.rowid = p.rowid
+         WHERE products_fts MATCH ?1
+           AND p.is_active = 1
+         ORDER BY rank
+         LIMIT ?2`,
+      )
+      .bind(ftsQuery, safeLimit)
+      .all<DbProduct>();
+    return result.results ?? [];
+  } catch {
+    // Graceful LIKE fallback if FTS fails for unusual characters
+    const likePattern = `%${query.trim().slice(0, 60)}%`;
+    const fallback = await db
+      .prepare(
+        `SELECT * FROM products
+         WHERE is_active = 1
+           AND (title LIKE ?1 OR material LIKE ?1 OR description LIKE ?1)
+         ORDER BY sort_order ASC
+         LIMIT ?2`,
+      )
+      .bind(likePattern, safeLimit)
+      .all<DbProduct>();
+    return fallback.results ?? [];
+  }
+}
 
 export async function getAllProductsAdmin(db: D1Database): Promise<DbProduct[]> {
   const result = await db
@@ -218,6 +232,7 @@ export async function upsertProduct(
   db: D1Database,
   p: Partial<DbProduct> & { id: string },
 ): Promise<void> {
+  const now = nowIso();
   await db
     .prepare(
       `INSERT INTO products (
@@ -227,18 +242,21 @@ export async function upsertProduct(
          default_img, hover_img, is_active, is_featured, sort_order,
          created_at, updated_at
        ) VALUES (
-         ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,
-         strftime('%Y-%m-%dT%H:%M:%fZ','now'), strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?23
        )
        ON CONFLICT(id) DO UPDATE SET
          slug=excluded.slug, title=excluded.title, description=excluded.description,
          material=excluded.material, care_guide=excluded.care_guide,
+         gender=excluded.gender, tag=excluded.tag,
+         size_and_fit_json=excluded.size_and_fit_json,
+         composition_care_json=excluded.composition_care_json,
+         shipping_returns_json=excluded.shipping_returns_json,
          price_paise=excluded.price_paise, compare_paise=excluded.compare_paise,
          badge=excluded.badge, section_group=excluded.section_group, category_id=excluded.category_id,
          default_img=excluded.default_img, hover_img=excluded.hover_img,
          is_active=excluded.is_active, is_featured=excluded.is_featured,
          sort_order=excluded.sort_order,
-         updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
+         updated_at=?23`,
     )
     .bind(
       p.id, p.slug, p.sku_prefix, p.title, p.description ?? null, p.material ?? null,
@@ -246,7 +264,7 @@ export async function upsertProduct(
       p.size_and_fit_json ?? null, p.composition_care_json ?? null, p.shipping_returns_json ?? null,
       p.price_paise, p.compare_paise ?? null, p.badge ?? null, p.section_group, p.category_id ?? null,
       p.default_img, p.hover_img, p.is_active ?? 1, p.is_featured ?? 0, p.sort_order ?? 0,
+      now,
     )
     .run();
 }
-

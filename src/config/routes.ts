@@ -11,12 +11,14 @@ export const routes = {
   category: '/categories',
   women: '/categories/clothing',
   men: '/categories/shirts',
-  occasion: '#occasion',
-  fabric: '#fabric',
-  journal: '#journal',
-  mastery: '#mastery',
-  styleSpace: '#style-space',
-  latestNews: '#latest-news'
+  occasion: '/#new-arrival',
+  fabric: '/#thread-of-mastery',
+  journal: '/#latest-news',
+  mastery: '/#thread-of-mastery',
+  newArrival: '/#new-arrival',
+  latestNews: '/#latest-news',
+  contact: '/contact',
+  trackOrder: '/orders/track'
 } as const;
 
 export type AppRoute = (typeof routes)[keyof typeof routes];

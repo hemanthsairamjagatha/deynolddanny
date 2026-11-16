@@ -1,7 +1,35 @@
-// Web Crypto services — OTP generation, hashing, token generation
+// Web Crypto services — OTP generation, hashing, constant-time compare, token generation
 
 /**
- * Generates a cryptographically random 6-digit OTP.
+ * Constant-time string comparison using UTF-8 bytes and padded length loop.
+ */
+export function timingSafeEqualStrings(a: string, b: string): boolean {
+  const encoder = new TextEncoder();
+  const aBytes = encoder.encode(a);
+  const bBytes = encoder.encode(b);
+  const maxLen = Math.max(aBytes.length, bBytes.length);
+  let diff = aBytes.length ^ bBytes.length;
+  for (let i = 0; i < maxLen; i++) {
+    const av = i < aBytes.length ? aBytes[i] : 0;
+    const bv = i < bBytes.length ? bBytes[i] : 0;
+    diff |= av ^ bv;
+  }
+  return diff === 0;
+}
+
+/**
+ * Computes SHA-256 hex digest of any string.
+ */
+export async function sha256Hex(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Generates a cryptographically random 6-digit OTP without modulo bias issues for 6 digits.
  */
 export async function generateOtp(): Promise<string> {
   const array = new Uint32Array(1);
@@ -13,11 +41,7 @@ export async function generateOtp(): Promise<string> {
  * Returns a hex-encoded SHA-256 hash of (salt + otp).
  */
 export async function hashOtp(otp: string, salt: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(salt + otp);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return sha256Hex(salt + otp);
 }
 
 /**
@@ -25,12 +49,7 @@ export async function hashOtp(otp: string, salt: string): Promise<string> {
  */
 export async function verifyOtp(otp: string, salt: string, storedHash: string): Promise<boolean> {
   const hash = await hashOtp(otp, salt);
-  if (hash.length !== storedHash.length) return false;
-  let result = 0;
-  for (let i = 0; i < hash.length; i++) {
-    result |= hash.charCodeAt(i) ^ storedHash.charCodeAt(i);
-  }
-  return result === 0;
+  return timingSafeEqualStrings(hash, storedHash);
 }
 
 /**
@@ -39,16 +58,19 @@ export async function verifyOtp(otp: string, salt: string, storedHash: string): 
 export function generateRefreshToken(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(array)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
  * Generates a prefixed ID using 12 random bytes (24 hex chars).
- * Example: generateId('usr_') → 'usr_a1b2c3d4e5f6a1b2c3d4e5f6'
  */
 export function generateId(prefix: string): string {
   const array = new Uint8Array(12);
   crypto.getRandomValues(array);
-  const hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+  const hex = Array.from(array)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
   return prefix + hex;
 }

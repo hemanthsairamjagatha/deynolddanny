@@ -6,10 +6,19 @@ import { KV_CATALOG_TTL_SECONDS } from '../config/constants.js';
 
 const categories = new Hono<{ Bindings: Env }>();
 
+async function getCatVersion(kv: KVNamespace): Promise<string> {
+  try {
+    return (await kv.get('catalog:version', 'text')) || 'v1';
+  } catch {
+    return 'v1';
+  }
+}
+
 // ─── GET /api/categories ─────────────────────────────────────────────────────
 
 categories.get('/', async (c) => {
-  const cacheKey = 'catalog:categories:all';
+  const ver = await getCatVersion(c.env.CATALOG_KV);
+  const cacheKey = `catalog:${ver}:categories:all`;
   const cached = await getCatalogCache<DbCategory[]>(c.env.CATALOG_KV, cacheKey);
   if (cached) {
     return c.json({ success: true, data: { items: cached } }, 200, {
@@ -38,7 +47,8 @@ categories.get('/', async (c) => {
 
 categories.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
-  const cacheKey = `catalog:category:${slug}`;
+  const ver = await getCatVersion(c.env.CATALOG_KV);
+  const cacheKey = `catalog:${ver}:category:${slug}`;
 
   const cached = await getCatalogCache<DbCategory>(c.env.CATALOG_KV, cacheKey);
   if (cached) {

@@ -322,17 +322,12 @@ export async function getStaticPaths() {
 
   return CATEGORIES.map((cat) => {
     const catMatched = allProducts.filter(cat.matcher);
-    // Complementary creations to ensure full luxury spread (15-17 items)
-    const complementary = allProducts.filter((p) => !cat.matcher(p));
-    // Category items first, then complementary total-look creations
-    const fullSpread = [...catMatched, ...complementary];
-    const products = fullSpread.length > 0 ? fullSpread : allProducts;
 
     return {
       params: { slug: cat.slug },
       props: {
         category: cat,
-        products: products,
+        products: catMatched,
         allCategories: CATEGORIES.slice(0, 7) // Primary category filter pills
       }
     };
@@ -358,7 +353,7 @@ const remainingProducts = products.slice(7);
 ---
 
 <StorefrontLayout title={pageTitle} description={pageDescription}>
-  <main class="min-h-screen bg-white text-black">
+  <main id="main-content" class="min-h-screen bg-white text-black">
     <div class="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-12 pt-8 pb-24">
       <!-- Breadcrumbs -->
       <nav aria-label="Breadcrumb" class="mb-8">
@@ -406,11 +401,30 @@ const remainingProducts = products.slice(7);
       </div>
 
       <!-- Category Editorial Grid (Brunello Cucinelli Signature Rhythmic Layout) -->
+      {products.length === 0 ? (
+        <div class="border border-neutral-200 p-12 text-center my-8">
+          <span class="text-[11px] font-mono uppercase tracking-[0.25em] text-neutral-400 block mb-2">
+            Seasonal Atelier Curation
+          </span>
+          <h2 class="text-xl font-serif text-neutral-900 mb-3">
+            No garments currently listed in {category.title}
+          </h2>
+          <p class="text-xs text-neutral-600 max-w-md mx-auto mb-6">
+            New seasonal pieces are currently in preparation. Explore our active tailoring and casual collections below.
+          </p>
+          <a
+            href="/categories"
+            class="inline-block px-8 py-3 bg-neutral-900 text-white text-xs uppercase tracking-widest rounded-full hover:bg-black transition-colors"
+          >
+            Browse All Collections
+          </a>
+        </div>
+      ) : (
       <div class="catalog-editorial-grid">
-        <!-- 1. Hero Editorial Mosaic (Block 1: 4 Products in 2x2 + 1 Tall Campaign Feature) -->
+        {/* 1. Hero Editorial Mosaic (Block 1: 4 Products in 2x2 + 1 Tall Campaign Feature) */}
         {mosaicProducts.length > 0 && (
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch mb-10 lg:mb-12">
-            <!-- Left Side: 4 Products arranged in a 2x2 Grid -->
+            {/* Left Side: 4 Products arranged in a 2x2 Grid */}
             <div class="grid grid-cols-2 gap-4 sm:gap-6">
               {mosaicProducts.map((product) => (
                 <div class="flex justify-center w-full">
@@ -419,7 +433,7 @@ const remainingProducts = products.slice(7);
               ))}
             </div>
 
-            <!-- Right Side: Tall Editorial Campaign Portrait (stretches to match 2 stacked rows) -->
+            {/* Right Side: Tall Editorial Campaign Portrait (stretches to match 2 stacked rows) */}
             <div class="catalog-editorial-hero relative w-full h-full min-h-[460px] lg:min-h-0 bg-neutral-100 overflow-hidden group">
               <img
                 src={category.heroEditorialImg}
@@ -443,7 +457,7 @@ const remainingProducts = products.slice(7);
           </div>
         )}
 
-        <!-- 2. 3-Column Product Row (Block 2: Exactly 3 Products Side-by-Side) -->
+        {/* 2. 3-Column Product Row (Block 2: Exactly 3 Products Side-by-Side) */}
         {secondRowProducts.length > 0 && (
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-10 lg:mb-12">
             {secondRowProducts.map((product) => (
@@ -454,7 +468,7 @@ const remainingProducts = products.slice(7);
           </div>
         )}
 
-        <!-- 3. Editorial Duo Inset (Block 3: 2 Landscape Campaign Shots Side-by-Side) -->
+        {/* 3. Editorial Duo Inset (Block 3: 2 Landscape Campaign Shots Side-by-Side) */}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 my-10 lg:my-14">
           <div class="group relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-neutral-100">
             <img
@@ -493,7 +507,7 @@ const remainingProducts = products.slice(7);
           </div>
         </div>
 
-        <!-- 4. Continuing 3-Column Product Rows (Block 4: All Remaining Products in 3 Columns) -->
+        {/* 4. Continuing 3-Column Product Rows (Block 4: All Remaining Products in 3 Columns) */}
         {remainingProducts.length > 0 && (
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-10 lg:mb-14">
             {remainingProducts.map((product) => (
@@ -504,6 +518,7 @@ const remainingProducts = products.slice(7);
           </div>
         )}
       </div>
+      )}
     </div>
   </main>
 </StorefrontLayout>

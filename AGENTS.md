@@ -1195,182 +1195,98 @@ The required completion report in Section 20 must state that both instruction fi
 
 ### Current repository structure / implementation snapshot
 
-- **Verification date:** 2026-11-12
-- **Verification status:** Verified against active working repository
-- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3
+- **Verification date:** 2026-11-16
+- **Verification status:** Verified against active working repository (`Get-ChildItem`, `astro check`, `tsc --noEmit`, `astro build`, `tests/frontend-unit.test.mjs`, `backend/tests/*.test.mjs`)
+- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Frontend) · Hono + Cloudflare Workers + D1 + KV + R2 + Queues (Backend)
 - **Active Routes (`src/pages/`):**
-  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, editorial duo, and product carousels)
+  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, `ProductCarousel`, `StyleLayering`, `Organization`/`WebSite` JSON-LD)
   - `/categories` -> `src/pages/categories/index.astro` (Storefront category directory)
-  - `/categories/[slug]` -> `src/pages/categories/[slug].astro` (Category product listing page with filter pills and dynamic product grid)
-  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with horizontal gallery, floating info card, under-gallery editorial mosaic and specification accordions, lightbox, fit finder, size guide, style-it-with, and related suggestions)
-  - `/search` -> `src/pages/search.astro` (Storefront search results page)
-  - `/cart` -> `src/pages/cart.astro` (Shopping bag page)
-  - `/checkout` -> `src/pages/checkout.astro` (Multi-step checkout page)
-  - `/wishlist` -> `src/pages/wishlist.astro` (Wishlist page with breadcrumbs, item count, empty state, and wishlist grid)
-  - `/contact` -> `src/pages/contact.astro` (Client concierge & salon contact page)
-  - `/account/sign-in` (alias `/login`) -> `src/pages/account/sign-in.astro` (`src/pages/login.astro`)
-  - `/account/sign-up` (alias `/signup`) -> `src/pages/account/sign-up.astro` (`src/pages/signup.astro`)
-  - `/account/forgot-password` -> `src/pages/account/forgot-password.astro`
+  - `/categories/[slug]` -> `src/pages/categories/[slug].astro` (Strictly isolated category product listing)
+  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with live `/availability` stock, `Product` JSON-LD, Fit Finder, Size Guide)
+  - `/search` -> `src/pages/search.astro` (`noindex`, hydrated client `?q=` lookup via `SearchPageExperience`)
+  - `/cart` -> `src/pages/cart.astro` (`noindex`, server-backed coupon & bag totals)
+  - `/checkout` -> `src/pages/checkout.astro` (`noindex`, fail-closed multi-step checkout with `Idempotency-Key` & `/api/shipping/*` proxy)
+  - `/checkout/payment-failed` -> `src/pages/checkout/payment-failed.astro` (`noindex`, payment failure recovery view)
+  - `/wishlist` -> `src/pages/wishlist.astro` (`noindex`, DPDP/server-synced wishlist)
+  - `/contact` -> `src/pages/contact.astro` (Concierge form wired to `POST /api/contact`)
+  - `/account` & `/account/index` -> `src/pages/account.astro`, `src/pages/account/index.astro` (`noindex`, profile, D1 address book, self-cancel/return, GST invoice, DPDP export/erasure)
+  - `/account/sign-in` (alias `/login`), `/account/sign-up` (alias `/signup`), `/account/forgot-password` -> `src/pages/account/*.astro` (`noindex`, pure Email OTP authentication)
   - `/legal/{privacy-policy,shipping-returns,terms}` -> `src/pages/legal/*.astro`
+  - `/orders/track` (alias `/track`) -> `src/pages/orders/track.astro` (`noindex`, PII-verified milestone & Shiprocket tracking)
+  - `/404` & `/500` -> `src/pages/404.astro`, `src/pages/500.astro` (`noindex`, branded error pages)
+  - `/robots.txt` & `/sitemap.xml` -> `src/pages/robots.txt.ts`, `src/pages/sitemap.xml.ts`
 
 ```text
 deynold-danny-ecommerce/
-├── backend/                               # Separate Hono / Cloudflare Workers backend
+├── backend/
+│   ├── migrations/
+│   │   ├── 0001_initial_schema.sql
+│   │   ├── 0002_seed_data.sql
+│   │   ├── 0003_refresh_tokens_and_hardening.sql
+│   │   ├── 0004_audit_logs.sql
+│   │   └── 0005_schema_hardening_and_triggers.sql
+│   ├── src/
+│   │   ├── config/{constants.ts, env.ts, policy.ts}
+│   │   ├── db/{client.ts, queries/{analytics.ts, cart.ts, inventory.ts, orders.ts, otps.ts, products.ts, users.ts}}
+│   │   ├── index.ts
+│   │   ├── middleware/{adminAuth.ts, auth.ts, cors.ts, errorHandler.ts, rateLimit.ts, securityHeaders.ts}
+│   │   ├── queues/emailConsumer.ts
+│   │   ├── routes/
+│   │   │   ├── admin/{coupons.ts, customers.ts, dashboard.ts, index.ts, inventory.ts, logs.ts, orders.ts, products.ts, uploads.ts}
+│   │   │   └── {auth.ts, cart.ts, categories.ts, checkout.ts, contact.ts, coupons.ts, newsletter.ts, orders.ts, payments.ts, products.ts, search.ts, shipping.ts, users.ts, webhooks.ts, wishlist.ts}
+│   │   ├── services/{cache.ts, cashfree.ts, crypto.ts, jwt.ts, money.ts, orderLifecycle.ts, r2Storage.ts, razorpay.ts, resend.ts, shiprocket.ts, stockEngine.cron.ts, stockEngine.ts}
+│   │   └── types/{api.ts, bindings.d.ts, models.ts}
+│   ├── tests/
+│   │   ├── helpers/miniflare-harness.mjs
+│   │   ├── db-and-worker.test.mjs
+│   │   └── payment-security.test.mjs
+│   ├── {.dev.vars.example, package.json, package-lock.json, SETUP.md, tsconfig.json, wrangler.toml}
 ├── public/
 │   ├── hero-banner.jpg
 │   ├── hero-banner.png
 │   ├── logo.png
-│   └── images/
-│       ├── autumn-product-[1..5].jpg
-│       ├── bordeaux-dress-[back,detail,front,model,side].jpg
-│       ├── cady-trousers-[back,detail,fabric,model,model-3,model-4,product,swatch,waist].jpg
-│       ├── cady-vest.jpg
-│       ├── categories/[abiti,accessori,borse,camicie,capispalla,maglieria,pantaloni,scarpe].jpg
-│       ├── category-*.jpg
-│       ├── cleaned-inspection.png
-│       ├── mastery-[1..5]-[back,detail,model,product].jpg
-│       ├── mastery-men-[1..5].jpg & hover
-│       ├── nappa-flat.jpg
-│       ├── news-[1..5]-[back,detail,model,product].jpg
-│       ├── news-men-[1..5].jpg & hover
-│       ├── style-[1..5]-[back,detail,model,product].jpg
-│       ├── style-space-[1..5].jpg & hover
-│       ├── suggest-pants-[1..4].jpg
-│       └── thread-mastery-[1..5].jpg
+│   └── images/...
 ├── src/
 │   ├── components/
-│   │   └── layout/
-│   │       ├── Footer.astro
-│   │       └── Header.astro
-│   ├── config/
-│   │   ├── ecommerce.config.ts
-│   │   ├── navigation.config.ts
-│   │   ├── routes.ts
-│   │   └── site.config.ts
-│   ├── data/
-│   │   └── products.ts
+│   │   └── layout/{AccountTrigger.tsx, Footer.astro, Header.astro}
+│   ├── config/{ecommerce.config.ts, navigation.config.ts, routes.ts, site.config.ts}
+│   ├── data/products.ts
 │   ├── features/
-│   │   ├── auth/
-│   │   │   ├── api/
-│   │   │   │   └── auth.api.ts
-│   │   │   ├── components/
-│   │   │   │   ├── ForgotPasswordForm.tsx
-│   │   │   │   ├── SignInForm.tsx
-│   │   │   │   └── SignUpForm.tsx
-│   │   │   └── types/
-│   │   │       └── auth.types.ts
-│   │   ├── cart/
-│   │   │   ├── api/
-│   │   │   │   └── cart.api.ts
-│   │   │   ├── components/
-│   │   │   │   ├── CartDrawer.tsx
-│   │   │   │   ├── CartPageExperience.tsx
-│   │   │   │   └── CartTrigger.tsx
-│   │   │   ├── store/
-│   │   │   │   └── cart.store.ts
-│   │   │   └── types/
-│   │   │       └── cart.types.ts
+│   │   ├── account/{api/account.api.ts, components/AccountExperience.tsx}
+│   │   ├── auth/{api/auth.api.ts, components/{ForgotPasswordForm.tsx, SignInForm.tsx, SignUpForm.tsx}, types/auth.types.ts}
+│   │   ├── cart/{api/cart.api.ts, components/{CartDrawer.tsx, CartPageExperience.tsx, CartTrigger.tsx}, store/cart.store.ts, types/cart.types.ts}
 │   │   ├── catalog/
-│   │   │   ├── api/
-│   │   │   │   └── catalog.api.ts
-│   │   │   ├── components/
-│   │   │   │   ├── ProductCard.tsx
-│   │   │   │   ├── ProductCarousel.tsx
-│   │   │   │   ├── ProductColorSelector.tsx
-│   │   │   │   ├── ProductDetailExperience.tsx
-│   │   │   │   ├── ProductGallery.tsx
-│   │   │   │   ├── ProductLightbox.tsx
-│   │   │   │   ├── ProductPurchasePanel.tsx
-│   │   │   │   ├── ProductSizeSelector.tsx
-│   │   │   │   ├── ProductSizingActions.tsx
-│   │   │   │   ├── RelatedProducts.astro
-│   │   │   │   └── StyleItWith.astro
-│   │   │   ├── data/
-│   │   │   │   └── products.ts
-│   │   │   ├── fit-finder/
-│   │   │   │   └── FitFinderDialog.tsx
-│   │   │   ├── size-guide/
-│   │   │   │   └── SizeGuideDialog.tsx
-│   │   │   ├── types/
-│   │   │   │   ├── fit-recommendation.types.ts
-│   │   │   │   ├── product.types.ts
-│   │   │   │   └── size-guide.types.ts
-│   │   │   └── utils/
-│   │   │       └── product.utils.ts
-│   │   ├── checkout/
-│   │   │   ├── api/
-│   │   │   │   └── checkout.api.ts
-│   │   │   └── components/
-│   │   │       └── CheckoutExperience.tsx
-│   │   ├── home/
-│   │   │   ├── components/
-│   │   │   │   ├── CategoryGrid.astro
-│   │   │   │   ├── EditorialDuo.astro
-│   │   │   │   └── HeroBanner.astro
-│   │   │   └── data/
-│   │   │       └── home-content.ts
-│   │   ├── search/
-│   │   │   ├── components/
-│   │   │   │   ├── SearchDialog.tsx
-│   │   │   │   └── SearchTrigger.tsx
-│   │   │   └── store/
-│   │   │       └── search.store.ts
-│   │   └── wishlist/
-│   │       ├── components/
-│   │       │   ├── WishlistButton.tsx
-│   │       │   └── WishlistExperience.tsx
-│   │       ├── store/
-│   │       │   └── wishlist.store.ts
-│   │       └── types/
-│   │           └── wishlist.types.ts
-│   ├── layouts/
-│   │   ├── AuthLayout.astro
-│   │   ├── BaseLayout.astro
-│   │   ├── Layout.astro
-│   │   └── StorefrontLayout.astro
-│   ├── lib/
-│   │   └── api/
-│   │       └── client.ts
+│   │   │   ├── api/catalog.api.ts
+│   │   │   ├── components/{ProductCard.tsx, ProductCarousel.tsx, ProductColorSelector.tsx, ProductDetailExperience.tsx, ProductGallery.tsx, ProductLightbox.tsx, ProductPurchasePanel.tsx, ProductSizeSelector.tsx, ProductSizingActions.tsx, RelatedProducts.astro, StyleItWith.astro}
+│   │   │   ├── data/products.ts
+│   │   │   ├── fit-finder/FitFinderDialog.tsx
+│   │   │   ├── size-guide/SizeGuideDialog.tsx
+│   │   │   ├── types/{fit-recommendation.types.ts, product.types.ts, size-guide.types.ts}
+│   │   │   └── utils/product.utils.ts
+│   │   ├── checkout/{api/checkout.api.ts, components/CheckoutExperience.tsx}
+│   │   ├── consent/components/CookieConsentBanner.tsx
+│   │   ├── contact/components/ContactForm.tsx
+│   │   ├── home/{components/{CategoryGrid.astro, EditorialDuo.astro, HeroBanner.astro, StyleLayering.tsx}, data/home-content.ts}
+│   │   ├── orders/{api/orders.api.ts, components/OrderTrackingExperience.tsx}
+│   │   ├── search/{components/{SearchDialog.tsx, SearchPageExperience.tsx, SearchTrigger.tsx}, store/search.store.ts}
+│   │   └── wishlist/{api/wishlist.api.ts, components/{WishlistButton.tsx, WishlistExperience.tsx}, store/wishlist.store.ts, types/wishlist.types.ts}
+│   ├── layouts/{AuthLayout.astro, BaseLayout.astro, Layout.astro, StorefrontLayout.astro}
+│   ├── lib/{api/client.ts, consent/consent.store.ts}
 │   ├── pages/
-│   │   ├── account/
-│   │   │   ├── forgot-password.astro
-│   │   │   ├── sign-in.astro
-│   │   │   └── sign-up.astro
-│   │   ├── categories/
-│   │   │   ├── [slug].astro
-│   │   │   └── index.astro
-│   │   ├── legal/
-│   │   │   ├── privacy-policy.astro
-│   │   │   ├── shipping-returns.astro
-│   │   │   └── terms.astro
-│   │   ├── products/
-│   │   │   └── [slug].astro
-│   │   ├── cart.astro
-│   │   ├── checkout.astro
-│   │   ├── contact.astro
-│   │   ├── index.astro
-│   │   ├── login.astro
-│   │   ├── search.astro
-│   │   ├── signup.astro
-│   │   └── wishlist.astro
-│   ├── stores/
-│   │   └── cartStore.ts
-│   ├── styles/
-│   │   ├── global.css
-│   │   ├── luxury-custom.css
-│   │   ├── typography.css
-│   │   └── variables.css
-│   ├── types/
-│   │   └── ecommerce.ts
+│   │   ├── account/{forgot-password.astro, index.astro, sign-in.astro, sign-up.astro}
+│   │   ├── categories/{[slug].astro, index.astro}
+│   │   ├── checkout/payment-failed.astro
+│   │   ├── legal/{privacy-policy.astro, shipping-returns.astro, terms.astro}
+│   │   ├── orders/track.astro
+│   │   ├── products/[slug].astro
+│   │   └── {404.astro, 500.astro, account.astro, cart.astro, checkout.astro, contact.astro, index.astro, login.astro, robots.txt.ts, search.astro, signup.astro, sitemap.xml.ts, track.astro, wishlist.astro}
+│   ├── stores/cartStore.ts
+│   ├── styles/{global.css, luxury-custom.css, typography.css, variables.css}
+│   ├── types/ecommerce.ts
 │   └── env.d.ts
-├── astro.config.mjs
-├── tailwind.config.mjs
-├── tsconfig.json
-├── package.json
-├── package-lock.json
-├── README.md
-├── AGENTS.md
-└── GEMINI.md
+├── tests/
+│   └── frontend-unit.test.mjs
+├── {astro.config.mjs, package.json, package-lock.json, tailwind.config.mjs, tsconfig.json, vercel.json, README.md, AGENTS.md, GEMINI.md}
 ```
 
 ### Implementation update log
@@ -3140,11 +3056,6 @@ deynold-danny-ecommerce/
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
 
-
-
-
-
-
 - **2026-11-15 — Style Layering Wishlist Button Background Removal**:
   - **Status:** COMPLETE
   - **Summary:** Removed the semi-transparent white background circle (`bg-white/80`, `hover:bg-white`, `rounded-full`, and `shadow-sm`) from the wishlist heart button on the shoppable product thumbnails in `src/features/home/components/StyleLayering.tsx` and added `.style-layering-wishlist-btn { background: transparent !important; box-shadow: none !important; }` in `src/styles/luxury-custom.css`, displaying the bare minimalist heart icon directly on the product photography as requested in user-provided screenshot (`media_1794713209148_e72fe040.jpg`).
@@ -3255,6 +3166,51 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-16 — Production Security, Database, Payment, Storefront, Accessibility & SEO Hardening + Test Suites**:
+  - **Status:** COMPLETE (Codebase Hardening & Automated Test Suites Complete; External Approvals `BD-01..BD-13` & Live Browser/Staging Verification Pending)
+  - **Summary:** Executed full-stack production hardening across backend (`backend/`) and storefront (`src/`) without hardcoding unverified business, tax, or payment-provider thresholds: added D1 migration `0005` (`orders` FK-safe rebuild, `payment_attempts`, `refunds`, `payment_disputes`, `webhook_events`, `rate_limits`, `coupon_redemptions`, `return_requests`, `email_outbox`, `inventory_movements`, FTS5 trigger fix), hardened Razorpay/Cashfree verification & webhooks (300s timestamp replay guard, duplicate/late capture handling, dispute freeze, idempotent partial refunds), enforced `x-api-key` timing-safe Shiprocket webhooks + dual AWB lookup, added fail-closed policy flags (`backend/src/config/policy.ts`), DPDP data export/erasure (`backend/src/routes/users.ts`), atomic stock checkout + cron expiration reaper, same-origin in-memory JWT + `navigator.locks` auth client (`src/lib/api/client.ts`), removed offline/test payment bypasses & promo/gift fallbacks, fixed account/orders/addresses/search/wishlist/category/PDP integrations, added DPDP cookie consent banner (`CookieConsentBanner.tsx`), `404`/`500`/`checkout/payment-failed`/`robots.txt.ts`/`sitemap.xml.ts`, mobile overflow & touch-target CSS fixes + reduced motion, and built Miniflare D1/Worker integration tests + frontend unit tests.
+  - **Files Added:**
+    - `backend/migrations/0005_schema_hardening_and_triggers.sql`
+    - `backend/src/config/policy.ts`
+    - `backend/src/routes/admin/logs.ts`
+    - `backend/src/routes/shipping.ts`
+    - `backend/src/services/orderLifecycle.ts`
+    - `backend/tests/helpers/miniflare-harness.mjs`
+    - `backend/tests/db-and-worker.test.mjs`
+    - `backend/tests/payment-security.test.mjs`
+    - `src/features/account/api/account.api.ts`
+    - `src/features/consent/components/CookieConsentBanner.tsx`
+    - `src/features/contact/components/ContactForm.tsx`
+    - `src/features/search/components/SearchPageExperience.tsx`
+    - `src/features/wishlist/api/wishlist.api.ts`
+    - `src/lib/consent/consent.store.ts`
+    - `src/pages/404.astro`
+    - `src/pages/500.astro`
+    - `src/pages/checkout/payment-failed.astro`
+    - `src/pages/robots.txt.ts`
+    - `src/pages/sitemap.xml.ts`
+    - `tests/frontend-unit.test.mjs`
+  - **Files Modified:**
+    - `astro.config.mjs`, `package.json`, `backend/package.json`, `backend/wrangler.toml`, `backend/.dev.vars.example`
+    - `backend/src/config/constants.ts`, `backend/src/db/*`, `backend/src/index.ts`, `backend/src/middleware/*`, `backend/src/queues/emailConsumer.ts`, `backend/src/routes/**/*`, `backend/src/services/*`, `backend/src/types/*`
+    - `src/components/layout/{AccountTrigger.tsx, Footer.astro, Header.astro}`, `src/config/{ecommerce.config.ts, navigation.config.ts, routes.ts}`
+    - `src/features/{account,auth,cart,catalog,checkout,orders,wishlist}/*`, `src/layouts/{AuthLayout.astro, BaseLayout.astro, Layout.astro, StorefrontLayout.astro}`, `src/lib/api/client.ts`
+    - `src/pages/{account.astro, account/index.astro, cart.astro, categories/index.astro, categories/[slug].astro, checkout.astro, contact.astro, index.astro, legal/privacy-policy.astro, legal/shipping-returns.astro, legal/terms.astro, orders/track.astro, products/[slug].astro, search.astro, track.astro, wishlist.astro}`, `src/styles/luxury-custom.css`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added D1 migration `0005`, `backend/src/config/policy.ts`, `backend/src/services/orderLifecycle.ts`, `backend/src/routes/shipping.ts`, `backend/src/routes/admin/logs.ts`, `src/features/consent/`, `src/features/contact/`, `src/lib/consent/`, error/payment-failed/robots/sitemap routes, and backend + frontend test suites (`backend/tests/`, `tests/`).
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`9 / 9` Miniflare D1/Worker tests passing, 0 fail, 0 skipped).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests passing, 0 fail, 0 skipped).
+    - `npx astro check`: PASS (98 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npx tsc --noEmit`: PASS (0 errors).
+    - `npm run build`: PASS (57 static pages + endpoints built cleanly in 2.87s).
+    - Playwright E2E browser suite: NOT RUN (`playwright` not installed in repository).
+    - Staging load (`k6`) & live gateway/Shiprocket/Resend sandbox end-to-end: NOT RUN (awaiting external secrets & staging deployment).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** External business, CA/tax, DNS, and payment provider approvals (`BD-01..BD-13`: canonical INR SKU/price sheet `0006`, CA GST/HSN/PAN/E-Way rules, Workers Paid plan & production `wrangler.toml`/Resend/Razorpay/Cashfree/Shiprocket credentials, optional `@astrojs/cloudflare` SSR target confirmation `BD-12`), plus Playwright installation for automated browser verification.
 
 
 

@@ -28,23 +28,47 @@ const BEST_SELLER_CATEGORIES = [
   { label: 'FOOTWEAR', value: 'footwear' },
   { label: 'ACCESSORIES', value: 'accessories' }
 ];
+const siteOrigin = Astro.site?.href.replace(/\/$/, '') || 'https://deynolddanny.com';
+const organizationJsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'DEYNOLD DANNY',
+  url: siteOrigin,
+  logo: `${siteOrigin}/logo.png`,
+  sameAs: []
+}).replace(/</g, '\\u003c');
+
+const webSiteJsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'DEYNOLD DANNY',
+  url: siteOrigin,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${siteOrigin}/search?q={search_term_string}`,
+    'query-input': 'required name=search_term_string'
+  }
+}).replace(/</g, '\\u003c');
 ---
 
 <Layout>
+  <script type="application/ld+json" set:html={organizationJsonLd} />
+  <script type="application/ld+json" set:html={webSiteJsonLd} />
+
   <!-- Header with Two Tiers, Mobile Drawer & Cart Trigger -->
   <Header />
 
   <!-- Main Content Body -->
-  <main>
+  <main id="main-content">
     <!-- Hero Banner with Search Strip and Campaign Overlay -->
     <HeroBanner />
 
     <!-- 1. Our Best Sellers Carousel with Categories Subhead (Referenced Design) -->
     <ProductCarousel
-      client:load
+      client:visible
       id="thread-of-mastery"
       title="Our Best Sellers"
-      viewAllLink="#mastery"
+      viewAllLink="/categories"
       products={masteryProducts}
       allCatalogProducts={liveProducts}
       categories={BEST_SELLER_CATEGORIES}
@@ -56,10 +80,10 @@ const BEST_SELLER_CATEGORIES = [
 
     <!-- 3. New Arrival Carousel with Categories Subhead (Referenced Design) -->
     <ProductCarousel
-      client:load
+      client:visible
       id="new-arrival"
       title="NEW ARRIVAL"
-      viewAllLink="#new-arrival"
+      viewAllLink="/categories"
       products={styleSpaceProducts}
       allCatalogProducts={liveProducts}
       categories={BEST_SELLER_CATEGORIES}
@@ -67,7 +91,9 @@ const BEST_SELLER_CATEGORIES = [
     />
 
     <!-- 4. Style Layering Editorial Lookbook Section (Referenced Design) -->
-    <StyleLayering client:load />
+    <div id="latest-news">
+      <StyleLayering client:visible />
+    </div>
   </main>
 
   <!-- Luxury Minimalist White Footer -->

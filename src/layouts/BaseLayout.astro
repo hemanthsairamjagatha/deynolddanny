@@ -2,16 +2,29 @@
 // src/layouts/BaseLayout.astro
 import '../styles/global.css';
 import { siteConfig } from '../config/site.config';
+import CookieConsentBanner from '../features/consent/components/CookieConsentBanner';
 
-interface Props {
+export interface Props {
   title?: string;
   description?: string;
+  noindex?: boolean;
+  canonical?: string;
+  ogType?: 'website' | 'product' | 'article';
+  ogImage?: string;
 }
 
 const {
   title = siteConfig.title,
-  description = siteConfig.description
+  description = siteConfig.description,
+  noindex = false,
+  canonical,
+  ogType = 'website',
+  ogImage = '/hero-banner.jpg'
 } = Astro.props;
+
+const siteBase = Astro.site?.href || 'https://deynolddanny.com';
+const canonicalUrl = canonical || new URL(Astro.url.pathname, siteBase).href;
+const ogImageUrl = ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteBase).href;
 ---
 
 <!DOCTYPE html>
@@ -20,20 +33,44 @@ const {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <meta name="description" content={description} />
+  <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
   <title>{title}</title>
 
-  <!-- Google Fonts Preconnect & Stylesheets -->
+  <link rel="canonical" href={canonicalUrl} />
+
+  <!-- Open Graph & Social Discovery -->
+  <meta property="og:site_name" content={siteConfig.name} />
+  <meta property="og:type" content={ogType} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={ogImageUrl} />
+  <meta property="og:locale" content="en_IN" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImageUrl} />
+
+  <!-- Google Fonts Preconnect & Primary Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,400&family=Trirong:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Figtree:wght@300;400;500;600&family=Poppins:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
     rel="stylesheet"
   />
 
   <link rel="icon" type="image/png" href={siteConfig.favicon} />
 </head>
 <body>
+  <a
+    href="#main-content"
+    class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:bg-black focus:text-white focus:px-4 focus:py-2.5 focus:text-xs focus:font-semibold focus:uppercase focus:tracking-widest"
+  >
+    Skip to main content
+  </a>
   <slot />
+  <CookieConsentBanner client:load />
 </body>
 </html>
 

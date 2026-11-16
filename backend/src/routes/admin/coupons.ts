@@ -8,9 +8,7 @@ import { nowIso } from '../../db/client.js';
 
 const adminCoupons = new Hono<{ Bindings: Env }>();
 
-// ─── Schema ─────────────────────────────────────────────────────────────────
-
-const couponSchema = z.object({
+const couponBaseSchema = z.object({
   code: z
     .string()
     .min(3)
@@ -18,7 +16,7 @@ const couponSchema = z.object({
     .toUpperCase()
     .regex(/^[A-Z0-9_-]+$/, 'Coupon code must be alphanumeric with - or _'),
   discountType: z.enum(['percentage', 'fixed_amount']),
-  discountValue: z.number().positive(),
+  discountValue: z.number().int().positive(),
   minOrderPaise: z.number().int().min(0).default(0),
   maxDiscountPaise: z.number().int().positive().nullable().optional(),
   usageLimit: z.number().int().positive().nullable().optional(),
@@ -26,7 +24,27 @@ const couponSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-// ─── GET /api/admin/coupons ───────────────────────────────────────────────────
+const createCouponSchema = couponBaseSchema.refine(
+  (data) => !(data.discountType === 'percentage' && data.discountValue > 100),
+  { message: 'Percentage discount cannot exceed 100%', path: ['discountValue'] },
+);
+
+async function logCouponAction(
+  db: D1Database,
+  adminId: string,
+  action: string,
+  couponId: string,
+  meta: Record<string, unknown>,
+  ip: string | null,
+) {
+  await db
+    .prepare(
+      `INSERT INTO admin_logs (id, admin_id, action, entity_type, entity_id, metadata, ip_address, created_at)
+       VALUES (?1, ?2, ?3, 'coupon', ?4, ?5, ?6, ?7)`,
+    )
+    .bind(generateId('log_'), adminId, action, couponId, JSON.stringify(meta), ip, nowIso())
+    .run();
+}
 
 adminCoupons.get('/', async (c) => {
   const result = await c.env.DB
@@ -35,14 +53,13 @@ adminCoupons.get('/', async (c) => {
   return c.json({ success: true, data: { items: result.results ?? [] } });
 });
 
-// ─── POST /api/admin/coupons — create coupon ─────────────────────────────────
-
-adminCoupons.post('/', zValidator('json', couponSchema), async (c) => {
+adminCoupons.post('/', zValidator('json', createCouponSchema), async (c) => {
   const body = c.req.valid('json');
+  const adminId = c.get('userId');
+  const ip = c.req.header('CF-Connecting-IP') ?? null;
   const id = generateId('cpn_');
   const now = nowIso();
 
-  // Check code uniqueness
   const existing = await c.env.DB
     .prepare(`SELECT id FROM coupons WHERE code = ?1 COLLATE NOCASE`)
     .bind(body.code)
@@ -76,29 +93,38 @@ adminCoupons.post('/', zValidator('json', couponSchema), async (c) => {
     )
     .run();
 
-  const coupon = await c.env.DB
-    .prepare(`SELECT * FROM coupons WHERE id = ?1`)
-    .bind(id)
-    .first<DbCoupon>();
+  await logCouponAction(c.env.DB, adminId, 'CREATE_COUPON', id, body, ip);
 
+  const coupon = await c.env.DB.prepare(`SELECT * FROM coupons WHERE id = ?1`).bind(id).first<DbCoupon>();
   return c.json({ success: true, data: coupon }, 201);
 });
 
-// ─── PATCH /api/admin/coupons/:id ────────────────────────────────────────────
-
-adminCoupons.patch('/:id', zValidator('json', couponSchema.partial()), async (c) => {
+adminCoupons.patch('/:id', zValidator('json', couponBaseSchema.partial()), async (c) => {
   const id = c.req.param('id');
+  const adminId = c.get('userId');
+  const ip = c.req.header('CF-Connecting-IP') ?? null;
   const body = c.req.valid('json');
 
   const existing = await c.env.DB
-    .prepare(`SELECT id FROM coupons WHERE id = ?1`)
+    .prepare(`SELECT id, discount_type FROM coupons WHERE id = ?1`)
     .bind(id)
-    .first<{ id: string }>();
+    .first<{ id: string; discount_type: string }>();
 
   if (!existing) {
     return c.json(
       { success: false, error: { code: 'NOT_FOUND', message: 'Coupon not found.', status: 404 } },
       404,
+    );
+  }
+
+  const effectiveType = body.discountType ?? existing.discount_type;
+  if (effectiveType === 'percentage' && body.discountValue !== undefined && body.discountValue > 100) {
+    return c.json(
+      {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Percentage discount cannot exceed 100%', status: 400 },
+      },
+      400,
     );
   }
 
@@ -137,21 +163,21 @@ adminCoupons.patch('/:id', zValidator('json', couponSchema.partial()), async (c)
     .bind(...bindings)
     .run();
 
-  const updated = await c.env.DB
-    .prepare(`SELECT * FROM coupons WHERE id = ?1`)
-    .bind(id)
-    .first<DbCoupon>();
+  await logCouponAction(c.env.DB, adminId, 'UPDATE_COUPON', id, body, ip);
 
+  const updated = await c.env.DB.prepare(`SELECT * FROM coupons WHERE id = ?1`).bind(id).first<DbCoupon>();
   return c.json({ success: true, data: updated });
 });
 
-// ─── DELETE /api/admin/coupons/:id ───────────────────────────────────────────
-
 adminCoupons.delete('/:id', async (c) => {
   const id = c.req.param('id');
+  const adminId = c.get('userId');
+  const ip = c.req.header('CF-Connecting-IP') ?? null;
+
   await c.env.DB.prepare(`DELETE FROM coupons WHERE id = ?1`).bind(id).run();
+  await logCouponAction(c.env.DB, adminId, 'DELETE_COUPON', id, {}, ip);
+
   return c.json({ success: true, data: { deleted: true } });
 });
 
 export default adminCoupons;
-

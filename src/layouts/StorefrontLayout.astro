@@ -8,12 +8,23 @@ import CartDrawer from '../features/cart/components/CartDrawer';
 interface Props {
   title?: string;
   description?: string;
+  noindex?: boolean;
+  canonical?: string;
+  ogType?: 'website' | 'product' | 'article';
+  ogImage?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, noindex, canonical, ogType, ogImage } = Astro.props;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout
+  title={title}
+  description={description}
+  noindex={noindex}
+  canonical={canonical}
+  ogType={ogType}
+  ogImage={ogImage}
+>
   <Header />
   <slot />
   <Footer />

@@ -76,11 +76,13 @@ export const FitFinderDialog: React.FC<FitFinderDialogProps> = ({
     }
 
     const recommended = availableSizes[baseIndex] || availableSizes[0];
+    const bmiProxy = weightKg / ((heightCm / 100) * (heightCm / 100));
+    const confidenceScore = bmiProxy >= 19 && bmiProxy <= 28 ? 97 : 94;
 
     setResult({
       recommendedSize: recommended,
-      confidenceScore: 94 + Math.floor(Math.random() * 5),
-      fitNote: `Based on your silhouette (${heightCm} cm, ${weightKg} kg) and your choice of a ${fitPreference} fit, ${recommended} offers the intended fluid drape and balanced waist ease.`
+      confidenceScore,
+      fitNote: `Based on your silhouette (${heightCm} cm, ${weightKg} kg) and your choice of a ${fitPreference} fit, ${recommended} offers the intended sartorial drape and balanced ease.`
     });
   };
 

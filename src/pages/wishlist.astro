@@ -7,8 +7,9 @@ import { WishlistExperience } from '../features/wishlist/components/WishlistExpe
 <StorefrontLayout
   title="My Wishlist | DEYNOLD DANNY"
   description="Manage your curated selection of luxury menswear and womenswear in your DEYNOLD DANNY wishlist."
+  noindex={true}
 >
-  <main class="min-h-screen bg-white">
+  <main id="main-content" class="min-h-screen bg-white">
     <WishlistExperience client:load />
   </main>
 </StorefrontLayout>

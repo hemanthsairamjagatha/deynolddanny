@@ -7,8 +7,8 @@ const title = "Track Order Shipment | DEYNOLD DANNY";
 const description = "Track your DEYNOLD DANNY sartorial commission. Live milestone updates from tailoring to white-glove express delivery.";
 ---
 
-<StorefrontLayout title={title} description={description}>
-  <div class="bg-[#FFFFFF] min-h-screen">
+<StorefrontLayout title={title} description={description} noindex={true}>
+  <main id="main-content" class="bg-[#FFFFFF] min-h-screen">
     {/* Breadcrumbs */}
     <div class="border-b border-neutral-100 bg-white">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center gap-2 text-[11px] font-mono text-neutral-400 uppercase tracking-widest">
@@ -20,6 +20,6 @@ const description = "Track your DEYNOLD DANNY sartorial commission. Live milesto
 
     {/* Interactive Tracking Experience */}
     <OrderTrackingExperience client:load />
-  </div>
+  </main>
 </StorefrontLayout>
 

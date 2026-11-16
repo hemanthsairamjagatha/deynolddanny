@@ -5,12 +5,18 @@ interface SizeGuideDialogProps {
   isOpen: boolean;
   onClose: () => void;
   productTitle: string;
+  category?: string;
+  gender?: string;
+  sizes?: string[];
 }
 
 export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
   isOpen,
   onClose,
-  productTitle
+  productTitle,
+  category = '',
+  gender = 'Men',
+  sizes = [],
 }) => {
   const [unit, setUnit] = useState<MeasurementUnit>('cm');
 
@@ -33,15 +39,39 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
 
   if (!isOpen) return null;
 
-  // Measurement charts with CM and INCH values
-  const conversionData = [
-    { it: 'IT 38', intl: 'XS', us: '2', uk: '6', fr: '34', waistCm: '62 - 65', waistIn: '24.4 - 25.6', hipCm: '88 - 91', hipIn: '34.6 - 35.8', inseamCm: '84', inseamIn: '33.1' },
-    { it: 'IT 40', intl: 'S', us: '4', uk: '8', fr: '36', waistCm: '66 - 69', waistIn: '26.0 - 27.2', hipCm: '92 - 95', hipIn: '36.2 - 37.4', inseamCm: '84', inseamIn: '33.1' },
-    { it: 'IT 42', intl: 'M', us: '6', uk: '10', fr: '38', waistCm: '70 - 73', waistIn: '27.6 - 28.7', hipCm: '96 - 99', hipIn: '37.8 - 39.0', inseamCm: '85', inseamIn: '33.5' },
-    { it: 'IT 44', intl: 'L', us: '8', uk: '12', fr: '40', waistCm: '74 - 78', waistIn: '29.1 - 30.7', hipCm: '100 - 104', hipIn: '39.4 - 40.9', inseamCm: '85', inseamIn: '33.5' },
-    { it: 'IT 46', intl: 'XL', us: '10', uk: '14', fr: '42', waistCm: '79 - 83', waistIn: '31.1 - 32.7', hipCm: '105 - 109', hipIn: '41.3 - 42.9', inseamCm: '86', inseamIn: '33.9' },
-    { it: 'IT 48', intl: 'XXL', us: '12', uk: '16', fr: '44', waistCm: '84 - 88', waistIn: '33.1 - 34.6', hipCm: '110 - 114', hipIn: '43.3 - 44.9', inseamCm: '86', inseamIn: '33.9' }
-  ];
+  const isMensTailoring =
+    gender !== 'Women' ||
+    sizes.some((s) => ['48', '50', '52', '54', '56', 'M', 'L', 'XL'].includes(s.toUpperCase()));
+  const isTrousers = /trouser|pant|denim|jean|short/i.test(`${category} ${productTitle}`);
+
+  // Measurement charts dynamically aligned to garment archetype
+  const conversionData = isMensTailoring
+    ? isTrousers
+      ? [
+          { it: 'IT 46', intl: 'S', us: '30', uk: '30', fr: '40', col1Cm: '76 - 80', col1In: '29.9 - 31.5', col2Cm: '94 - 97', col2In: '37.0 - 38.2', col3Cm: '82', col3In: '32.3' },
+          { it: 'IT 48', intl: 'M', us: '32', uk: '32', fr: '42', col1Cm: '81 - 85', col1In: '31.9 - 33.5', col2Cm: '98 - 101', col2In: '38.6 - 39.8', col3Cm: '83', col3In: '32.7' },
+          { it: 'IT 50', intl: 'L', us: '34', uk: '34', fr: '44', col1Cm: '86 - 90', col1In: '33.9 - 35.4', col2Cm: '102 - 105', col2In: '40.2 - 41.3', col3Cm: '84', col3In: '33.1' },
+          { it: 'IT 52', intl: 'XL', us: '36', uk: '36', fr: '46', col1Cm: '91 - 95', col1In: '35.8 - 37.4', col2Cm: '106 - 109', col2In: '41.7 - 42.9', col3Cm: '84', col3In: '33.1' },
+          { it: 'IT 54', intl: 'XXL', us: '38', uk: '38', fr: '48', col1Cm: '96 - 100', col1In: '37.8 - 39.4', col2Cm: '110 - 113', col2In: '43.3 - 44.5', col3Cm: '85', col3In: '33.5' },
+        ]
+      : [
+          { it: 'IT 46', intl: 'S', us: '36', uk: '36', fr: '46', col1Cm: '92 - 95', col1In: '36.2 - 37.4', col2Cm: '78 - 82', col2In: '30.7 - 32.3', col3Cm: '44', col3In: '17.3' },
+          { it: 'IT 48', intl: 'M', us: '38', uk: '38', fr: '48', col1Cm: '96 - 99', col1In: '37.8 - 39.0', col2Cm: '83 - 87', col2In: '32.7 - 34.3', col3Cm: '45.5', col3In: '17.9' },
+          { it: 'IT 50', intl: 'L', us: '40', uk: '40', fr: '50', col1Cm: '100 - 103', col1In: '39.4 - 40.6', col2Cm: '88 - 92', col2In: '34.6 - 36.2', col3Cm: '47', col3In: '18.5' },
+          { it: 'IT 52', intl: 'XL', us: '42', uk: '42', fr: '52', col1Cm: '104 - 107', col1In: '40.9 - 42.1', col2Cm: '93 - 97', col2In: '36.6 - 38.2', col3Cm: '48.5', col3In: '19.1' },
+          { it: 'IT 54', intl: 'XXL', us: '44', uk: '44', fr: '54', col1Cm: '108 - 112', col1In: '42.5 - 44.1', col2Cm: '98 - 102', col2In: '38.6 - 40.2', col3Cm: '50', col3In: '19.7' },
+        ]
+    : [
+        { it: 'IT 38', intl: 'XS', us: '2', uk: '6', fr: '34', col1Cm: '62 - 65', col1In: '24.4 - 25.6', col2Cm: '88 - 91', col2In: '34.6 - 35.8', col3Cm: '84', col3In: '33.1' },
+        { it: 'IT 40', intl: 'S', us: '4', uk: '8', fr: '36', col1Cm: '66 - 69', col1In: '26.0 - 27.2', col2Cm: '92 - 95', col2In: '36.2 - 37.4', col3Cm: '84', col3In: '33.1' },
+        { it: 'IT 42', intl: 'M', us: '6', uk: '10', fr: '38', col1Cm: '70 - 73', col1In: '27.6 - 28.7', col2Cm: '96 - 99', col2In: '37.8 - 39.0', col3Cm: '85', col3In: '33.5' },
+        { it: 'IT 44', intl: 'L', us: '8', uk: '12', fr: '40', col1Cm: '74 - 78', col1In: '29.1 - 30.7', col2Cm: '100 - 104', col2In: '39.4 - 40.9', col3Cm: '85', col3In: '33.5' },
+        { it: 'IT 46', intl: 'XL', us: '10', uk: '14', fr: '42', col1Cm: '79 - 83', col1In: '31.1 - 32.7', col2Cm: '105 - 109', col2In: '41.3 - 42.9', col3Cm: '86', col3In: '33.9' },
+      ];
+
+  const col1Header = isMensTailoring && !isTrousers ? 'Chest' : 'Waist';
+  const col2Header = isMensTailoring && !isTrousers ? 'Waist' : 'Hip';
+  const col3Header = isMensTailoring && !isTrousers ? 'Shoulder' : 'Inseam';
 
   return (
     <div
@@ -117,9 +147,9 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
                 <th className="py-3 px-2 font-medium">US</th>
                 <th className="py-3 px-2 font-medium">UK</th>
                 <th className="py-3 px-2 font-medium">FR</th>
-                <th className="py-3 px-2 font-medium">Waist ({unit})</th>
-                <th className="py-3 px-2 font-medium">Hip ({unit})</th>
-                <th className="py-3 px-2 font-medium">Inseam ({unit})</th>
+                <th className="py-3 px-2 font-medium">{col1Header} ({unit})</th>
+                <th className="py-3 px-2 font-medium">{col2Header} ({unit})</th>
+                <th className="py-3 px-2 font-medium">{col3Header} ({unit})</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 font-mono text-neutral-800">
@@ -130,9 +160,9 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
                   <td className="py-3 px-2 text-neutral-600">{row.us}</td>
                   <td className="py-3 px-2 text-neutral-600">{row.uk}</td>
                   <td className="py-3 px-2 text-neutral-600">{row.fr}</td>
-                  <td className="py-3 px-2">{unit === 'cm' ? row.waistCm : row.waistIn}</td>
-                  <td className="py-3 px-2">{unit === 'cm' ? row.hipCm : row.hipIn}</td>
-                  <td className="py-3 px-2">{unit === 'cm' ? row.inseamCm : row.inseamIn}</td>
+                  <td className="py-3 px-2">{unit === 'cm' ? row.col1Cm : row.col1In}</td>
+                  <td className="py-3 px-2">{unit === 'cm' ? row.col2Cm : row.col2In}</td>
+                  <td className="py-3 px-2">{unit === 'cm' ? row.col3Cm : row.col3In}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getStoredClientEmail, getAccessToken } from '../../lib/api/client';
+import {
+  getStoredClientEmail,
+  getAccessToken,
+  hasSessionHint,
+  ensureAuthenticatedSession,
+} from '../../lib/api/client';
 import { logoutApi } from '../../features/auth/api/auth.api';
 
 export const AccountTrigger: React.FC = () => {
@@ -8,19 +13,47 @@ export const AccountTrigger: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = getStoredClientEmail();
-    const token = getAccessToken();
-    if (stored && (token || true)) {
-      setEmail(stored);
-    }
+    let active = true;
+    const syncSession = async () => {
+      const stored = getStoredClientEmail();
+      if (!hasSessionHint()) {
+        if (active) setEmail(null);
+        return;
+      }
+      if (getAccessToken() && stored) {
+        if (active) setEmail(stored);
+        return;
+      }
+      const token = await ensureAuthenticatedSession();
+      if (!active) return;
+      if (token) {
+        setEmail(getStoredClientEmail() || stored);
+      } else {
+        setEmail(null);
+      }
+    };
+
+    syncSession();
 
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
+    const handleCleared = () => setEmail(null);
+    const handlePageShow = () => {
+      syncSession();
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('dd:session-cleared', handleCleared);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      active = false;
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('dd:session-cleared', handleCleared);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, []);
 
   const handleLogout = async () => {

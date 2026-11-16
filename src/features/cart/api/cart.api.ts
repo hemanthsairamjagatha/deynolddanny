@@ -87,3 +87,22 @@ export async function removeCartItemApi(itemId: string) {
   });
 }
 
+/**
+ * Merge guest session cart into authenticated user cart
+ */
+export async function mergeCartApi(guestSessionId?: string) {
+  return apiFetch<BackendCartResponse>('/api/cart/merge', {
+    method: 'POST',
+    body: JSON.stringify(guestSessionId ? { sessionId: guestSessionId } : {}),
+  });
+}
+
+/**
+ * Clear active server cart
+ */
+export async function clearCartApi() {
+  return apiFetch<BackendCartResponse>('/api/cart', {
+    method: 'DELETE',
+  });
+}
+

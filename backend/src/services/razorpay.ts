@@ -1,16 +1,19 @@
 /**
  * DEYNOLD DANNY — Razorpay Payment Gateway Service
  *
- * Implements Razorpay Orders API, Webhook verification, and Payment validation
- * using standard Web Crypto API compatible with Cloudflare Workers.
+ * Implements Razorpay Orders API, Webhook verification, Payment fetching, Refunds API,
+ * and constant-time signature validation with explicit network timeouts.
  */
+
+import { GATEWAY_FETCH_TIMEOUT_MS } from '../config/constants.js';
+import { timingSafeEqualStrings } from './crypto.js';
 
 const RAZORPAY_API_BASE = 'https://api.razorpay.com/v1';
 
 export interface RazorpayOrderInput {
-  orderId: string;        // Internal DB order ID
-  orderNumber: string;    // e.g. "DD-102938"
-  amountPaise: number;    // In paise (e.g. 270000 = ₹2,700)
+  orderId: string;
+  orderNumber: string;
+  amountPaise: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -18,8 +21,8 @@ export interface RazorpayOrderInput {
 
 export interface RazorpayOrderResult {
   razorpayOrderId: string;
-  amount: number;         // In paise
-  currency: string;       // "INR"
+  amount: number;
+  currency: string;
   receipt: string;
   status: string;
 }
@@ -27,61 +30,43 @@ export interface RazorpayOrderResult {
 export interface RazorpayPaymentDetails {
   id: string;
   orderId: string;
-  status: string;         // "captured", "failed", "authorized", "refunded"
-  method: string;         // "upi", "card", "netbanking", "wallet"
+  status: string; // "captured", "failed", "authorized", "refunded"
+  method: string;
   amount: number;
   currency: string;
   email?: string;
   contact?: string;
 }
 
-/**
- * Builds HTTP Basic Authentication header for Razorpay API
- */
+export interface RazorpayRefundResult {
+  id: string;
+  paymentId: string;
+  amount: number;
+  currency: string;
+  status: string;
+}
+
 function buildAuthHeader(keyId: string, keySecret: string): string {
   const token = btoa(`${keyId}:${keySecret}`);
   return `Basic ${token}`;
 }
 
-/**
- * Constant-time string comparison to prevent timing attacks
- */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return result === 0;
-}
-
-/**
- * Computes HMAC-SHA256 hex string using Web Crypto API
- */
 async function computeHmacSha256Hex(secret: string, message: string): Promise<string> {
   const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const messageData = encoder.encode(message);
-
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    keyData,
+    encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
   );
 
-  const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-  const signatureBytes = new Uint8Array(signatureBuffer);
-
-  return Array.from(signatureBytes)
+  const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message));
+  return Array.from(new Uint8Array(signatureBuffer))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
-/**
- * Creates an order on Razorpay
- */
 export async function createRazorpayOrder(
   input: RazorpayOrderInput,
   keyId: string,
@@ -104,6 +89,7 @@ export async function createRazorpayOrder(
 
   const response = await fetch(url, {
     method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: buildAuthHeader(keyId, keySecret),
       'Content-Type': 'application/json',
@@ -138,10 +124,6 @@ export async function createRazorpayOrder(
   };
 }
 
-/**
- * Verifies Razorpay webhook signature (x-razorpay-signature)
- * Razorpay signs the raw request payload using HMAC-SHA256 with the webhook secret.
- */
 export async function verifyRazorpayWebhookSignature(
   rawBody: string,
   signature: string,
@@ -150,16 +132,12 @@ export async function verifyRazorpayWebhookSignature(
   if (!signature || !webhookSecret) return false;
   try {
     const expectedHex = await computeHmacSha256Hex(webhookSecret, rawBody);
-    return timingSafeEqual(expectedHex.toLowerCase(), signature.toLowerCase());
+    return timingSafeEqualStrings(expectedHex.toLowerCase(), signature.toLowerCase());
   } catch {
     return false;
   }
 }
 
-/**
- * Verifies Razorpay client payment signature after frontend checkout
- * Formula: HMAC-SHA256(`${razorpayOrderId}|${razorpayPaymentId}`, keySecret) === razorpaySignature
- */
 export async function verifyRazorpayPaymentSignature(
   razorpayOrderId: string,
   razorpayPaymentId: string,
@@ -170,24 +148,22 @@ export async function verifyRazorpayPaymentSignature(
   try {
     const payload = `${razorpayOrderId}|${razorpayPaymentId}`;
     const expectedHex = await computeHmacSha256Hex(keySecret, payload);
-    return timingSafeEqual(expectedHex.toLowerCase(), signature.toLowerCase());
+    return timingSafeEqualStrings(expectedHex.toLowerCase(), signature.toLowerCase());
   } catch {
     return false;
   }
 }
 
-/**
- * Fetches order details directly from Razorpay
- */
 export async function fetchRazorpayOrder(
   razorpayOrderId: string,
   keyId: string,
   keySecret: string,
-): Promise<{ id: string; status: string; amount: number; attempts: number }> {
-  const url = `${RAZORPAY_API_BASE}/orders/${razorpayOrderId}`;
+): Promise<{ id: string; status: string; amount: number; currency: string; attempts: number }> {
+  const url = `${RAZORPAY_API_BASE}/orders/${encodeURIComponent(razorpayOrderId)}`;
 
   const response = await fetch(url, {
     method: 'GET',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: buildAuthHeader(keyId, keySecret),
       Accept: 'application/json',
@@ -199,28 +175,58 @@ export async function fetchRazorpayOrder(
     throw new Error(`Razorpay fetchOrder failed (${response.status}): ${errorBody}`);
   }
 
-  const data = (await response.json()) as {
+  return (await response.json()) as {
     id: string;
     status: string;
     amount: number;
+    currency: string;
     attempts: number;
   };
-
-  return data;
 }
 
-/**
- * Fetches payment details from Razorpay by Payment ID
- */
+export async function fetchRazorpayOrderPayments(
+  razorpayOrderId: string,
+  keyId: string,
+  keySecret: string,
+): Promise<RazorpayPaymentDetails[]> {
+  const url = `${RAZORPAY_API_BASE}/orders/${encodeURIComponent(razorpayOrderId)}/payments`;
+  const response = await fetch(url, {
+    method: 'GET',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
+    headers: {
+      Authorization: buildAuthHeader(keyId, keySecret),
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Razorpay fetchOrderPayments failed (${response.status}): ${errorBody}`);
+  }
+
+  const json = (await response.json()) as { items?: any[] };
+  return (json.items ?? []).map((data) => ({
+    id: data.id,
+    orderId: data.order_id,
+    status: data.status,
+    method: data.method,
+    amount: data.amount,
+    currency: data.currency,
+    email: data.email,
+    contact: data.contact,
+  }));
+}
+
 export async function fetchRazorpayPayment(
   paymentId: string,
   keyId: string,
   keySecret: string,
 ): Promise<RazorpayPaymentDetails> {
-  const url = `${RAZORPAY_API_BASE}/payments/${paymentId}`;
+  const url = `${RAZORPAY_API_BASE}/payments/${encodeURIComponent(paymentId)}`;
 
   const response = await fetch(url, {
     method: 'GET',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
     headers: {
       Authorization: buildAuthHeader(keyId, keySecret),
       Accept: 'application/json',
@@ -252,5 +258,54 @@ export async function fetchRazorpayPayment(
     currency: data.currency,
     email: data.email,
     contact: data.contact,
+  };
+}
+
+/**
+ * Initiates a full or partial refund through Razorpay Refunds API.
+ */
+export async function createRazorpayRefund(
+  paymentId: string,
+  amountPaise: number,
+  notes: Record<string, string>,
+  keyId: string,
+  keySecret: string,
+): Promise<RazorpayRefundResult> {
+  const url = `${RAZORPAY_API_BASE}/payments/${encodeURIComponent(paymentId)}/refund`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    signal: AbortSignal.timeout(GATEWAY_FETCH_TIMEOUT_MS),
+    headers: {
+      Authorization: buildAuthHeader(keyId, keySecret),
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      amount: amountPaise,
+      speed: 'normal',
+      notes,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Razorpay refund failed (${response.status}): ${errorBody}`);
+  }
+
+  const data = (await response.json()) as {
+    id: string;
+    payment_id: string;
+    amount: number;
+    currency: string;
+    status: string;
+  };
+
+  return {
+    id: data.id,
+    paymentId: data.payment_id,
+    amount: data.amount,
+    currency: data.currency,
+    status: data.status,
   };
 }

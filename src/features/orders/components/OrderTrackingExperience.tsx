@@ -36,10 +36,16 @@ export const OrderTrackingExperience: React.FC<OrderTrackingExperienceProps> = (
     }
   }, [initialOrderNumber]);
 
-  const performLookup = async (targetOrderNumber: string, verificationQuery?: string) => {
+  const performLookup = async (targetOrderNumber: string, verificationQuery: string = emailOrPhone) => {
     const cleanNum = targetOrderNumber.trim();
     if (!cleanNum) {
       setError('Please enter your DEYNOLD DANNY order reference.');
+      return;
+    }
+
+    const cleanContact = verificationQuery.trim();
+    if (!cleanContact) {
+      setError('Please enter the email address or 10-digit mobile number associated with this order.');
       return;
     }
 
@@ -47,7 +53,7 @@ export const OrderTrackingExperience: React.FC<OrderTrackingExperienceProps> = (
     setError(null);
 
     try {
-      const res = await trackOrderApi(cleanNum, verificationQuery);
+      const res = await trackOrderApi(cleanNum, cleanContact);
       if (res.success && res.data) {
         setOrderDetails(res.data);
         if (typeof window !== 'undefined') {

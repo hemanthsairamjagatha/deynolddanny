@@ -7,6 +7,8 @@ export interface DbUser {
   phone: string | null;
   role: 'customer' | 'admin' | 'superadmin';
   is_active: 0 | 1;
+  token_version: number;
+  deleted_at?: string | null;
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
@@ -125,13 +127,40 @@ export interface DbOrder {
   id: string;
   order_number: string;
   user_id: string;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  status:
+    | 'pending'
+    | 'awaiting_capture'
+    | 'confirmed'
+    | 'confirmed_needs_allocation'
+    | 'processing'
+    | 'shipped'
+    | 'ndr_pending'
+    | 'delivered'
+    | 'return_requested'
+    | 'returned'
+    | 'cancelled'
+    | 'refunded';
   subtotal_paise: number;
   shipping_paise: number;
   discount_paise: number;
   tax_paise: number;
   total_paise: number;
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded' | 'user_dropped';
+  currency?: string;
+  payment_status:
+    | 'pending'
+    | 'authorized'
+    | 'paid'
+    | 'partially_refunded'
+    | 'refunded'
+    | 'failed'
+    | 'user_dropped'
+    | 'disputed';
+  refunded_paise?: number;
+  dispute_frozen?: 0 | 1;
+  stock_committed?: 0 | 1;
+  stock_released?: 0 | 1;
+  idempotency_key?: string | null;
+  expires_epoch?: number;
   cf_order_id: string | null;
   cf_payment_id: string | null;
   payment_method: string | null;
@@ -148,9 +177,12 @@ export interface DbOrder {
   tracking_number: string | null;
   shipped_at: string | null;
   delivered_at: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
   coupon_code: string | null;
   customer_notes: string | null;
   shiprocket_order_id?: string | null;
+  shiprocket_shipment_id?: string | null;
   shiprocket_awb?: string | null;
   shiprocket_courier?: string | null;
   created_at: string;

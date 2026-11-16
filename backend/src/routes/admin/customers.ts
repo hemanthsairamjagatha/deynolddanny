@@ -1,18 +1,19 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/bindings.js';
-import type { DbUser } from '../../types/models.js';
+import { generateId } from '../../services/crypto.js';
+import { nowIso, runBatch } from '../../db/client.js';
 
 const adminCustomers = new Hono<{ Bindings: Env }>();
 
-// ─── GET /api/admin/customers ─────────────────────────────────────────────────
-
 adminCustomers.get('/', async (c) => {
-  const page = Number(c.req.query('page') ?? '1');
-  const limit = Math.min(Number(c.req.query('limit') ?? '20'), 50);
-  const offset = (Math.max(page, 1) - 1) * limit;
+  const rawPage = Number(c.req.query('page') ?? '1');
+  const rawLimit = Number(c.req.query('limit') ?? '20');
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
+  const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(50, Math.floor(rawLimit)) : 20;
+  const offset = (page - 1) * limit;
   const search = c.req.query('search')?.trim();
 
-  let where = `WHERE role = 'customer'`;
+  let where = `WHERE role = 'customer' AND deleted_at IS NULL`;
   const bindings: (string | number)[] = [];
 
   if (search) {
@@ -39,8 +40,6 @@ adminCustomers.get('/', async (c) => {
     data: { items, total, page, limit, totalPages: Math.ceil(total / limit) },
   });
 });
-
-// ─── GET /api/admin/customers/:id ────────────────────────────────────────────
 
 adminCustomers.get('/:id', async (c) => {
   const id = c.req.param('id');
@@ -73,10 +72,11 @@ adminCustomers.get('/:id', async (c) => {
   });
 });
 
-// ─── PATCH /api/admin/customers/:id/status — deactivate/activate ─────────────
-
 adminCustomers.patch('/:id/status', async (c) => {
   const id = c.req.param('id');
+  const adminId = c.get('userId');
+  const ip = c.req.header('CF-Connecting-IP') ?? null;
+
   let body: { isActive?: boolean };
   try {
     body = await c.req.json();
@@ -87,20 +87,54 @@ adminCustomers.patch('/:id/status', async (c) => {
     );
   }
 
-  if (body.isActive === undefined) {
+  if (typeof body.isActive !== 'boolean') {
     return c.json(
-      { success: false, error: { code: 'BAD_REQUEST', message: 'isActive is required.', status: 400 } },
+      { success: false, error: { code: 'BAD_REQUEST', message: 'isActive boolean is required.', status: 400 } },
       400,
     );
   }
 
+  const now = nowIso();
+  const updateRes = await c.env.DB
+    .prepare(
+      `UPDATE users
+       SET is_active = ?1,
+           token_version = token_version + 1,
+           updated_at = ?2
+       WHERE id = ?3 AND role = 'customer'`,
+    )
+    .bind(body.isActive ? 1 : 0, now, id)
+    .run();
+
+  if ((updateRes.meta.changes ?? 0) === 0) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'NOT_FOUND_OR_FORBIDDEN',
+          message: 'Customer not found or cannot alter privileged staff status via this endpoint.',
+          status: 404,
+        },
+      },
+      404,
+    );
+  }
+
+  if (!body.isActive) {
+    await runBatch(c.env.DB, [
+      c.env.DB.prepare(`DELETE FROM refresh_tokens WHERE user_id = ?1`).bind(id),
+    ]);
+  }
+
   await c.env.DB
-    .prepare(`UPDATE users SET is_active = ?1, updated_at = ?2 WHERE id = ?3`)
-    .bind(body.isActive ? 1 : 0, new Date().toISOString(), id)
+    .prepare(
+      `INSERT INTO admin_logs (id, admin_id, action, entity_type, entity_id, metadata, ip_address, created_at)
+       VALUES (?1, ?2, 'CUSTOMER_STATUS', 'user', ?3, ?4, ?5, ?6)`,
+    )
+    .bind(generateId('log_'), adminId, id, JSON.stringify({ isActive: body.isActive }), ip, now)
     .run();
 
   return c.json({ success: true, data: { id, isActive: body.isActive } });
 });
 
 export default adminCustomers;
-

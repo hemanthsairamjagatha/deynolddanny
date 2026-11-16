@@ -1,38 +1,43 @@
 import { createMiddleware } from 'hono/factory';
 import type { Env } from '../types/bindings.js';
 
-const ALLOWED_HEADERS = 'Content-Type, Authorization, x-session-id';
+const ALLOWED_HEADERS =
+  'Content-Type, Authorization, x-session-id, Idempotency-Key, X-Request-Id, X-CSRF-Token';
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 
 /**
- * CORS middleware.
- *
- * Reads FRONTEND_URL and ADMIN_URL from the Worker environment and permits
- * only those two origins. Any other origin receives 403. OPTIONS preflight
- * requests are answered with 200 and the appropriate CORS headers so the
- * actual request is not sent.
- *
- * credentials: true is required because the refresh-token is in an HttpOnly
- * cookie and the access token is sent via the Authorization header.
+ * Strict exact-origin CORS middleware.
+ * Wildcard hosting suffixes (e.g. `*.pages.dev` or wildcard subdomains) are forbidden.
  */
 export const cors = createMiddleware(async (c, next) => {
   const env = c.env as Env;
   const origin = c.req.header('Origin') ?? '';
 
-  const isAllowed =
-    !origin ||
-    origin === env.FRONTEND_URL ||
-    origin === env.ADMIN_URL ||
-    origin === 'https://deynolddanny.pixenox.com' ||
-    origin.endsWith('.pixenox.com') ||
-    origin.endsWith('.pages.dev') ||
-    origin.startsWith('http://localhost:');
+  const exactAllowed = new Set<string>(
+    [
+      env.FRONTEND_URL,
+      env.ADMIN_URL,
+      'https://deynolddanny.com',
+      'https://www.deynolddanny.com',
+      'https://deynolddanny.pixenox.com',
+      ...(env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()) : []),
+    ]
+      .filter(Boolean)
+      .map((u) => u.replace(/\/$/, '')),
+  );
 
-  // Handle preflight
+  const normalizedOrigin = origin.replace(/\/$/, '');
+  const isLocalDevOrigin =
+    (env.ENVIRONMENT === 'development' || !env.ENVIRONMENT) &&
+    (/^http:\/\/localhost:\d+$/.test(normalizedOrigin) ||
+      /^http:\/\/127\.0\.0\.1:\d+$/.test(normalizedOrigin));
+
+  const isAllowed = !origin || exactAllowed.has(normalizedOrigin) || isLocalDevOrigin;
+
   if (c.req.method === 'OPTIONS') {
     if (origin && isAllowed) {
       return new Response(null, {
-        status: 200,
+        status: 204,
         headers: {
           'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': ALLOWED_METHODS,
@@ -46,26 +51,17 @@ export const cors = createMiddleware(async (c, next) => {
     return c.json(
       {
         success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Origin not permitted.',
-          status: 403,
-        },
+        error: { code: 'FORBIDDEN', message: 'Origin not permitted.', status: 403 },
       },
       403,
     );
   }
 
-  // Actual request — set headers if origin is allowed, block otherwise
   if (origin && !isAllowed) {
     return c.json(
       {
         success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Origin not permitted.',
-          status: 403,
-        },
+        error: { code: 'FORBIDDEN', message: 'Origin not permitted.', status: 403 },
       },
       403,
     );

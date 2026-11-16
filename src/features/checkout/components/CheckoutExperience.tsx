@@ -8,20 +8,28 @@ import {
   removeCoupon,
   $discountNum,
   $totalPayableNum,
+  clearCart,
   syncCartWithBackend
 } from '../../cart/store/cart.store';
-import { submitCheckoutApi, verifyPaymentApi, type CheckoutPayload } from '../api/checkout.api';
-import { sendOtpApi, verifyOtpApi, getProfileApi } from '../../auth/api/auth.api';
+import {
+  submitCheckoutApi,
+  verifyPaymentApi,
+  fetchStorefrontConfigApi,
+  lookupPincodeApi,
+  searchAddressApi,
+  type CheckoutPayload
+} from '../api/checkout.api';
+import { sendOtpApi, verifyOtpApi, getProfileApi, logoutApi } from '../../auth/api/auth.api';
 import {
   getAccessToken,
-  setAccessToken,
   getStoredClientEmail,
   setStoredClientEmail,
-  setStoredRefreshToken,
-  refreshAccessToken,
+  ensureAuthenticatedSession,
+  clearClientSession,
   getSessionId,
   apiFetch
 } from '../../../lib/api/client';
+import { ecommerceConfig } from '../../../config/ecommerce.config';
 
 export interface SavedAddress {
   id: string;
@@ -141,25 +149,25 @@ export const CheckoutExperience: React.FC = () => {
   const subtotal = useStore($subtotalNum);
   const appliedCoupon = useStore($appliedCoupon);
   const discount = useStore($discountNum);
-  const totalPayable = useStore($totalPayableNum);
+  const totalAfterDiscount = useStore($totalPayableNum);
+
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(
+    ecommerceConfig.freeShippingThreshold,
+  );
+  const [standardShipping, setStandardShipping] = useState<number>(
+    ecommerceConfig.standardShippingRate,
+  );
+  const shippingFee = subtotal > 0 && subtotal < freeShippingThreshold ? standardShipping : 0;
+  const totalPayable = totalAfterDiscount + shippingFee;
 
   const [checkoutPromoCode, setCheckoutPromoCode] = useState('');
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
+  const idempotencyKeyRef = useRef<string>('');
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return Boolean(localStorage.getItem('dd_access_token'));
-    }
-    return false;
-  });
-  const [email, setEmail] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('dd_client_email') || '';
-    }
-    return '';
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState(() => getStoredClientEmail() || '');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -220,20 +228,26 @@ export const CheckoutExperience: React.FC = () => {
 
   useEffect(() => {
     syncCartWithBackend();
+    fetchStorefrontConfigApi()
+      .then((res) => {
+        if (res.success && res.data) {
+          if (typeof res.data.freeShippingThresholdPaise === 'number') {
+            setFreeShippingThreshold(Math.round(res.data.freeShippingThresholdPaise / 100));
+          }
+          if (typeof res.data.standardShippingPaise === 'number') {
+            setStandardShipping(Math.round(res.data.standardShippingPaise / 100));
+          }
+        }
+      })
+      .catch(() => {});
 
     const initializeAuth = async () => {
-      let activeToken = getAccessToken();
       const storedEmail = getStoredClientEmail();
-
       if (storedEmail) {
         setEmail(storedEmail);
       }
 
-      if (!activeToken) {
-        // Try silent refresh if refresh token exists
-        activeToken = await refreshAccessToken();
-      }
-
+      const activeToken = getAccessToken() || (await ensureAuthenticatedSession());
       if (activeToken) {
         setIsAuthenticated(true);
         try {
@@ -250,10 +264,29 @@ export const CheckoutExperience: React.FC = () => {
         } catch {
           // Non-fatal: keep current email and session active
         }
+      } else {
+        setIsAuthenticated(false);
       }
     };
 
+    const handleSessionCleared = () => {
+      setIsAuthenticated(false);
+      setOtpSent(false);
+      setOtp('');
+    };
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        syncCartWithBackend();
+      }
+    };
+
+    window.addEventListener('dd:session-cleared', handleSessionCleared);
+    window.addEventListener('pageshow', handlePageShow);
     initializeAuth();
+    return () => {
+      window.removeEventListener('dd:session-cleared', handleSessionCleared);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, []);
 
   const handleApplyCheckoutPromo = async (e: React.FormEvent) => {
@@ -275,39 +308,24 @@ export const CheckoutExperience: React.FC = () => {
       });
 
       if (res.success && res.data?.valid) {
-        const discountNum = res.data.discountPaise ? res.data.discountPaise / 100 : Math.min(500, subtotal);
+        const discountPaise = Number(res.data.discountPaise || 0);
+        const discountNum = Math.round(discountPaise / 100);
         applyCoupon({
           code: res.data.code || clean,
+          discountType: res.data.discountType === 'fixed_amount' ? 'fixed_amount' : 'percentage',
+          discountValue: Number(res.data.discountValue || 0),
+          maxDiscountPaise: res.data.maxDiscountPaise ?? null,
+          discountPaise,
           discountNum,
-          discountFormatted: res.data.discountFormatted || `₹ ${discountNum.toLocaleString('en-IN')}`,
+          minOrderPaise: res.data.minOrderPaise ?? null,
         });
-        setPromoSuccess(`Code "${clean}" applied successfully.`);
-        setCheckoutPromoCode('');
-      } else if (clean === 'WELCOME10') {
-        const discountNum = Math.min(500, subtotal);
-        applyCoupon({
-          code: 'WELCOME10',
-          discountNum,
-          discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
-        });
-        setPromoSuccess('Code "WELCOME10" applied successfully.');
+        setPromoSuccess(`Code "${res.data.code || clean}" applied successfully.`);
         setCheckoutPromoCode('');
       } else {
-        setPromoError(res.data?.error || 'Invalid code or minimum order requirement not met.');
+        setPromoError(res.data?.error || res.error?.message || 'Invalid code or minimum order requirement not met.');
       }
     } catch {
-      if (clean === 'WELCOME10') {
-        const discountNum = Math.min(500, subtotal);
-        applyCoupon({
-          code: 'WELCOME10',
-          discountNum,
-          discountFormatted: `₹ ${discountNum.toLocaleString('en-IN')}`,
-        });
-        setPromoSuccess('Code "WELCOME10" applied successfully.');
-        setCheckoutPromoCode('');
-      } else {
-        setPromoError('Could not validate code. Please try again.');
-      }
+      setPromoError('Could not validate code. Please try again.');
     } finally {
       setIsApplyingPromo(false);
     }
@@ -492,11 +510,8 @@ export const CheckoutExperience: React.FC = () => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
 
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`,
-            { headers: { 'Accept-Language': 'en' } },
-          );
-          const data = await res.json();
+          const searchRes = await searchAddressApi({ lat, lon });
+          const data = searchRes.success ? searchRes.data?.result : null;
 
           if (data && data.address) {
             const a = data.address;
@@ -573,22 +588,22 @@ export const CheckoutExperience: React.FC = () => {
       try {
         const results: AddressSuggestion[] = [];
 
-        // 1. Check if query contains an Indian 6-digit pincode
+        // 1. Check if query contains an Indian 6-digit pincode via BFF proxy
         const pinMatch = trimmed.match(/\b\d{6}\b/);
         if (pinMatch) {
           try {
-            const pinRes = await fetch(`https://api.postalpincode.in/pincode/${pinMatch[0]}`);
-            const pinData = await pinRes.json();
-            if (pinData && pinData[0]?.Status === 'Success' && Array.isArray(pinData[0]?.PostOffice)) {
-              pinData[0].PostOffice.slice(0, 4).forEach((po: any, idx: number) => {
+            const pinRes = await lookupPincodeApi(pinMatch[0]);
+            const offices = pinRes.success ? pinRes.data?.postOffices : [];
+            if (Array.isArray(offices)) {
+              offices.slice(0, 4).forEach((po, idx) => {
                 results.push({
-                  id: `pin-${idx}-${po.Name}`,
-                  title: `${po.Name}, ${po.District}`,
-                  subtitle: `${po.Block ? po.Block + ', ' : ''}${po.State}, PIN ${po.Pincode}`,
-                  line1: po.Name,
-                  city: po.District || po.Name,
-                  state: po.State,
-                  postcode: po.Pincode,
+                  id: `pin-${idx}-${po.name}`,
+                  title: `${po.name}, ${po.district}`,
+                  subtitle: `${po.state}, PIN ${po.pincode}`,
+                  line1: po.name,
+                  city: po.district || po.name,
+                  state: po.state,
+                  postcode: po.pincode,
                   country: 'India',
                 });
               });
@@ -598,13 +613,9 @@ export const CheckoutExperience: React.FC = () => {
           }
         }
 
-        // 2. Query Nominatim OpenStreetMap (High precision for villages, mandals, colonies, streets)
-        const countryCodeParam = country === 'India' ? '&countrycodes=in' : '';
-        const nominatimRes = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&addressdetails=1&limit=8${countryCodeParam}`,
-          { headers: { 'Accept-Language': 'en' } },
-        );
-        const nominatimData = await nominatimRes.json();
+        // 2. Query geocoding via backend BFF proxy (rate-limited & timeout-safe)
+        const geoRes = await searchAddressApi({ q: trimmed, country });
+        const nominatimData = geoRes.success ? geoRes.data?.suggestions : [];
 
         if (Array.isArray(nominatimData) && nominatimData.length > 0) {
           nominatimData.forEach((item: any, idx: number) => {
@@ -628,8 +639,8 @@ export const CheckoutExperience: React.FC = () => {
             const state = a.state || '';
             let postcode = a.postcode || '';
             if (!postcode && item.display_name) {
-              const pinMatch = item.display_name.match(/\b\d{6}\b/);
-              if (pinMatch) postcode = pinMatch[0];
+              const pinExtract = item.display_name.match(/\b\d{6}\b/);
+              if (pinExtract) postcode = pinExtract[0];
             }
             const ctry = a.country || country;
 
@@ -654,48 +665,6 @@ export const CheckoutExperience: React.FC = () => {
               country: ctry,
             });
           });
-        }
-
-        // 3. Fallback to Photon if fewer than 2 results found
-        if (results.length < 2) {
-          const countryBias = country === 'India' ? '&lat=20.5937&lon=78.9629' : '';
-          const photonRes = await fetch(
-            `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=5${countryBias}&lang=en`,
-          );
-          const photonData = await photonRes.json();
-
-          if (photonData?.features && Array.isArray(photonData.features)) {
-            photonData.features.forEach((f: any, idx: number) => {
-              const p = f.properties || {};
-              const title = p.name || p.street || p.city || trimmed;
-              const lineParts = [p.housenumber, p.street || p.name].filter(Boolean);
-              const line1 = lineParts.length > 0 ? lineParts.join(' ') : title;
-              const city = p.city || p.district || p.county || p.locality || '';
-              const state = p.state || '';
-              const postcode = p.postcode || '';
-              const ctry = p.country || country;
-
-              const subtitleParts = [
-                p.district,
-                p.city,
-                p.state,
-                p.postcode,
-                p.country,
-              ].filter(Boolean);
-              const subtitle = Array.from(new Set(subtitleParts)).join(', ');
-
-              results.push({
-                id: `photon-${idx}-${p.osm_id || title}`,
-                title,
-                subtitle: subtitle || `${city}, ${state} ${postcode}`,
-                line1,
-                city,
-                state,
-                postcode,
-                country: ctry,
-              });
-            });
-          }
         }
 
         setAddressSuggestions(results);
@@ -724,15 +693,12 @@ export const CheckoutExperience: React.FC = () => {
     const clean = val.trim();
     if (clean.length === 6 && /^\d{6}$/.test(clean) && country === 'India') {
       try {
-        const pinRes = await fetch(`https://api.postalpincode.in/pincode/${clean}`);
-        const pinData = await pinRes.json();
-        if (pinData && pinData[0]?.Status === 'Success' && Array.isArray(pinData[0]?.PostOffice)) {
-          const po = pinData[0].PostOffice[0];
-          if (po) {
-            if (!city) setCity(po.District || po.Name);
-            if (po.State) {
-              setProvince(matchProvince(po.State));
-            }
+        const pinRes = await lookupPincodeApi(clean);
+        const po = pinRes.success ? pinRes.data?.postOffices?.[0] : undefined;
+        if (po) {
+          if (!city) setCity(po.district || po.name);
+          if (po.state) {
+            setProvince(matchProvince(po.state));
           }
         }
       } catch {
@@ -869,12 +835,20 @@ export const CheckoutExperience: React.FC = () => {
       shippingPincode: cleanPincode,
       shippingCountry: country,
       couponCode: appliedCoupon?.code,
+      clientExpectedTotalPaise: Math.round(totalPayable * 100),
       items: checkoutItems,
     };
 
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `chk_${Date.now()}`;
+    }
+
     setIsSubmitting(true);
     try {
-      const res = await submitCheckoutApi(payload);
+      const res = await submitCheckoutApi(payload, idempotencyKeyRef.current);
       if (!res.success || !res.data) {
         console.error('[Checkout Submission Failed]', res);
         const errorMsg =
@@ -914,10 +888,10 @@ export const CheckoutExperience: React.FC = () => {
       };
       saveAddressLocallyAndRemote(newSavedAddr);
 
-      // Helper to finalize completed state on frontend
+      // Helper to finalize completed state on frontend strictly after authoritative confirmation
       const finalizeSuccess = () => {
-        removeCoupon();
-        $cartItems.set([]);
+        idempotencyKeyRef.current = '';
+        clearCart();
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('dd_last_order', orderNumber);
@@ -1040,16 +1014,24 @@ export const CheckoutExperience: React.FC = () => {
             }
           }).catch((cfErr: any) => {
             setIsSubmitting(false);
-            setErrorMessage(cfErr.message || 'Payment modal closed.');
+            setErrorMessage(cfErr.message || 'Payment modal closed before completion.');
           });
         } catch (initErr: any) {
-          console.warn('Cashfree init error, falling back to direct confirmation:', initErr);
-          finalizeSuccess();
+          setIsSubmitting(false);
+          setErrorMessage(
+            initErr?.message ||
+              `Unable to launch payment gateway for order ${orderNumber}. Please retry or contact concierge.`,
+          );
         }
       }
-      // ── GATEWAY 3: CONCIERGE TEST / DIRECT CONFIRMATION ────────────────────
-      else {
+      // ── GATEWAY 3: EXPLICIT DEVELOPMENT SANDBOX TEST FALLBACK ────────────────
+      else if (res.data.gateway === 'test') {
         finalizeSuccess();
+      } else {
+        setIsSubmitting(false);
+        setErrorMessage(
+          `Payment session was not returned for order ${orderNumber}. No charge was processed — please retry payment.`,
+        );
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected error occurred during checkout.');
@@ -1171,13 +1153,12 @@ export const CheckoutExperience: React.FC = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
+                    await logoutApi().catch(() => {});
+                    clearClientSession();
                     setIsAuthenticated(false);
                     setOtpSent(false);
                     setOtp('');
-                    setAccessToken(null);
-                    setStoredClientEmail(null);
-                    setStoredRefreshToken(null);
                   }}
                   className="text-xs uppercase tracking-wider text-neutral-500 hover:text-black underline font-semibold cursor-pointer transition-colors"
                   style={fontStyle}
@@ -1193,6 +1174,8 @@ export const CheckoutExperience: React.FC = () => {
                 <div className="flex gap-2">
                   <input
                     type="email"
+                    aria-label="Email address"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@domain.com"
@@ -1236,6 +1219,9 @@ export const CheckoutExperience: React.FC = () => {
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    inputMode="numeric"
+                    aria-label="6-digit verification code"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
@@ -1386,10 +1372,16 @@ export const CheckoutExperience: React.FC = () => {
                   boxSizing: 'border-box'
                 }}
               >
-                <label className="block text-xs text-neutral-500 leading-tight select-none" style={fontStyle}>
+                <label
+                  htmlFor="checkout-country"
+                  className="block text-xs text-neutral-500 leading-tight select-none"
+                  style={fontStyle}
+                >
                   Country/Region
                 </label>
                 <select
+                  id="checkout-country"
+                  autoComplete="country-name"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   className="w-full bg-transparent text-[16px] text-neutral-900 focus:outline-none appearance-none pr-8 cursor-pointer font-normal leading-tight pt-0.5"
@@ -1425,6 +1417,8 @@ export const CheckoutExperience: React.FC = () => {
                 <div>
                   <input
                     type="text"
+                    aria-label="First name"
+                    autoComplete="given-name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="First name"
@@ -1436,6 +1430,8 @@ export const CheckoutExperience: React.FC = () => {
                 <div>
                   <input
                     type="text"
+                    aria-label="Last name"
+                    autoComplete="family-name"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Last name"
@@ -1564,6 +1560,8 @@ export const CheckoutExperience: React.FC = () => {
               <div>
                 <input
                   type="text"
+                  aria-label="Apartment, suite, or floor"
+                  autoComplete="address-line2"
                   value={apartment}
                   onChange={(e) => setApartment(e.target.value)}
                   placeholder="Apartment, suite, etc. (optional)"
@@ -1577,6 +1575,9 @@ export const CheckoutExperience: React.FC = () => {
                 <div>
                   <input
                     type="text"
+                    aria-label="Postal code"
+                    autoComplete="postal-code"
+                    inputMode="numeric"
                     value={postalCode}
                     onChange={(e) => handlePostalCodeChange(e.target.value)}
                     placeholder="Postal code"
@@ -1588,6 +1589,8 @@ export const CheckoutExperience: React.FC = () => {
                 <div>
                   <input
                     type="text"
+                    aria-label="City"
+                    autoComplete="address-level2"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="City"
@@ -1636,6 +1639,8 @@ export const CheckoutExperience: React.FC = () => {
                 <div className="relative">
                   <input
                     type="tel"
+                    aria-label="Mobile phone number"
+                    autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="Phone"
@@ -1746,6 +1751,7 @@ export const CheckoutExperience: React.FC = () => {
               <form onSubmit={handleApplyCheckoutPromo} className="flex gap-2">
                 <input
                   type="text"
+                  aria-label="Promotional coupon code"
                   value={checkoutPromoCode}
                   onChange={(e) => setCheckoutPromoCode(e.target.value)}
                   placeholder="PROMO CODE"
@@ -1783,7 +1789,13 @@ export const CheckoutExperience: React.FC = () => {
             </div>
             <div className="flex justify-between text-neutral-600" style={font16}>
               <span>Express Insured Shipping:</span>
-              <span className="text-emerald-700 font-medium" style={font16}>Complimentary</span>
+              {shippingFee === 0 ? (
+                <span className="text-emerald-700 font-medium" style={font16}>Complimentary</span>
+              ) : (
+                <span className="text-neutral-900 font-medium" style={font16}>
+                  ₹ {shippingFee.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} INR
+                </span>
+              )}
             </div>
             <div className="flex justify-between text-neutral-600" style={font16}>
               <span>VAT / GST:</span>

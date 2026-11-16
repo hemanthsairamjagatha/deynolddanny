@@ -1,6 +1,6 @@
 export interface SignInCredentials {
   email: string;
-  password: string;
+  password?: string;
   rememberMe?: boolean;
 }
 
@@ -9,7 +9,7 @@ export interface SignUpData {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
+  password?: string;
   confirmPassword?: string;
   acceptTerms: boolean;
   newsletterConsent?: boolean;

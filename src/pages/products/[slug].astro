@@ -33,33 +33,46 @@ if (!product) {
 const pageTitle = `${product.title} | DEYNOLD DANNY`;
 const pageDescription = product.description || `Explore ${product.title} in the DEYNOLD DANNY luxury collection.`;
 
+const siteOrigin = (Astro.site?.toString() || 'https://deynolddanny.com').replace(/\/$/, '');
+const rawImages = product.images && product.images.length > 0 ? product.images : [product.defaultImg];
+const absoluteImages = rawImages.map((img) => (img.startsWith('http') ? img : `${siteOrigin}${img.startsWith('/') ? '' : '/'}${img}`));
+const hasLiveVariants = product.variants && product.variants.length > 0;
+const isProductAvailable =
+  product.badge !== 'SOLD OUT' &&
+  product.sizes.length > 0 &&
+  (!hasLiveVariants || product.variants!.some((v) => Math.max(0, v.stock - v.reservedStock) > 0));
+const priceValidUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
 // JSON-LD structured data
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Product",
   "name": product.title,
-  "image": product.images && product.images.length > 0 ? product.images : [product.defaultImg],
+  "image": absoluteImages,
   "description": pageDescription,
   "sku": product.sku || product.id,
+  "url": `${siteOrigin}/products/${product.slug}`,
   "brand": {
     "@type": "Brand",
     "name": "DEYNOLD DANNY"
   },
   "offers": {
     "@type": "Offer",
+    "url": `${siteOrigin}/products/${product.slug}`,
     "priceCurrency": product.price.includes('€') ? 'EUR' : 'INR',
     "price": product.priceNum,
-    "availability": "https://schema.org/InStock",
+    "priceValidUntil": priceValidUntil,
+    "availability": isProductAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
     "itemCondition": "https://schema.org/NewCondition"
   }
 };
 ---
 
-<StorefrontLayout title={pageTitle} description={pageDescription}>
+<StorefrontLayout title={pageTitle} description={pageDescription} ogType="product" ogImage={absoluteImages[0]}>
   {/* SEO JSON-LD */}
-  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')} />
 
-  <main class="min-h-screen bg-white">
+  <main id="main-content" class="min-h-screen bg-white">
     {/* Primary Interactive Island: Split-screen Gallery + Sticky Purchase Panel */}
     <ProductDetailExperience client:load product={product} />
 

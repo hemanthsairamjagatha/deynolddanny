@@ -1,38 +1,93 @@
 /**
- * Cloudflare R2 storage service.
- * Product images are stored in R2 with $0 egress fees.
- * Admins upload directly to R2 via presigned PUT URLs.
+ * Cloudflare R2 storage service with path-traversal protection and magic-byte image validation.
  */
 
+const ALLOWED_EXT_MAP: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+};
+
 /**
- * Generates a unique R2 object key for an uploaded product image.
- * Example: products/mastery-1/image-a1b2c3d4.jpg
+ * Inspects file header magic bytes to confirm actual binary image type.
  */
-export function buildR2Key(productId: string, filename: string): string {
-  const array = new Uint8Array(4);
+export function detectImageMimeFromBytes(buffer: ArrayBuffer): string | null {
+  const bytes = new Uint8Array(buffer.slice(0, 16));
+  if (bytes.length < 4) return null;
+
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return 'image/png';
+  }
+  // WebP: RIFF....WEBP
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes.length >= 12 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+  // AVIF: ....ftypavif
+  if (
+    bytes.length >= 12 &&
+    bytes[4] === 0x66 &&
+    bytes[5] === 0x74 &&
+    bytes[6] === 0x79 &&
+    bytes[7] === 0x70 &&
+    bytes[8] === 0x61 &&
+    bytes[9] === 0x76 &&
+    bytes[10] === 0x69 &&
+    bytes[11] === 0x66
+  ) {
+    return 'image/avif';
+  }
+
+  return null;
+}
+
+/**
+ * Sanitizes upload folder name against traversal & invalid characters.
+ */
+export function sanitizeUploadFolder(rawFolder: string): string {
+  const clean = rawFolder
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((seg) => seg && seg !== '.' && seg !== '..')
+    .map((seg) => seg.replace(/[^a-zA-Z0-9_-]/g, ''))
+    .filter(Boolean)
+    .slice(0, 3)
+    .join('/');
+
+  return clean || 'products';
+}
+
+export function buildR2Key(folder: string, mimeType: string): string {
+  const array = new Uint8Array(6);
   crypto.getRandomValues(array);
-  const uid = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
-  const ext = filename.split('.').pop() ?? 'jpg';
-  return `products/${productId}/image-${uid}.${ext}`;
+  const uid = Array.from(array)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  const ext = ALLOWED_EXT_MAP[mimeType] ?? 'jpg';
+  const safeFolder = sanitizeUploadFolder(folder);
+  return `${safeFolder}/image-${uid}.${ext}`;
 }
 
-/**
- * Puts an object directly into R2.
- * Used for server-side uploads (not for large admin uploads — use presigned URL for those).
- */
-export async function putR2Object(
-  r2: R2Bucket,
-  key: string,
-  body: ArrayBuffer,
-  contentType: string,
-): Promise<string> {
-  await r2.put(key, body, { httpMetadata: { contentType } });
-  return `/${key}`;
-}
-
-/**
- * Alias used by admin upload route.
- */
 export async function uploadObject(
   r2: R2Bucket,
   key: string,
@@ -42,39 +97,11 @@ export async function uploadObject(
   await r2.put(key, body, { httpMetadata: { contentType } });
 }
 
-/**
- * Returns the full public CDN URL for an R2 object.
- */
 export function getPublicUrl(bucketPublicUrl: string, key: string): string {
   const base = bucketPublicUrl.replace(/\/$/, '');
   return `${base}/${key}`;
 }
 
-/**
- * Deletes a single R2 object by key.
- */
 export async function deleteR2Object(r2: R2Bucket, key: string): Promise<void> {
   await r2.delete(key);
 }
-
-/**
- * Creates a presigned upload URL for direct client-to-R2 uploads.
- * The admin client uses this to upload high-res images without routing
- * through the Worker (zero CPU cost for large file transfers).
- *
- * Note: Cloudflare R2 presigned URLs require the R2 public bucket URL base
- * to be configured. Returns the key so the admin can construct the public URL.
- */
-export async function createPresignedUploadKey(
-  _r2: R2Bucket,
-  productId: string,
-  filename: string,
-): Promise<{ key: string; uploadUrl: string }> {
-  const key = buildR2Key(productId, filename);
-  // In production: use R2 binding's createMultipartUpload or wrangler R2 presigned URLs
-  // For the initial implementation, return the key; the admin panel constructs the upload URL
-  // via POST /api/admin/uploads/presign which the worker will sign using R2 SDK
-  const uploadUrl = `https://r2-upload.deynolddanny.com/${key}`;
-  return { key, uploadUrl };
-}
-

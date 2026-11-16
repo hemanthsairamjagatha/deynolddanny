@@ -7,8 +7,8 @@ const title = "Private Client Portal | DEYNOLD DANNY";
 const description = "Manage your DEYNOLD DANNY client profile, review sartorial commissions, track deliveries, and manage your private address book.";
 ---
 
-<StorefrontLayout title={title} description={description}>
-  <div class="bg-[#FFFFFF] min-h-screen">
+<StorefrontLayout title={title} description={description} noindex={true}>
+  <main id="main-content" class="bg-[#FFFFFF] min-h-screen">
     {/* Breadcrumbs */}
     <div class="border-b border-neutral-100 bg-white">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center gap-2 text-[11px] font-mono text-neutral-400 uppercase tracking-widest">
@@ -20,5 +20,5 @@ const description = "Manage your DEYNOLD DANNY client profile, review sartorial 
 
     {/* Interactive Client Account Experience */}
     <AccountExperience client:load />
-  </div>
+  </main>
 </StorefrontLayout>

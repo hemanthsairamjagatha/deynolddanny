@@ -1,98 +1,127 @@
 /**
  * src/lib/api/client.ts
- *
- * Core HTTP Client for DEYNOLD DANNY Frontend
- * Connects to the Cloudflare Worker API with session management, HttpOnly credentials,
- * automatic token refresh interceptor, and unified error normalization.
+ * Core API client for DEYNOLD DANNY storefront -> Backend (via same-origin `/api/*` proxy by default).
+ * Security: Access tokens stay strictly in memory (never in localStorage). Refresh tokens live
+ * exclusively in backend-managed HttpOnly cookies (`dd_refresh`).
  */
 
 export const BACKEND_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_BACKEND_URL) ||
-  'https://deynold-danny-backend.deynolddanny.workers.dev';
+  (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_BACKEND_URL) || '';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
-    code: string;
-    message: string;
+    code?: string;
+    message?: string;
     status?: number;
     details?: unknown;
   };
 }
 
-/**
- * Get or create an anonymous session ID for guest carts.
- * Persists in sessionStorage / localStorage for continuous shopping across reloads.
- */
-export function getSessionId(): string {
-  if (typeof window === 'undefined') return '';
-  const KEY = 'dd_cart_session_id';
-  let sessionId = localStorage.getItem(KEY);
-  if (!sessionId) {
-    sessionId = 'sess_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-    localStorage.setItem(KEY, sessionId);
+const SESSION_HINT_KEY = 'dd_has_session';
+const CLIENT_EMAIL_KEY = 'dd_client_email';
+const SESSION_ID_KEY = 'dd_cart_session_id';
+
+// Legacy localStorage token keys cleaned proactively on load/logout
+const LEGACY_TOKEN_KEY = 'dd_access_token';
+const LEGACY_REFRESH_TOKEN_KEY = 'dd_refresh_token';
+
+let memoryAccessToken: string | null = null;
+let memorySessionId: string | null = null;
+let refreshPromise: Promise<string | null> | null = null;
+
+function generateSecureUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
   }
-  return sessionId;
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return `dd-${Date.now().toString(36)}`;
 }
 
-/**
- * Access token storage with localStorage persistence across reloads
- */
-const TOKEN_KEY = 'dd_access_token';
-const REFRESH_TOKEN_KEY = 'dd_refresh_token';
-const CLIENT_EMAIL_KEY = 'dd_client_email';
+function purgeLegacyWebStorageTokens(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+  } catch {
+    // Ignore storage access errors in restricted browser contexts
+  }
+}
 
-let inMemoryAccessToken: string | null = null;
-let isRefreshingPromise: Promise<string | null> | null = null;
+if (typeof window !== 'undefined') {
+  purgeLegacyWebStorageTokens();
+}
+
+export function getSessionId(): string {
+  if (typeof window === 'undefined') return '';
+  if (memorySessionId) return memorySessionId;
+  try {
+    let sid = localStorage.getItem(SESSION_ID_KEY);
+    if (!sid) {
+      sid = `sess_${generateSecureUuid()}`;
+      localStorage.setItem(SESSION_ID_KEY, sid);
+    }
+    memorySessionId = sid;
+    return sid;
+  } catch {
+    memorySessionId = `sess_${generateSecureUuid()}`;
+    return memorySessionId;
+  }
+}
+
+export function hasSessionHint(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(SESSION_HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setSessionHint(active: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (active) {
+      localStorage.setItem(SESSION_HINT_KEY, '1');
+    } else {
+      localStorage.removeItem(SESSION_HINT_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 export function setAccessToken(token: string | null): void {
-  inMemoryAccessToken = token;
-  if (typeof window !== 'undefined') {
-    if (token) {
-      try {
-        localStorage.setItem(TOKEN_KEY, token);
-      } catch {}
-    } else {
-      try {
-        localStorage.removeItem(TOKEN_KEY);
-      } catch {}
-    }
+  memoryAccessToken = token;
+  purgeLegacyWebStorageTokens();
+  if (token) {
+    setSessionHint(true);
   }
 }
 
 export function getAccessToken(): string | null {
-  if (inMemoryAccessToken) return inMemoryAccessToken;
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem(TOKEN_KEY);
-      if (stored) {
-        inMemoryAccessToken = stored;
-        return stored;
-      }
-    } catch {}
-  }
+  purgeLegacyWebStorageTokens();
+  return memoryAccessToken;
+}
+
+/**
+ * Legacy compatibility shim: refresh tokens are strictly HttpOnly cookies never exposed to JS.
+ */
+export function getStoredRefreshToken(): string | null {
+  purgeLegacyWebStorageTokens();
   return null;
 }
 
-export function getStoredRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function setStoredRefreshToken(token: string | null): void {
-  if (typeof window === 'undefined') return;
-  try {
-    if (token) {
-      localStorage.setItem(REFRESH_TOKEN_KEY, token);
-    } else {
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
-    }
-  } catch {}
+export function setStoredRefreshToken(_token: string | null): void {
+  purgeLegacyWebStorageTokens();
 }
 
 export function getStoredClientEmail(): string | null {
@@ -112,119 +141,157 @@ export function setStoredClientEmail(email: string | null): void {
     } else {
       localStorage.removeItem(CLIENT_EMAIL_KEY);
     }
-  } catch {}
+  } catch {
+    // Ignore storage errors
+  }
 }
 
-/**
- * Silently refreshes access token using the HttpOnly refresh token cookie or stored fallback
- */
-export async function refreshAccessToken(): Promise<string | null> {
-  if (isRefreshingPromise) return isRefreshingPromise;
+export function clearClientSession(): void {
+  memoryAccessToken = null;
+  setSessionHint(false);
+  setStoredClientEmail(null);
+  purgeLegacyWebStorageTokens();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('dd:session-cleared'));
+  }
+}
 
-  isRefreshingPromise = (async () => {
-    try {
-      const storedRefreshToken = getStoredRefreshToken();
-      const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // sends HttpOnly refresh-token cookie if supported
-        body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
-      });
-
-      if (!res.ok) {
-        setAccessToken(null);
-        setStoredRefreshToken(null);
-        return null;
+async function performCookieRefresh(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        clearClientSession();
       }
-
-      const json = (await res.json()) as ApiResponse<{ accessToken: string; refreshToken?: string }>;
-      if (json.success && json.data?.accessToken) {
-        setAccessToken(json.data.accessToken);
-        if (json.data.refreshToken) {
-          setStoredRefreshToken(json.data.refreshToken);
-        }
-        return json.data.accessToken;
-      }
-
-      setAccessToken(null);
-      setStoredRefreshToken(null);
       return null;
-    } catch {
-      setAccessToken(null);
-      setStoredRefreshToken(null);
-      return null;
-    } finally {
-      isRefreshingPromise = null;
     }
-  })();
-
-  return isRefreshingPromise;
+    const json = (await res.json()) as ApiResponse<{
+      accessToken?: string;
+      user?: { email?: string };
+    }>;
+    if (json.success && json.data?.accessToken) {
+      setAccessToken(json.data.accessToken);
+      if (json.data.user?.email) {
+        setStoredClientEmail(json.data.user.email);
+      }
+      return json.data.accessToken;
+    }
+    clearClientSession();
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Universal fetch wrapper with automatic session routing and 401 silent token refresh
+ * Refreshes the in-memory access token using the HttpOnly `dd_refresh` cookie.
+ * Uses Web Locks API + in-tab promise deduplication so parallel calls never race token rotation.
  */
+export async function refreshAccessToken(force = false): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  if (!force && !hasSessionHint()) {
+    return null;
+  }
+  if (refreshPromise) return refreshPromise;
+
+  const execRefresh = async (): Promise<string | null> => {
+    if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+      return navigator.locks.request('dd_auth_refresh', async () => {
+        if (memoryAccessToken && !force) return memoryAccessToken;
+        return performCookieRefresh();
+      });
+    }
+    return performCookieRefresh();
+  };
+
+  refreshPromise = execRefresh().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+/**
+ * Ensures an in-memory access token is hydrated for protected MPA routes without storing JWTs in Web Storage.
+ */
+export async function ensureAuthenticatedSession(): Promise<string | null> {
+  if (memoryAccessToken) return memoryAccessToken;
+  if (!hasSessionHint()) return null;
+  return refreshAccessToken(true);
+}
+
 export async function apiFetch<T>(
   endpoint: string,
-  options: RequestInit = {},
-  isRetry = false,
+  options: RequestInit & { skipAuthRefresh?: boolean } = {},
 ): Promise<ApiResponse<T>> {
-  const url = endpoint.startsWith('http') ? endpoint : `${BACKEND_URL}${endpoint}`;
-
-  const headers = new Headers(options.headers || {});
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+  const { skipAuthRefresh, ...fetchOptions } = options;
+  const headers = new Headers(fetchOptions.headers || {});
+  if (!headers.has('Content-Type') && !(fetchOptions.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 
-  // Session ID for anonymous carts
-  const sessionId = getSessionId();
-  if (sessionId && !headers.has('x-session-id')) {
-    headers.set('x-session-id', sessionId);
-  }
-
-  // Auth Bearer token if logged in
   let token = getAccessToken();
+  const isAuthEndpoint = endpoint.startsWith('/api/auth/');
 
-  // If no token in memory on fresh browser load, try silent refresh once for protected endpoints
-  if (!token && typeof window !== 'undefined' && !endpoint.includes('/api/auth/')) {
-    token = await refreshAccessToken();
+  // Across Astro MPA page transitions, JS memory resets while HttpOnly dd_refresh persists.
+  // Hydrate the short-lived in-memory JWT cleanly only if a session hint exists.
+  if (!token && !isAuthEndpoint && !skipAuthRefresh && hasSessionHint()) {
+    token = await refreshAccessToken(true);
   }
 
-  if (token && !headers.has('Authorization')) {
+  if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  const sessionId = getSessionId();
+  if (sessionId) {
+    headers.set('x-session-id', sessionId);
+  }
+
+  const url = endpoint.startsWith('http') ? endpoint : `${BACKEND_URL}${endpoint}`;
+
   try {
-    const res = await fetch(url, {
-      ...options,
+    let res = await fetch(url, {
+      ...fetchOptions,
       headers,
-      credentials: 'include', // Needed for HttpOnly refresh-token cookies
+      credentials: 'include',
     });
 
-    // Handle 401 Unauthorized by attempting a single silent refresh
-    if (res.status === 401 && !isRetry && !endpoint.includes('/api/auth/')) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        return apiFetch<T>(endpoint, options, true);
+    if (res.status === 401 && !isAuthEndpoint && !skipAuthRefresh && (token || hasSessionHint())) {
+      const nextToken = await refreshAccessToken(true);
+      if (nextToken) {
+        headers.set('Authorization', `Bearer ${nextToken}`);
+        res = await fetch(url, {
+          ...fetchOptions,
+          headers,
+          credentials: 'include',
+        });
       }
     }
 
-    const json = (await res.json().catch(() => ({}))) as ApiResponse<T>;
-
-    if (!res.ok) {
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
       return {
-        success: false,
-        error: json.error || {
-          code: `HTTP_${res.status}`,
-          message: res.statusText || 'An error occurred while communicating with the server.',
-          status: res.status,
-        },
+        success: res.ok,
+        error: res.ok
+          ? undefined
+          : {
+              code: 'HTTP_ERROR',
+              message: `Request failed with status ${res.status}`,
+              status: res.status,
+            },
       };
     }
 
-    return json;
+    const data = (await res.json()) as ApiResponse<T>;
+    return data;
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Network request failed';
+    const message = err instanceof Error ? err.message : 'Network connection failed';
     return {
       success: false,
       error: {

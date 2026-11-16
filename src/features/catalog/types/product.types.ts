@@ -6,6 +6,17 @@ export interface ProductColor {
   images?: string[];
 }
 
+export interface ProductVariant {
+  id: string;
+  sku?: string;
+  size: string;
+  colorName: string;
+  colorHex: string;
+  stock: number;
+  reservedStock: number;
+  inStock?: boolean;
+}
+
 export interface RelatedItem {
   id: string;
   title: string;
@@ -30,6 +41,7 @@ export interface ProductCardData {
   sizes: string[];
   link?: string;
   colors?: ProductColor[];
+  variants?: ProductVariant[];
   sku?: string;
   category?: string;
   subCategory?: string;

@@ -1,0 +1,72 @@
+---
+// src/pages/checkout/payment-failed.astro
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+---
+
+<StorefrontLayout
+  title="Payment Unsuccessful | DEYNOLD DANNY"
+  description="Your payment could not be completed. Review details or return to checkout safely."
+  noindex={true}
+>
+  <main id="main-content" class="min-h-[70vh] bg-white px-4 sm:px-6 py-16 sm:py-24">
+    <div class="max-w-xl mx-auto border border-neutral-200 bg-white p-8 sm:p-10 text-center space-y-6">
+      <p class="text-[11px] uppercase tracking-[0.25em] text-red-600 font-semibold">
+        Payment Not Completed
+      </p>
+      <h1 class="text-2xl sm:text-3xl font-light tracking-tight text-neutral-900">
+        We could not confirm your payment
+      </h1>
+      <p id="payment-failed-reason" class="text-sm text-neutral-600 leading-relaxed">
+        The payment session was cancelled, declined by your issuing bank, or timed out before confirmation.
+      </p>
+
+      <div id="payment-failed-order-box" class="hidden border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-700">
+        Reference Order: <span id="payment-failed-order-number" class="font-semibold text-neutral-900"></span>
+      </div>
+
+      <p class="text-xs text-neutral-500 leading-relaxed">
+        If an amount was temporarily debited by your bank or UPI provider, uncaptured authorizations are automatically reversed within 5–7 business days. Your shopping bag items remain preserved while stock lasts.
+      </p>
+
+      <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/checkout"
+          class="inline-flex min-h-[44px] items-center justify-center bg-neutral-900 px-6 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-black"
+        >
+          Retry Checkout
+        </a>
+        <a
+          href="/cart"
+          class="inline-flex min-h-[44px] items-center justify-center border border-neutral-300 bg-white px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-neutral-900 transition-colors hover:border-black"
+        >
+          Review Bag
+        </a>
+        <a
+          href="/contact"
+          class="inline-flex min-h-[44px] items-center justify-center border border-transparent px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-neutral-600 underline underline-offset-4 hover:text-black"
+        >
+          Contact Concierge
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const orderNumber = params.get('orderNumber');
+    const reason = params.get('reason');
+
+    const orderBox = document.getElementById('payment-failed-order-box');
+    const orderEl = document.getElementById('payment-failed-order-number');
+    const reasonEl = document.getElementById('payment-failed-reason');
+
+    if (orderNumber && orderBox && orderEl) {
+      orderEl.textContent = orderNumber;
+      orderBox.classList.remove('hidden');
+    }
+
+    if (reason && reasonEl) {
+      reasonEl.textContent = reason;
+    }
+  </script>
+</StorefrontLayout>

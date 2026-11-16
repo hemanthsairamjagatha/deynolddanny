@@ -5,6 +5,10 @@ import BaseLayout from './BaseLayout.astro';
 interface Props {
   title?: string;
   description?: string;
+  noindex?: boolean;
+  canonical?: string;
+  ogType?: 'website' | 'product' | 'article';
+  ogImage?: string;
 }
 
 const props = Astro.props;

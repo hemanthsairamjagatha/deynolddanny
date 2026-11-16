@@ -1,14 +1,14 @@
 /**
  * src/features/auth/api/auth.api.ts
- *
- * Authentication API operations connecting the storefront to the Cloudflare Worker OTP engine.
+ * OTP authentication API calls interacting with the Hono backend via same-origin `/api/*`.
  */
 
 import {
   apiFetch,
+  clearClientSession,
   setAccessToken,
+  setSessionHint,
   setStoredClientEmail,
-  setStoredRefreshToken,
 } from '../../../lib/api/client';
 
 export interface UserProfile {
@@ -17,6 +17,7 @@ export interface UserProfile {
   fullName?: string | null;
   phone?: string | null;
   role?: string;
+  createdAt?: string;
 }
 
 export interface SendOtpResponse {
@@ -28,7 +29,6 @@ export interface SendOtpResponse {
 export interface VerifyOtpResponse {
   user: UserProfile;
   accessToken: string;
-  refreshToken?: string;
 }
 
 /**
@@ -42,7 +42,7 @@ export async function sendOtpApi(email: string) {
 }
 
 /**
- * Verify OTP and sign in
+ * Verify OTP and sign in (refresh token stored strictly in HttpOnly cookie by backend)
  */
 export async function verifyOtpApi(email: string, otp: string) {
   const cleanEmail = email.trim().toLowerCase();
@@ -53,30 +53,35 @@ export async function verifyOtpApi(email: string, otp: string) {
 
   if (res.success && res.data?.accessToken) {
     setAccessToken(res.data.accessToken);
+    setSessionHint(true);
     setStoredClientEmail(res.data.user?.email || cleanEmail);
-    if (res.data.refreshToken) {
-      setStoredRefreshToken(res.data.refreshToken);
-    }
   }
 
   return res;
 }
 
 /**
- * Get current authenticated user profile
+ * Retrieve currently signed-in patron profile
  */
 export async function getProfileApi() {
   return apiFetch<UserProfile>('/api/users/me');
 }
 
 /**
- * Log out user
+ * Update signed-in patron profile
  */
-export async function logoutApi() {
-  const res = await apiFetch('/api/auth/logout', { method: 'POST' });
-  setAccessToken(null);
-  setStoredClientEmail(null);
-  setStoredRefreshToken(null);
-  return res;
+export async function updateProfileApi(payload: { fullName?: string; phone?: string }) {
+  return apiFetch<UserProfile>('/api/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
 }
 
+/**
+ * Log out user & clear in-memory token / session cookie
+ */
+export async function logoutApi() {
+  const res = await apiFetch('/api/auth/logout', { method: 'POST', skipAuthRefresh: true });
+  clearClientSession();
+  return res;
+}

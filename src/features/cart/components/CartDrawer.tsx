@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '@nanostores/react';
 import {
   $cartItems,
   $isCartOpen,
   $totalCount,
+  $subtotalNum,
   $formattedSubtotal,
   closeCart,
   incrementQuantity,
@@ -12,18 +13,85 @@ import {
   removeFromCart,
   initInspectListeners
 } from '../store/cart.store';
+import { fetchStorefrontConfigApi } from '../../checkout/api/checkout.api';
+import { ecommerceConfig } from '../../../config/ecommerce.config';
 
 export const CartDrawer: React.FC = () => {
   const items = useStore($cartItems);
   const isOpen = useStore($isCartOpen);
   const count = useStore($totalCount);
+  const subtotalNum = useStore($subtotalNum);
   const formattedSubtotal = useStore($formattedSubtotal);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(
+    ecommerceConfig.freeShippingThreshold,
+  );
+
+  const drawerRef = useRef<HTMLElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     initInspectListeners();
+    fetchStorefrontConfigApi()
+      .then((res) => {
+        if (res.success && res.data && res.data.freeShippingThresholdPaise >= 0) {
+          setFreeShippingThreshold(Math.round(res.data.freeShippingThresholdPaise / 100));
+        }
+      })
+      .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) {
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+        previousFocusRef.current = null;
+      }
+      return;
+    }
+
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const focusTimer = window.setTimeout(() => {
+      closeBtnRef.current?.focus();
+    }, 30);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCart();
+        return;
+      }
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
   const openClasses = isOpen ? 'is-open is-visible' : '';
+  const qualifiedFreeShipping = items.length > 0 && subtotalNum >= freeShippingThreshold;
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotalNum);
+  const progressPct =
+    freeShippingThreshold > 0
+      ? Math.min(100, Math.round((subtotalNum / freeShippingThreshold) * 100))
+      : 100;
 
   return (
     <>
@@ -37,6 +105,7 @@ export const CartDrawer: React.FC = () => {
 
       {/* Cart Drawer Slide-over */}
       <aside
+        ref={drawerRef}
         className={`cart-drawer text-colors-default background-colors-default ${openClasses}`}
         id="cart-drawer"
         role="dialog"
@@ -48,6 +117,7 @@ export const CartDrawer: React.FC = () => {
           {/* Top Row: Dismiss / Close Long Arrow */}
           <div className="cart-drawer-header">
             <button
+              ref={closeBtnRef}
               type="button"
               className="cart-drawer-close"
               id="cart-drawer-close"
@@ -124,6 +194,12 @@ export const CartDrawer: React.FC = () => {
                         <dl className="cart-item-size font-montserrat">
                           <dt>SIZE:</dt>
                           <dd>{item.size}</dd>
+                          {item.color && (
+                            <>
+                              <dt className="ml-2">COLOR:</dt>
+                              <dd>{item.color}</dd>
+                            </>
+                          )}
                         </dl>
                         <div className="cart-item-price font-montserrat">{item.price}</div>
                         <div className="cart-item__quantity">
@@ -162,18 +238,14 @@ export const CartDrawer: React.FC = () => {
                           </div>
                         </div>
                         <div className="cart-remove-button">
-                          <a
-                            href="#"
+                          <button
+                            type="button"
                             className="button button--tertiary cart-item-remove"
-                            role="link"
-                            aria-label="Remove"
-                            onClick={e => {
-                              e.preventDefault();
-                              removeFromCart(index);
-                            }}
+                            aria-label={`Remove ${item.title} from bag`}
+                            onClick={() => removeFromCart(index)}
                           >
                             Remove
-                          </a>
+                          </button>
                         </div>
                       </div>
                     </li>
@@ -189,14 +261,21 @@ export const CartDrawer: React.FC = () => {
             id="cart-drawer-footer"
           >
             <div id="cart-summary" className="cart-summary">
-              <div className="shipping-bar progress-bar cart-drawer__bar">
-                <p className="progress-bar__text h6">
-                  Congrats! You're qualified for free shipping!
-                </p>
-                <div className="progress-bar__progress">
-                  <span className="progress-bar__progress-inner" />
+              {items.length > 0 && (
+                <div className="shipping-bar progress-bar cart-drawer__bar">
+                  <p className="progress-bar__text h6">
+                    {qualifiedFreeShipping
+                      ? 'Complimentary express delivery unlocked'
+                      : `Add ₹${remainingForFreeShipping.toLocaleString('en-IN')} more for complimentary express delivery`}
+                  </p>
+                  <div className="progress-bar__progress">
+                    <span
+                      className="progress-bar__progress-inner"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="cart-drawer__summary-total h4">
                 <span>Subtotal:</span>
                 <span className="cart-subtotal-val" id="cart-subtotal-val">

@@ -2,17 +2,15 @@ import { createMiddleware } from 'hono/factory';
 import { verifyAccessToken } from '../services/jwt.js';
 import type { Env } from '../types/bindings.js';
 
-// Extend Hono's ContextVariableMap so c.get / c.set are fully typed
-// throughout the entire application without additional imports.
 declare module 'hono' {
   interface ContextVariableMap {
     userId: string;
     userEmail: string;
     userRole: string;
+    requestId: string;
   }
 }
 
-/** Extracts the raw Bearer token from the Authorization header, or null. */
 function extractBearerToken(authHeader: string | undefined): string | null {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7).trim();
@@ -20,13 +18,38 @@ function extractBearerToken(authHeader: string | undefined): string | null {
 }
 
 /**
- * authRequired
- *
- * Verifies the JWT access token supplied in the Authorization header.
- * - Missing token  → 401 UNAUTHORIZED
- * - Invalid/expired → 401 UNAUTHORIZED
- * - Valid           → sets userId, userEmail, userRole on context and continues
+ * Verifies JWT signature (supporting dual-key rotation via JWT_SECRET_PREV) AND validates
+ * against D1 `users.is_active` and `users.token_version` so revoked/deleted users are blocked immediately.
  */
+async function authenticateToken(env: Env, token: string) {
+  const payload = await verifyAccessToken(token, env.JWT_SECRET, env.JWT_SECRET_PREV);
+
+  const user = await env.DB
+    .prepare(`SELECT id, email, role, is_active, token_version FROM users WHERE id = ?1 LIMIT 1`)
+    .bind(payload.sub)
+    .first<{
+      id: string;
+      email: string;
+      role: string;
+      is_active: number;
+      token_version: number;
+    }>();
+
+  if (!user || user.is_active !== 1) {
+    throw new Error('USER_INACTIVE_OR_MISSING');
+  }
+
+  if (typeof payload.ver === 'number' && payload.ver !== user.token_version) {
+    throw new Error('TOKEN_REVOKED');
+  }
+
+  return {
+    sub: user.id,
+    email: user.email,
+    role: user.role,
+  };
+}
+
 export const authRequired = createMiddleware(async (c, next) => {
   const env = c.env as Env;
   const token = extractBearerToken(c.req.header('Authorization'));
@@ -35,28 +58,24 @@ export const authRequired = createMiddleware(async (c, next) => {
     return c.json(
       {
         success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Authentication token is missing.',
-          status: 401,
-        },
+        error: { code: 'UNAUTHORIZED', message: 'Authentication token is missing.', status: 401 },
       },
       401,
     );
   }
 
   try {
-    const payload = await verifyAccessToken(token, env.JWT_SECRET);
-    c.set('userId', payload.sub);
-    c.set('userEmail', payload.email);
-    c.set('userRole', payload.role);
+    const authUser = await authenticateToken(env, token);
+    c.set('userId', authUser.sub);
+    c.set('userEmail', authUser.email);
+    c.set('userRole', authUser.role);
   } catch {
     return c.json(
       {
         success: false,
         error: {
           code: 'UNAUTHORIZED',
-          message: 'Authentication token is invalid or has expired.',
+          message: 'Authentication token is invalid, revoked, or has expired.',
           status: 401,
         },
       },
@@ -67,26 +86,18 @@ export const authRequired = createMiddleware(async (c, next) => {
   await next();
 });
 
-/**
- * authOptional
- *
- * Attempts to verify the JWT access token when present.
- * - Missing token  → continues without setting user context (guest request)
- * - Invalid/expired → continues without setting user context (treat as guest)
- * - Valid           → sets userId, userEmail, userRole on context and continues
- */
 export const authOptional = createMiddleware(async (c, next) => {
   const env = c.env as Env;
   const token = extractBearerToken(c.req.header('Authorization'));
 
   if (token) {
     try {
-      const payload = await verifyAccessToken(token, env.JWT_SECRET);
-      c.set('userId', payload.sub);
-      c.set('userEmail', payload.email);
-      c.set('userRole', payload.role);
+      const authUser = await authenticateToken(env, token);
+      c.set('userId', authUser.sub);
+      c.set('userEmail', authUser.email);
+      c.set('userRole', authUser.role);
     } catch {
-      // Silently ignore invalid/expired tokens in optional mode
+      // Invalid/revoked token in optional mode falls back to guest
     }
   }
 

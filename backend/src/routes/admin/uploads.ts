@@ -1,7 +1,13 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/bindings.js';
-import { uploadObject, getPublicUrl } from '../../services/r2Storage.js';
+import {
+  buildR2Key,
+  detectImageMimeFromBytes,
+  getPublicUrl,
+  uploadObject,
+} from '../../services/r2Storage.js';
 import { generateId } from '../../services/crypto.js';
+import { nowIso } from '../../db/client.js';
 
 const adminUploads = new Hono<{ Bindings: Env }>();
 
@@ -15,9 +21,9 @@ const ALLOWED_MIME_TYPES = new Set([
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
-// ─── POST /api/admin/uploads — single file upload ────────────────────────────
-
 adminUploads.post('/', async (c) => {
+  const adminId = c.get('userId');
+  const ip = c.req.header('CF-Connecting-IP') ?? null;
   const contentType = c.req.header('Content-Type') ?? '';
 
   if (!contentType.includes('multipart/form-data')) {
@@ -45,7 +51,6 @@ adminUploads.post('/', async (c) => {
     );
   }
 
-  // Validate MIME type
   if (!ALLOWED_MIME_TYPES.has(file.type)) {
     return c.json(
       {
@@ -60,14 +65,13 @@ adminUploads.post('/', async (c) => {
     );
   }
 
-  // Validate file size
-  if (file.size > MAX_FILE_SIZE_BYTES) {
+  if (file.size === 0 || file.size > MAX_FILE_SIZE_BYTES) {
     return c.json(
       {
         success: false,
         error: {
           code: 'PAYLOAD_TOO_LARGE',
-          message: `File exceeds maximum size of 5 MB.`,
+          message: 'File size must be between 1 byte and 5 MB.',
           status: 413,
         },
       },
@@ -75,27 +79,58 @@ adminUploads.post('/', async (c) => {
     );
   }
 
-  // Generate a unique key
   if (!c.env.MEDIA_BUCKET) {
     return c.json(
       {
         success: false,
-        error: { code: 'R2_NOT_ENABLED', message: 'R2 storage bucket is not configured. Enable R2 in Cloudflare Dashboard.' },
+        error: {
+          code: 'R2_NOT_ENABLED',
+          message: 'R2 storage bucket is not configured. Enable R2 in Cloudflare Dashboard.',
+          status: 503,
+        },
       },
       503,
     );
   }
-  const ext = file.name.split('.').pop() ?? 'jpg';
-  const folder = (formData.get('folder') as string) ?? 'uploads';
-  const key = `${folder}/${generateId('img_')}.${ext}`;
 
   const arrayBuffer = await file.arrayBuffer();
-  await uploadObject(c.env.MEDIA_BUCKET, key, arrayBuffer, file.type);
+  const realMime = detectImageMimeFromBytes(arrayBuffer);
+  if (!realMime) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INVALID_IMAGE_CONTENT',
+          message: 'Uploaded file header bytes do not match a supported image signature.',
+          status: 400,
+        },
+      },
+      400,
+    );
+  }
 
+  const folder = String(formData.get('folder') ?? 'uploads');
+  const key = buildR2Key(folder, realMime);
+
+  await uploadObject(c.env.MEDIA_BUCKET, key, arrayBuffer, realMime);
   const url = getPublicUrl(c.env.MEDIA_BUCKET_PUBLIC_URL, key);
 
-  return c.json({ success: true, data: { key, url } }, 201);
+  await c.env.DB
+    .prepare(
+      `INSERT INTO admin_logs (id, admin_id, action, entity_type, entity_id, metadata, ip_address, created_at)
+       VALUES (?1, ?2, 'UPLOAD_MEDIA', 'r2_object', ?3, ?4, ?5, ?6)`,
+    )
+    .bind(
+      generateId('log_'),
+      adminId,
+      key,
+      JSON.stringify({ size: file.size, mime: realMime }),
+      ip,
+      nowIso(),
+    )
+    .run();
+
+  return c.json({ success: true, data: { key, url, mimeType: realMime } }, 201);
 });
 
 export default adminUploads;
-

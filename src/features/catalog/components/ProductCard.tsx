@@ -53,13 +53,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
     setSelectedSize(size);
     setIsSizePickerOpen(false);
 
+    const activeColor = colors[selectedColorIndex]?.name;
+    const matchedVariant = product.variants?.find(
+      (v) =>
+        v.size.toLowerCase() === size.toLowerCase() &&
+        (!activeColor || v.colorName.toLowerCase() === activeColor.toLowerCase()),
+    ) || product.variants?.find((v) => v.size.toLowerCase() === size.toLowerCase());
+
     addToCart({
       id: product.id,
+      slug: product.slug,
       title: product.title,
       price: product.price,
       priceNum: product.priceNum,
       size: size,
-      img: product.defaultImg
+      color: activeColor,
+      variantId: matchedVariant?.id,
+      img: colors[selectedColorIndex]?.img || product.defaultImg
     });
     openCart();
   };
