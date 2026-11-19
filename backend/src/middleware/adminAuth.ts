@@ -68,9 +68,9 @@ export async function resolveAdminAccessProfile(
   const adminEmails =
     env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean) ?? [];
   const inAllowlist = adminEmails.includes(user.email.toLowerCase());
-  const dbIsPrivileged = user.role === 'admin' || user.role === 'superadmin' || user.role === 'staff';
+  const isPrivileged = inAllowlist || user.role === 'admin' || user.role === 'superadmin' || user.role === 'staff';
 
-  if (!dbIsPrivileged) {
+  if (!isPrivileged) {
     return {
       isAdmin: false,
       roleSlug: 'customer',
