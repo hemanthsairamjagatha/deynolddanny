@@ -9,23 +9,149 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cms } from '../../lib/api';
-import type { CmsPage, CmsSection, SectionType } from '../../lib/types';
-import { Button, Badge, statusVariant, Modal, Input, Textarea, Select, Spinner, InfoTooltip } from '../../components/ui';
+import type { SectionType } from '../../lib/types';
+import { Button, Badge, statusVariant, Modal, Input, Textarea, Select, Spinner } from '../../components/ui';
+
+interface NormalizedPage {
+  id: string;
+  slug: string;
+  routePath: string;
+  title: string;
+  pageType: string;
+  status: string;
+}
+
+interface NormalizedSection {
+  id: string;
+  pageId: string;
+  sectionKey: string;
+  sectionType: SectionType;
+  title: string;
+  sortOrder: number;
+  isDraftVisible: boolean;
+  draftProps: Record<string, unknown>;
+}
+
+interface LegalClause {
+  heading: string;
+  body: string;
+}
 
 const SECTION_TYPES: Array<{ value: SectionType; label: string; description: string }> = [
-  { value: 'hero_banner', label: 'Hero Banner', description: 'Full-width hero with image, headline and CTA' },
-  { value: 'product_carousel', label: 'Product Carousel', description: 'Horizontal scrolling product showcase' },
+  { value: 'hero_banner', label: 'Hero Banner', description: 'Full-width hero with desktop/mobile imagery, focal point, headline & CTA' },
+  { value: 'product_carousel', label: 'Product Carousel', description: 'Horizontal scrolling product showcase with category tabs' },
   { value: 'category_grid', label: 'Category Grid', description: 'Visual category navigation grid' },
   { value: 'editorial_duo', label: 'Editorial Duo', description: 'Two-column editorial image and text layout' },
   { value: 'style_layering', label: 'Style Layering', description: 'Layered fashion editorial with product links' },
   { value: 'newsletter_cta', label: 'Newsletter CTA', description: 'Email subscription call-to-action block' },
-  { value: 'announcement', label: 'Announcement', description: 'Banner bar for promotions and announcements' },
-  { value: 'legal_document', label: 'Legal Document', description: 'Rich text block for legal / policy content' },
-  { value: 'contact_page', label: 'Contact Page', description: 'Contact form and information layout' },
-  { value: 'pdp_template', label: 'PDP Template', description: 'Product detail page configuration' },
+  { value: 'announcement', label: 'Announcement', description: 'Top banner bar for promotions and global announcements' },
+  { value: 'legal_document', label: 'Legal / Editorial Document', description: 'Structured multi-clause legal policy or brand narrative (Privacy, Refunds, Terms, About Us)' },
+  { value: 'contact_page', label: 'Contact Page', description: 'Concierge page header, intro, and inquiry subject list' },
+  { value: 'pdp_template', label: 'PDP Template', description: 'Global Product Detail Page configuration' },
 ];
 
-function SectionFields({ type, config, onChange }: {
+function LegalDocumentEditor({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+}) {
+  const clauses = Array.isArray(config.sections)
+    ? (config.sections as LegalClause[])
+    : [];
+
+  const updateClause = (idx: number, patch: Partial<LegalClause>) => {
+    const next = clauses.map((c, i) => (i === idx ? { ...c, ...patch } : c));
+    onChange({ ...config, sections: next });
+  };
+
+  const addClause = () => {
+    const next = [...clauses, { heading: `${clauses.length + 1}. New Clause`, body: '' }];
+    onChange({ ...config, sections: next });
+  };
+
+  const removeClause = (idx: number) => {
+    const next = clauses.filter((_, i) => i !== idx);
+    onChange({ ...config, sections: next });
+  };
+
+  const moveClause = (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= clauses.length) return;
+    const next = [...clauses];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onChange({ ...config, sections: next });
+  };
+
+  return (
+    <div className="col-span-2 space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input
+          label="Eyebrow Label"
+          value={String(config.eyebrow ?? '')}
+          onChange={e => onChange({ ...config, eyebrow: e.target.value })}
+          tooltip="Small uppercase classification line above the document title (e.g. LEGAL GOVERNANCE)."
+        />
+        <Input
+          label="Effective Date / Subtitle"
+          value={String(config.effectiveDate ?? '')}
+          onChange={e => onChange({ ...config, effectiveDate: e.target.value })}
+          tooltip="Displayed beneath the heading to indicate policy effective date and jurisdiction."
+        />
+      </div>
+
+      <Input
+        label="Document Main Heading"
+        value={String(config.heading ?? '')}
+        onChange={e => onChange({ ...config, heading: e.target.value })}
+        tooltip="Primary H1 heading rendered on the storefront page."
+      />
+
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-ink-900">Document Clauses ({clauses.length})</h3>
+            <p className="text-xs text-ink-500">Edit each numbered legal clause or editorial paragraph directly. Click Publish Live when ready.</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={addClause}>+ Add Clause</Button>
+        </div>
+
+        {clauses.map((clause, idx) => (
+          <div key={idx} className="p-4 border border-ink-200 rounded-xl bg-ink-50/40 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-mono uppercase tracking-wider text-ink-400">Clause {idx + 1}</span>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" disabled={idx === 0} onClick={() => moveClause(idx, -1)}>↑</Button>
+                <Button size="sm" variant="ghost" disabled={idx === clauses.length - 1} onClick={() => moveClause(idx, 1)}>↓</Button>
+                <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => removeClause(idx)}>Remove</Button>
+              </div>
+            </div>
+            <Input
+              label="Clause Heading"
+              value={clause.heading ?? ''}
+              onChange={e => updateClause(idx, { heading: e.target.value })}
+              tooltip="Section title for this clause (e.g. '7. 14-Day Returns & Exchanges')."
+            />
+            <Textarea
+              label="Clause Text"
+              rows={4}
+              value={clause.body ?? ''}
+              onChange={e => updateClause(idx, { body: e.target.value })}
+              tooltip="Full legal or editorial text rendered inside this clause."
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SectionFields({
+  type,
+  config,
+  onChange,
+}: {
   type: SectionType;
   config: Record<string, unknown>;
   onChange: (config: Record<string, unknown>) => void;
@@ -33,26 +159,96 @@ function SectionFields({ type, config, onChange }: {
   const set = (k: string, v: unknown) => onChange({ ...config, [k]: v });
   const inp = (k: string, label: string, tooltip: string, type_ = 'text', wide = false) => (
     <div className={wide ? 'col-span-2' : ''}>
-      <Input label={label} type={type_} value={(config[k] as string) ?? ''} onChange={e => set(k, e.target.value)} tooltip={tooltip} />
+      <Input label={label} type={type_} value={String(config[k] ?? '')} onChange={e => set(k, e.target.value)} tooltip={tooltip} />
     </div>
   );
   const ta = (k: string, label: string, tooltip: string, rows = 4) => (
     <div className="col-span-2">
-      <Textarea label={label} value={(config[k] as string) ?? ''} onChange={e => set(k, e.target.value)} rows={rows} tooltip={tooltip} />
+      <Textarea label={label} value={typeof config[k] === 'string' ? (config[k] as string) : JSON.stringify(config[k] ?? '', null, 2)} onChange={e => set(k, e.target.value)} rows={rows} tooltip={tooltip} />
     </div>
   );
 
+  if (type === 'legal_document') {
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        <LegalDocumentEditor config={config} onChange={onChange} />
+      </div>
+    );
+  }
+
   const fields: Record<string, React.ReactNode> = {
-    hero_banner: <>{inp('headline', 'Headline', 'Main hero heading, e.g. "The New Season"', 'text', true)}{inp('subheadline', 'Subheadline', 'Supporting text below the headline', 'text', true)}{inp('ctaText', 'CTA Button Text', 'Call-to-action button label, e.g. "Explore Collection"')}{inp('ctaUrl', 'CTA URL', 'Link for the CTA button, e.g. /collections/new-arrivals')}{inp('imageUrl', 'Image URL', 'Hero background image URL. Recommended size: 2560×1440px', 'text', true)}{inp('imageAlt', 'Image Alt Text', 'Descriptive text for screen readers and SEO', 'text', true)}{inp('overlayOpacity', 'Overlay Opacity (0–1)', 'Dark overlay transparency over the image for text legibility. 0 = none, 1 = fully opaque')}</>,
-    product_carousel: <>{inp('title', 'Section Title', 'Heading above the product carousel, e.g. "New Arrivals"', 'text', true)}{ta('productIds', 'Product IDs (one per line)', 'Product UUIDs to display. Leave blank to use latest products.', 4)}{inp('viewAllUrl', 'View All URL', 'Optional link for a "View all" button at the end of the carousel')}</>,
-    category_grid: <>{inp('title', 'Section Title', 'Heading above the category grid', 'text', true)}{ta('categories', 'Categories (JSON array)', 'JSON array: [{"id":"...","label":"...","imageUrl":"..."}]', 6)}</>,
-    editorial_duo: <>{inp('leftImageUrl', 'Left Image URL', 'Image for the left panel', 'text', true)}{inp('leftCaption', 'Left Caption', 'Small caption beneath the left image')}{inp('rightTitle', 'Right Title', 'Heading for the right text panel')}{ta('rightBody', 'Right Body Text', 'Editorial copy for the right panel', 4)}{inp('rightCtaText', 'CTA Text', 'Button label for the right panel CTA')}{inp('rightCtaUrl', 'CTA URL', 'Destination URL for the right panel CTA')}</>,
-    newsletter_cta: <>{inp('headline', 'Headline', 'Main heading for the newsletter sign-up block', 'text', true)}{inp('subtext', 'Subtext', 'Supporting sentence explaining the newsletter value')}{inp('buttonText', 'Button Text', 'CTA button label, e.g. "Subscribe"')}{inp('placeholderText', 'Input Placeholder', 'Email input placeholder text, e.g. "Your email address"')}</>,
-    announcement: <>{inp('text', 'Announcement Text', 'The message shown in the announcement bar', 'text', true)}{inp('link', 'Link URL', 'Optional URL the bar links to')}{inp('linkText', 'Link Text', 'Anchor text for the link, e.g. "Shop Now"')}{inp('backgroundColor', 'Background Color', 'Hex color for the bar background, e.g. #1a1a1a')}</>,
-    legal_document: <>{ta('content', 'Document Content (Markdown)', 'Markdown-formatted legal document content. Headings, paragraphs and lists are supported.', 12)}</>,
-    contact_page: <>{inp('heading', 'Page Heading', 'Title shown at the top of the contact page')}{ta('intro', 'Introduction Text', 'Introductory paragraph above the contact form', 3)}</>,
-    pdp_template: <>{inp('reviewsEnabled', 'Show Reviews (true/false)', 'Whether to display customer reviews section on PDPs')}{inp('fitFinderEnabled', 'Show Fit Finder (true/false)', 'Whether to show the AI fit finder button on PDPs')}</>,
-    style_layering: <>{inp('title', 'Section Title', 'Heading above the style layering section', 'text', true)}{ta('items', 'Style Items (JSON array)', 'JSON array of style items: [{"imageUrl":"...","productId":"...","label":"..."}]', 6)}</>,
+    hero_banner: (
+      <>
+        {inp('eyebrow', 'Eyebrow', 'Small uppercase campaign eyebrow above the headline', 'text', true)}
+        {inp('headline', 'Headline', 'Main hero display heading (e.g. DEYNOLD DANNY)', 'text', true)}
+        {inp('description', 'Tagline / Subheadline', 'Supporting line beneath the hero headline', 'text', true)}
+        {inp('desktopImage', 'Desktop Image URL', 'High-resolution widescreen hero image (2560×1429px)', 'text', true)}
+        {inp('mobileImage', 'Mobile Image URL', 'Portrait/mobile-optimized hero image URL', 'text', true)}
+        {inp('focalX', 'Focal Point X (0–100)', 'Horizontal crop focus percentage (50 = centered)', 'number')}
+        {inp('focalY', 'Focal Point Y (0–100)', 'Vertical crop focus percentage (35 = upper third)', 'number')}
+        {inp('ctaLabel', 'Primary CTA Label', 'Button text (e.g. Discover Collection)')}
+        {inp('ctaUrl', 'Primary CTA URL', 'Destination link (e.g. /categories)')}
+      </>
+    ),
+    product_carousel: (
+      <>
+        {inp('eyebrow', 'Eyebrow', 'Small label above the carousel heading')}
+        {inp('title', 'Section Title', 'Heading above the product carousel')}
+        {inp('ctaLabel', 'View All Label', 'Button/link label')}
+        {inp('ctaUrl', 'View All URL', 'Destination URL for viewing the full collection')}
+      </>
+    ),
+    category_grid: (
+      <>
+        {inp('heading', 'Section Heading', 'Title above the editorial category grid', 'text', true)}
+        {ta('items', 'Category Cards (JSON)', 'JSON array of category cards with title, subtitle, href, desktopImage, focalX, focalY', 8)}
+      </>
+    ),
+    editorial_duo: (
+      <>
+        {inp('heading', 'Section Heading', 'Optional heading above the duo panels', 'text', true)}
+        {ta('items', 'Duo Panels (JSON)', 'JSON array of two editorial panels with eyebrow, title, description, ctaLabel, href, desktopImage', 8)}
+      </>
+    ),
+    newsletter_cta: (
+      <>
+        {inp('headline', 'Headline', 'Main heading for the newsletter block', 'text', true)}
+        {inp('subtext', 'Subtext', 'Supporting description explaining newsletter benefits', 'text', true)}
+        {inp('buttonText', 'Button Text', 'Subscribe button label')}
+        {inp('placeholderText', 'Input Placeholder', 'Email field placeholder')}
+      </>
+    ),
+    announcement: (
+      <>
+        {inp('text', 'Announcement Text', 'Message displayed in the top storefront bar', 'text', true)}
+        {inp('linkUrl', 'Link URL', 'Optional destination URL')}
+        {inp('bgColor', 'Background Hex', 'Hex background color (e.g. #111111)')}
+        {inp('textColor', 'Text Hex', 'Hex text color (e.g. #ffffff)')}
+      </>
+    ),
+    contact_page: (
+      <>
+        {inp('eyebrow', 'Eyebrow', 'Label above page title', 'text', true)}
+        {inp('title', 'Page Heading', 'Main contact page heading', 'text', true)}
+        {ta('subtitle', 'Introduction Copy', 'Introductory text above the concierge contact form', 3)}
+      </>
+    ),
+    pdp_template: (
+      <>
+        {inp('originBadgeText', 'Origin Badge Text', 'Boxed provenance badge text (e.g. MADE IN INDIA)', 'text', true)}
+        {inp('exclusiveBannerText', 'Exclusive Notice Text', 'Highlight notice displayed in product specification column', 'text', true)}
+        {inp('styleItWithHeading', 'Style It With Heading', 'Heading for cross-sell styling section')}
+        {inp('relatedHeading', 'Related Products Heading', 'Heading for related suggestions grid')}
+      </>
+    ),
+    style_layering: (
+      <>
+        {inp('title', 'Section Title', 'Heading above the style layering lookbook', 'text', true)}
+        {inp('ctaLabel', 'CTA Label', 'Action label')}
+        {inp('ctaUrl', 'CTA URL', 'Destination URL')}
+        {ta('tabs', 'Lookbook Tabs (JSON)', 'JSON array of curated look tabs with pieces and imagery', 8)}
+      </>
+    ),
   };
 
   return (
@@ -62,8 +258,14 @@ function SectionFields({ type, config, onChange }: {
   );
 }
 
-function SortableSectionCard({ section, onEdit, onDuplicate, onDelete, onToggleVisibility }: {
-  section: CmsSection;
+function SortableSectionCard({
+  section,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onToggleVisibility,
+}: {
+  section: NormalizedSection;
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -73,41 +275,35 @@ function SortableSectionCard({ section, onEdit, onDuplicate, onDelete, onToggleV
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
   return (
-    <div ref={setNodeRef} style={style} className={`bg-white border rounded-xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow ${section.is_visible ? 'border-ink-200' : 'border-dashed border-ink-300 opacity-70'}`}>
-      {/* Drag Handle */}
-      <button {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-ink-300 hover:text-ink-500 touch-none">
+    <div ref={setNodeRef} style={style} className={`bg-white border rounded-xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow ${section.isDraftVisible ? 'border-ink-200' : 'border-dashed border-ink-300 opacity-70'}`}>
+      <button {...listeners} {...attributes} className="cursor-grab active:cursor-grabbing text-ink-300 hover:text-ink-500 touch-none" aria-label="Drag to reorder">
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M9 5a1 1 0 100 2 1 1 0 000-2zM15 5a1 1 0 100 2 1 1 0 000-2zM9 11a1 1 0 100 2 1 1 0 000-2zM15 11a1 1 0 100 2 1 1 0 000-2zM9 17a1 1 0 100 2 1 1 0 000-2zM15 17a1 1 0 100 2 1 1 0 000-2z" />
         </svg>
       </button>
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-ink-900 truncate">{section.label}</span>
-          {!section.is_visible && <Badge variant="default">Hidden</Badge>}
+          <span className="text-sm font-semibold text-ink-900 truncate">{section.title}</span>
+          {!section.isDraftVisible && <Badge variant="default">Hidden</Badge>}
         </div>
-        <span className="text-xs text-ink-500 font-mono">{section.section_type}</span>
+        <span className="text-xs text-ink-500 font-mono">{section.sectionType}</span>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-1">
-        <button onClick={onToggleVisibility} title={section.is_visible ? 'Hide section' : 'Show section'}
-          className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-400 transition-colors">
+        <Button size="sm" variant="outline" onClick={onEdit}>Edit Content</Button>
+        <button onClick={onToggleVisibility} title={section.isDraftVisible ? 'Hide section' : 'Show section'} className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-400 transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            {section.is_visible
+            {section.isDraftVisible
               ? <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               : <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
             }
           </svg>
         </button>
-        <button onClick={onEdit} className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-400 hover:text-ink-700 transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-        </button>
-        <button onClick={onDuplicate} className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-400 hover:text-ink-700 transition-colors">
+        <button onClick={onDuplicate} title="Duplicate section" className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-400 hover:text-ink-700 transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
         </button>
-        <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-ink-300 hover:text-red-600 transition-colors">
+        <button onClick={onDelete} title="Delete section" className="p-1.5 rounded-lg hover:bg-red-50 text-ink-300 hover:text-red-600 transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         </button>
       </div>
@@ -118,15 +314,17 @@ function SortableSectionCard({ section, onEdit, onDuplicate, onDelete, onToggleV
 export default function PageEditor() {
   const { pageId } = useParams<{ pageId: string }>();
   const navigate = useNavigate();
-  const [page, setPage] = useState<CmsPage | null>(null);
-  const [sections, setSections] = useState<CmsSection[]>([]);
+  const [page, setPage] = useState<NormalizedPage | null>(null);
+  const [sections, setSections] = useState<NormalizedSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [notice, setNotice] = useState('');
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
-  const [editSection, setEditSection] = useState<CmsSection | null>(null);
+  const [editSection, setEditSection] = useState<NormalizedSection | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const [editConfig, setEditConfig] = useState<Record<string, unknown>>({});
-  const [newType, setNewType] = useState<SectionType>('hero_banner');
+  const [newType, setNewType] = useState<SectionType>('legal_document');
   const [newLabel, setNewLabel] = useState('');
   const [savingSection, setSavingSection] = useState(false);
 
@@ -136,8 +334,30 @@ export default function PageEditor() {
     if (!pageId) return;
     cms.pages.get(pageId).then(res => {
       if (res.success && res.data) {
-        setPage(res.data);
-        setSections((res.data.sections ?? []).sort((a, b) => a.sort_order - b.sort_order));
+        const d = res.data as { page?: Record<string, unknown>; sections?: Record<string, unknown>[] };
+        const p = d.page ?? (res.data as unknown as Record<string, unknown>);
+        setPage({
+          id: String(p.id ?? ''),
+          slug: String(p.slug ?? ''),
+          routePath: String(p.routePath ?? p.route_path ?? `/${p.slug ?? ''}`),
+          title: String(p.title ?? ''),
+          pageType: String(p.pageType ?? p.page_type ?? 'custom'),
+          status: String(p.status ?? 'draft'),
+        });
+        const rawSecs = Array.isArray(d.sections) ? d.sections : [];
+        const normalized: NormalizedSection[] = rawSecs
+          .map(s => ({
+            id: String(s.id ?? ''),
+            pageId: String(s.pageId ?? s.page_id ?? pageId),
+            sectionKey: String(s.sectionKey ?? s.section_key ?? ''),
+            sectionType: String(s.sectionType ?? s.section_type ?? 'legal_document') as SectionType,
+            title: String(s.title ?? s.label ?? 'Untitled Section'),
+            sortOrder: Number(s.sortOrder ?? s.sort_order ?? 0),
+            isDraftVisible: Boolean(s.isDraftVisible ?? s.is_draft_visible ?? true),
+            draftProps: (s.draftProps ?? s.config_json ?? {}) as Record<string, unknown>,
+          }))
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+        setSections(normalized);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -153,19 +373,21 @@ export default function PageEditor() {
     const reordered = arrayMove(sections, oldIdx, newIdx);
     setSections(reordered);
     await cms.sections.reorder(pageId, reordered.map(s => s.id));
+    setNotice('Section order saved to draft.');
   };
 
   const addSection = async () => {
-    if (!pageId || !newLabel) return;
+    if (!pageId || !newLabel.trim()) return;
     setSavingSection(true);
     await cms.sections.add(pageId, {
-      section_type: newType,
-      label: newLabel,
-      config_json: {},
-      is_visible: 1,
+      sectionType: newType,
+      title: newLabel.trim(),
+      isDraftVisible: true,
+      props: newType === 'legal_document' ? { eyebrow: '', heading: newLabel.trim(), effectiveDate: '', sections: [{ heading: '1. Overview', body: '' }] } : {},
     });
     setAddModal(false);
     setNewLabel('');
+    setNotice('Section added to draft.');
     load();
     setSavingSection(false);
   };
@@ -173,26 +395,30 @@ export default function PageEditor() {
   const saveSection = async () => {
     if (!pageId || !editSection) return;
     setSavingSection(true);
-    await cms.sections.update(pageId, editSection.id, { config_json: editConfig });
+    await cms.sections.update(pageId, editSection.id, {
+      title: editTitle.trim() || editSection.title,
+      props: editConfig,
+    });
     setEditModal(false);
+    setNotice('Draft saved. Click "Publish Live" to push changes to the storefront.');
     load();
     setSavingSection(false);
   };
 
-  const toggleVisibility = async (section: CmsSection) => {
+  const toggleVisibility = async (section: NormalizedSection) => {
     if (!pageId) return;
-    await cms.sections.update(pageId, section.id, { is_visible: section.is_visible ? 0 : 1 });
+    await cms.sections.update(pageId, section.id, { isDraftVisible: !section.isDraftVisible });
     load();
   };
 
-  const duplicateSection = async (section: CmsSection) => {
+  const duplicateSection = async (section: NormalizedSection) => {
     if (!pageId) return;
     await cms.sections.duplicate(pageId, section.id);
     load();
   };
 
-  const deleteSection = async (section: CmsSection) => {
-    if (!pageId || !confirm(`Delete "${section.label}"?`)) return;
+  const deleteSection = async (section: NormalizedSection) => {
+    if (!pageId || !confirm(`Delete "${section.title}"?`)) return;
     await cms.sections.delete(pageId, section.id);
     load();
   };
@@ -201,6 +427,7 @@ export default function PageEditor() {
     if (!pageId) return;
     setPublishing(true);
     await cms.pages.publish(pageId);
+    setNotice('Published live to the storefront and edge cache refreshed.');
     load();
     setPublishing(false);
   };
@@ -208,7 +435,10 @@ export default function PageEditor() {
   const preview = async () => {
     if (!pageId) return;
     const res = await cms.pages.previewToken(pageId);
-    if (res.success && res.data?.url) window.open(res.data.url, '_blank');
+    const target = res.data?.previewPath || res.data?.url;
+    if (res.success && target) {
+      window.open(target, '_blank', 'noopener,noreferrer');
+    }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>;
@@ -216,23 +446,28 @@ export default function PageEditor() {
 
   return (
     <div>
-      {/* Top bar */}
-      <div className="flex items-center gap-4 mb-8">
-        <button onClick={() => navigate('/studio')} className="p-2 rounded-lg hover:bg-ink-100 text-ink-400 transition-colors">
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <button onClick={() => navigate('/studio')} className="p-2 rounded-lg hover:bg-ink-100 text-ink-400 transition-colors" aria-label="Back to studio">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h1 className="text-xl font-display font-semibold text-ink-900">{page.title}</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <code className="text-xs text-ink-400">/{page.slug}</code>
+            <code className="text-xs text-ink-500">{page.routePath}</code>
             <Badge variant={statusVariant(page.status)}>{page.status}</Badge>
           </div>
         </div>
-        <Button variant="outline" onClick={preview}>Preview</Button>
+        <Button variant="outline" onClick={preview}>Preview Draft</Button>
         <Button variant="secondary" onClick={publish} loading={publishing}>Publish Live</Button>
       </div>
 
-      {/* Section Canvas */}
+      {notice && (
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3 rounded-xl flex justify-between items-center">
+          <span>{notice}</span>
+          <button onClick={() => setNotice('')} className="text-xs underline">Dismiss</button>
+        </div>
+      )}
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-3 mb-6">
@@ -240,7 +475,12 @@ export default function PageEditor() {
               <SortableSectionCard
                 key={section.id}
                 section={section}
-                onEdit={() => { setEditSection(section); setEditConfig(section.config_json ?? {}); setEditModal(true); }}
+                onEdit={() => {
+                  setEditSection(section);
+                  setEditTitle(section.title);
+                  setEditConfig(section.draftProps ?? {});
+                  setEditModal(true);
+                }}
                 onDuplicate={() => duplicateSection(section)}
                 onDelete={() => deleteSection(section)}
                 onToggleVisibility={() => toggleVisibility(section)}
@@ -251,9 +491,9 @@ export default function PageEditor() {
       </DndContext>
 
       {sections.length === 0 && (
-        <div className="border-2 border-dashed border-ink-200 rounded-2xl p-16 text-center">
+        <div className="border-2 border-dashed border-ink-200 rounded-2xl p-16 text-center mb-6">
           <p className="text-sm font-medium text-ink-900 mb-1">No sections yet</p>
-          <p className="text-sm text-ink-500 mb-4">Add your first section to start building this page.</p>
+          <p className="text-sm text-ink-500">Add your first section to compose this page.</p>
         </div>
       )}
 
@@ -261,7 +501,6 @@ export default function PageEditor() {
         + Add Section
       </Button>
 
-      {/* Add Section Modal */}
       <Modal
         open={addModal}
         onClose={() => setAddModal(false)}
@@ -269,46 +508,55 @@ export default function PageEditor() {
         footer={
           <>
             <Button variant="outline" onClick={() => setAddModal(false)}>Cancel</Button>
-            <Button loading={savingSection} onClick={addSection}>Add Section</Button>
+            <Button loading={savingSection} onClick={addSection} disabled={!newLabel.trim()}>Add Section</Button>
           </>
         }
       >
-        <Select
-          label="Section Type"
-          value={newType}
-          onChange={e => setNewType(e.target.value as SectionType)}
-          options={SECTION_TYPES.map(t => ({ value: t.value, label: t.label }))}
-          tooltip="The type determines the layout and configurable fields for this section."
-        />
-        {newType && <p className="text-xs text-ink-500 mt-1">{SECTION_TYPES.find(t => t.value === newType)?.description}</p>}
-        <Input
-          label="Section Label"
-          value={newLabel}
-          onChange={e => setNewLabel(e.target.value)}
-          placeholder="e.g. Hero — Summer Campaign"
-          tooltip="Internal label to identify this section in the studio. Not shown publicly."
-        />
+        <div className="space-y-4">
+          <Select
+            label="Section Type"
+            value={newType}
+            onChange={e => setNewType(e.target.value as SectionType)}
+            options={SECTION_TYPES.map(t => ({ value: t.value, label: t.label }))}
+            tooltip="Determines the storefront layout and editable content fields for this section."
+          />
+          {newType && <p className="text-xs text-ink-500">{SECTION_TYPES.find(t => t.value === newType)?.description}</p>}
+          <Input
+            label="Section Label"
+            value={newLabel}
+            onChange={e => setNewLabel(e.target.value)}
+            placeholder="e.g. Privacy Policy Clauses"
+            tooltip="Internal label shown in the Visual Content Studio canvas."
+          />
+        </div>
       </Modal>
 
-      {/* Edit Section Modal */}
       <Modal
         open={editModal}
         onClose={() => setEditModal(false)}
-        title={`Edit: ${editSection?.label ?? ''}`}
+        title={`Edit Section: ${editSection?.title ?? ''}`}
         wide
         footer={
           <>
             <Button variant="outline" onClick={() => setEditModal(false)}>Cancel</Button>
-            <Button loading={savingSection} onClick={saveSection}>Save Changes</Button>
+            <Button loading={savingSection} onClick={saveSection}>Save Draft</Button>
           </>
         }
       >
         {editSection && (
-          <SectionFields
-            type={editSection.section_type}
-            config={editConfig}
-            onChange={setEditConfig}
-          />
+          <div className="space-y-5">
+            <Input
+              label="Section Label"
+              value={editTitle}
+              onChange={e => setEditTitle(e.target.value)}
+              tooltip="Internal studio name for this section."
+            />
+            <SectionFields
+              type={editSection.sectionType}
+              config={editConfig}
+              onChange={setEditConfig}
+            />
+          </div>
         )}
       </Modal>
     </div>

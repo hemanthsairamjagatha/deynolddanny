@@ -1,66 +1,109 @@
 ---
 // src/pages/legal/terms.astro
 import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+
+const clauses = [
+  {
+    heading: '1. Legal Entity & Statutory Disclosures',
+    body: 'This digital flagship is owned and operated by DEYNOLD DANNY Atelier Pvt. Ltd., New Delhi, India ("DEYNOLD DANNY", "we", "our"). In accordance with the Consumer Protection (E-Commerce) Rules, 2020 and the Information Technology Act, 2000, every garment offered on this storefront is crafted in India unless an explicit alternate country of origin is noted on the product specification sheet.'
+  },
+  {
+    heading: '2. Acceptance & Eligibility',
+    body: 'By accessing our digital flagship, creating a Private Client account, or commissioning an order, you represent that you are at least 18 years of age, possess full legal capacity to enter binding agreements, and accept these Terms alongside our Privacy Policy, Cookie Policy, and Shipping & Returns Policy.'
+  },
+  {
+    heading: '3. Artisanal Craftsmanship & Natural Fibers',
+    body: 'DEYNOLD DANNY creations are tailored from noble natural fibers—virgin wool, inner-fleece cashmere, long-staple cotton poplin, mulberry silk, and full-grain calfskin. Subtle variations in yarn grain, weave texture, or hand-burnished patina are authentic hallmarks of artisanal production rather than defects. Digital color representation may vary slightly depending on display calibration.'
+  },
+  {
+    heading: '4. Multi-Currency Display & Authoritative INR Settlement',
+    body: 'To assist international patrons across the United States, United Kingdom, European Union, United Arab Emirates, Singapore, Australia, Canada, Switzerland, Japan, Saudi Arabia, and Qatar, our storefront provides live indicative currency conversion refreshed automatically against daily foreign-exchange reference rates. All prices, discounts, GST taxes, and payment authorizations are authoritatively calculated and settled in Indian Rupees (INR ₹) on our server. Your card issuer or bank determines the final statement conversion rate and any applicable foreign transaction fee.'
+  },
+  {
+    heading: '5. GST Pricing, Statutory Invoicing & Payment Guardrails',
+    body: 'Domestic Indian prices are inclusive of applicable Goods & Services Tax (GST) unless explicitly stated otherwise, and a compliant GST tax invoice is issued inside your Private Client Portal. Orders paid via UPI are subject to statutory RBI transaction limits; orders exceeding statutory Indian Income Tax thresholds may require Permanent Account Number (PAN) verification prior to dispatch.'
+  },
+  {
+    heading: '6. Inventory Allocation & Order Acceptance',
+    body: 'Placing items in your shopping bag initiates a temporary reservation during checkout, while a binding contract of sale is formed strictly upon: (a) cryptographic payment verification via Razorpay or Cashfree on our backend; and (b) dispatch confirmation from our atelier. We reserve the right to decline or cancel any order—with an immediate 100% refund—in cases of typographical pricing error, stock discrepancy, unserviceable PIN code, or suspected payment fraud.'
+  },
+  {
+    heading: '7. Promotional Codes & Private Client Privileges',
+    body: 'Promotional codes are single-use per patron unless expressly specified, cannot be combined with other offers, carry server-enforced minimum-spend and expiry rules, and hold zero cash redemption value. Automated scraping or misuse of promotional codes voids eligibility.'
+  },
+  {
+    heading: '8. Account Security & Prohibited Conduct',
+    body: 'You are responsible for maintaining the security of the email account used for passwordless OTP authentication. Automated scraping, inventory-hoarding bots, API reverse-engineering, fraudulent chargebacks, or unauthorized commercial resale of DEYNOLD DANNY garments are strictly prohibited and may result in permanent account termination.'
+  },
+  {
+    heading: '9. Intellectual Property Rights',
+    body: 'All garment designs, lookbook photography, typography, the DEYNOLD DANNY wordmark and anchor monogram, editorial copy, and platform code are the exclusive intellectual property of DEYNOLD DANNY Atelier Pvt. Ltd., protected under Indian copyright, trademark, and international treaties. No material may be copied, mirrored, or reproduced without written consent.'
+  },
+  {
+    heading: '10. Limitation of Liability & Force Majeure',
+    body: 'To the fullest extent permitted by law, DEYNOLD DANNY\'s aggregate liability arising out of any order shall not exceed the actual purchase price paid for the specific garment in question. Neither party shall be liable for delays caused by Force Majeure events including natural disasters, customs strikes, airspace closures, pandemics, or governmental directives.'
+  },
+  {
+    heading: '11. Governing Law, Jurisdiction & Statutory Grievance Officer',
+    body: 'These Terms are governed by the laws of India, without regard to conflict-of-law principles, and subject to the exclusive jurisdiction of competent courts in New Delhi, India (without prejudice to non-waivable statutory consumer protections in your jurisdiction). Statutory Grievance Officer (Consumer Protection Rules 2020): grievance@deynolddanny.com · +91 11 4820 9000 (Mon–Sat, 10:00–19:00 IST). Complaints are acknowledged within 48 hours and resolved within 30 calendar days.'
+  }
+];
 ---
 
 <StorefrontLayout
-  title="Terms of Service | DEYNOLD DANNY"
-  description="Client service conditions, order terms, and intellectual property."
+  title="Terms & Conditions of Sale | DEYNOLD DANNY"
+  description="Terms and Conditions governing purchases, multi-currency INR settlement, GST invoicing, intellectual property, and consumer governance at DEYNOLD DANNY."
 >
   <main id="main-content" class="min-h-screen bg-white">
-    <article class="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 text-neutral-800 font-light leading-relaxed">
+    <article
+      class="max-w-[840px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-24 text-neutral-800 font-light leading-relaxed"
+      data-cms-page="terms"
+    >
       <nav aria-label="Breadcrumb" class="mb-8">
         <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
-          <li>
-            <a href="/" class="hover:text-black transition-colors">Home</a>
-          </li>
+          <li><a href="/" class="hover:text-black transition-colors">Home</a></li>
           <li class="select-none">/</li>
-          <li class="text-neutral-900 font-medium" aria-current="page">
-            Terms of Service
-          </li>
+          <li class="text-neutral-900 font-medium" aria-current="page">Terms &amp; Conditions</li>
         </ol>
       </nav>
 
-      <div class="mb-12 border-b border-neutral-100 pb-8">
-        <span class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
-          Atelier Conditions
+      <header class="mb-12 border-b border-neutral-200 pb-8">
+        <span data-cms-eyebrow class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-500 block mb-2.5">
+          Atelier Terms of Sale &amp; Governance
         </span>
-        <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
-          Terms & Conditions
+        <h1 data-cms-heading class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
+          Terms &amp; Conditions of Sale
         </h1>
-        <p class="text-xs text-neutral-500 font-mono mt-2">Effective Date: January 1, 2026</p>
+        <p data-cms-effective class="text-xs text-neutral-500 font-mono mt-3">
+          Effective: November 2026 &middot; Governed by the Laws of India
+        </p>
+      </header>
+
+      <div data-cms-clauses class="space-y-9 text-[14px] text-neutral-700 leading-[1.85]">
+        {clauses.map((clause) => (
+          <section class="space-y-2.5">
+            <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide font-medium">
+              {clause.heading}
+            </h2>
+            <p>{clause.body}</p>
+          </section>
+        ))}
       </div>
 
-      <div class="space-y-8 text-sm text-neutral-700 leading-relaxed">
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">1. Acceptance of Terms</h2>
-          <p>
-            By commissioning bespoke garments or acquiring pieces from DEYNOLD DANNY, you agree to comply with and be bound by the following terms of purchase and craftsmanship standards.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">2. Handcrafted Quality & Natural Fibers</h2>
-          <p>
-            Each piece in the DEYNOLD DANNY collection is crafted using fine natural fibers including virgin wool, Mongolian cashmere, and Como silk. Subtle variances in natural fiber texture and hand-feel are hallmarks of bespoke artisanal production.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">3. Order Acceptance & Pricing</h2>
-          <p>
-            Prices are displayed in Indian Rupees (INR ₹) or Euros (€) inclusive of applicable taxes unless specified otherwise. We reserve the right to decline or cancel orders in cases of obvious typographical errors or inventory allocation anomalies.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">4. Intellectual Property</h2>
-          <p>
-            All designs, photography, monogram marks, and editorial narratives remain the exclusive intellectual property of DEYNOLD DANNY. Unauthorized reproduction is strictly prohibited.
-          </p>
-        </section>
-      </div>
+      <aside class="mt-14 pt-8 border-t border-neutral-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-neutral-600">
+        <p>
+          Related governance:{' '}
+          <a href="/legal/privacy-policy" class="underline text-neutral-900 font-medium">Privacy Policy</a> &middot;{' '}
+          <a href="/legal/shipping-returns" class="underline text-neutral-900 font-medium">Shipping &amp; Returns</a> &middot;{' '}
+          <a href="/legal/cookie-policy" class="underline text-neutral-900 font-medium">Cookie Policy</a>
+        </p>
+        <a
+          href="/contact"
+          class="inline-flex items-center justify-center px-5 py-2.5 bg-neutral-900 text-white text-[11px] uppercase tracking-[0.16em] hover:bg-black transition-colors shrink-0"
+        >
+          Contact Grievance Desk
+        </a>
+      </aside>
     </article>
   </main>
 </StorefrontLayout>
-

@@ -173,11 +173,72 @@ function mountPreviewBanner() {
   document.body.appendChild(banner);
 }
 
+function applyLegalDocument(
+  sections:
+    | Array<{
+        sectionType?: string;
+        section_type?: string;
+        props?: Record<string, unknown>;
+        config_json?: Record<string, unknown>;
+      }>
+    | undefined,
+) {
+  const container = document.querySelector<HTMLElement>('[data-cms-page]');
+  if (!container || !Array.isArray(sections)) return;
+  const docSec = sections.find((s) => (s.sectionType ?? s.section_type) === 'legal_document');
+  if (!docSec) return;
+  const props = docSec.props ?? docSec.config_json ?? {};
+
+  if (typeof props.eyebrow === 'string' && props.eyebrow.trim()) {
+    const el = container.querySelector<HTMLElement>('[data-cms-eyebrow]');
+    if (el) el.textContent = props.eyebrow.trim();
+  }
+  if (typeof props.heading === 'string' && props.heading.trim()) {
+    const el = container.querySelector<HTMLElement>('[data-cms-heading]');
+    if (el) el.textContent = props.heading.trim();
+  }
+  if (typeof props.effectiveDate === 'string' && props.effectiveDate.trim()) {
+    const el = container.querySelector<HTMLElement>('[data-cms-effective]');
+    if (el) el.textContent = props.effectiveDate.trim();
+  }
+
+  const clausesEl = container.querySelector<HTMLElement>('[data-cms-clauses]');
+  const clauses = props.sections as Array<{ heading?: string; body?: string; id?: string }> | undefined;
+  if (clausesEl && Array.isArray(clauses) && clauses.length > 0) {
+    clausesEl.innerHTML = '';
+    for (const c of clauses) {
+      if (!c || (!c.heading && !c.body)) continue;
+      const sec = document.createElement('section');
+      sec.className = 'space-y-2.5 scroll-mt-28';
+      if (typeof c.id === 'string' && c.id) sec.id = c.id;
+      else if (typeof c.heading === 'string' && /return|refund|cancel/i.test(c.heading) && !document.getElementById('returns')) {
+        sec.id = 'returns';
+      } else if (typeof c.heading === 'string' && /shipping|dispatch|delivery/i.test(c.heading) && !document.getElementById('shipping')) {
+        sec.id = 'shipping';
+      }
+
+      if (typeof c.heading === 'string' && c.heading.trim()) {
+        const h2 = document.createElement('h2');
+        h2.className = 'text-base font-serif text-neutral-900 uppercase tracking-wide font-medium';
+        h2.textContent = c.heading.trim();
+        sec.appendChild(h2);
+      }
+      if (typeof c.body === 'string' && c.body.trim()) {
+        const p = document.createElement('p');
+        p.textContent = c.body.trim();
+        sec.appendChild(p);
+      }
+      clausesEl.appendChild(sec);
+    }
+  }
+}
+
 export async function hydrateLiveStorefront(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
     const params = new URLSearchParams(window.location.search);
     const previewToken = params.get('dd_preview');
+    const cmsPageSlug = document.querySelector<HTMLElement>('[data-cms-page]')?.dataset.cmsPage;
 
     if (previewToken) {
       const res = await fetch(`/api/storefront/preview?token=${encodeURIComponent(previewToken)}`, {
@@ -197,18 +258,38 @@ export async function hydrateLiveStorefront(): Promise<void> {
         applyBrand(json.data.brand);
         applyAnnouncement(json.data.navigation);
         applyHomepageSections(json.data.sections);
+        applyLegalDocument(json.data.sections);
       }
       return;
     }
 
     const res = await fetch('/api/storefront/published', { credentials: 'omit' });
-    if (!res.ok) return;
-    const json = (await res.json()) as { success?: boolean; data?: PublishedBundle };
-    if (!json.success || !json.data) return;
+    if (res.ok) {
+      const json = (await res.json()) as { success?: boolean; data?: PublishedBundle };
+      if (json.success && json.data) {
+        applyBrand(json.data.brand);
+        applyAnnouncement(json.data.navigation);
+        applyHomepageSections(json.data.homepage?.sections);
+      }
+    }
 
-    applyBrand(json.data.brand);
-    applyAnnouncement(json.data.navigation);
-    applyHomepageSections(json.data.homepage?.sections);
+    // Hydrate dedicated CMS legal / editorial pages (privacy-policy, shipping-returns, terms, cookie-policy, about)
+    if (cmsPageSlug) {
+      const pageRes = await fetch(`/api/storefront/pages/${encodeURIComponent(cmsPageSlug)}`, {
+        credentials: 'omit',
+      });
+      if (pageRes.ok) {
+        const pageJson = (await pageRes.json()) as {
+          success?: boolean;
+          data?: {
+            sections?: PublishedBundle['homepage'] extends { sections?: infer S } ? S : never;
+          };
+        };
+        if (pageJson.success && pageJson.data?.sections) {
+          applyLegalDocument(pageJson.data.sections);
+        }
+      }
+    }
   } catch {
     // Silent fail-safe: static pre-rendered luxury storefront remains untouched.
   }

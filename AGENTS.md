@@ -1211,7 +1211,8 @@ The required completion report in Section 20 must state that both instruction fi
   - `/contact` -> `src/pages/contact.astro` (Concierge form wired to `POST /api/contact`)
   - `/account` & `/account/index` -> `src/pages/account.astro`, `src/pages/account/index.astro` (`noindex`, profile, D1 address book, self-cancel/return, GST invoice, DPDP export/erasure)
   - `/account/sign-in` (alias `/login`), `/account/sign-up` (alias `/signup`), `/account/forgot-password` -> `src/pages/account/*.astro` (`noindex`, pure Email OTP authentication)
-  - `/legal/{privacy-policy,shipping-returns,terms}` -> `src/pages/legal/*.astro`
+  - `/about` -> `src/pages/about.astro` (The House of Deynold Danny editorial page, live-editable via Commerce OS CMS `page_about`)
+  - `/legal/{privacy-policy,shipping-returns,terms,cookie-policy}` -> `src/pages/legal/*.astro` (World-class Indian DPDP Act 2023 / Consumer Protection Rules 2020 / GDPR / CCPA policies, live-editable via Commerce OS Visual Content Studio)
   - `/orders/track` (alias `/track`) -> `src/pages/orders/track.astro` (`noindex`, PII-verified milestone & Shiprocket tracking)
   - `/admin` & `/admin/*` -> Dedicated Commerce OS SPA (`admin/`, compiled into `dist/admin` during `npm run build` and rewritten by `vercel.json` with `X-Robots-Tag: noindex, nofollow` and `Disallow: /admin/` in `robots.txt`)
   - `/404` & `/500` -> `src/pages/404.astro`, `src/pages/500.astro` (`noindex`, branded error pages)
@@ -3296,6 +3297,35 @@ deynold-danny-ecommerce/
     - `npm run build`: PASS (57 Astro pages + Commerce OS `dist/admin` bundle built cleanly).
     - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0005` + `0006` applied).
     - `npx wrangler deploy`: PASS (`deynold-danny-backend` live at `https://deynold-danny-backend.deynolddanny.workers.dev`; `/health`, `/api/storefront/published`, `/api/storefront/pages` 200 OK; `/api/admin/ping` 401 guard verified).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-19 — Global Multi-Country Live FX Engine, Complete Footer Fix, World-Class Legal Governance & Structured Admin CMS Editor**:
+  - **Status:** COMPLETE
+  - **Summary:** Replaced the static footer `IN (INR ₹)` button with a live multi-country Region & Currency engine targeting 12 global luxury markets (`IN/INR`, `US/USD`, `GB/GBP`, `EU/EUR`, `AE/AED`, `SG/SGD`, `AU/AUD`, `CA/CAD`, `CH/CHF`, `JP/JPY`, `SA/SAR`, `QA/QAR`) backed by auto-refreshing Cloudflare KV exchange rates (`GET /api/storefront/exchange-rates`, 6-hour TTL) and Admin FX controls (`SettingsPage.tsx`: Auto vs Manual mode, international spread %, market toggles, live Refresh Now). Wired reactive price updates across `ProductCard`, `ProductDetailExperience`, `CartDrawer`, `WishlistExperience`, `SearchDialog`, `StyleLayering`, `StyleItWith`, and `RelatedProducts` while preserving authoritative INR (₹) server settlement with transparent disclosure. Fixed broken footer `SEARCH` trigger (`open-search-modal` listener in `SearchDialog.tsx`), upgraded all legal policies (`privacy-policy`, `shipping-returns`, `terms`, new `cookie-policy`) to comprehensive India DPDP Act 2023 / Consumer Protection (E-Commerce) Rules 2020 / GDPR / CCPA legal standards, added `/about` ("The House of Deynold Danny"), wired live CMS page hydration in `src/lib/storefront/live-cms.ts`, aligned all CMS API routes in `admin/src/lib/api.ts`, and built a visual clause-by-clause Legal Document Editor in `admin/src/modules/studio/PageEditor.tsx`. Applied D1 migration `0007_legal_and_fx_upgrade.sql` and redeployed `deynold-danny-backend` live.
+  - **Files Added:**
+    - `backend/src/services/fxRates.ts`
+    - `backend/migrations/0007_legal_and_fx_upgrade.sql`
+    - `src/lib/currency/currency.store.ts`
+    - `src/components/layout/CurrencySelector.tsx`
+    - `src/pages/legal/cookie-policy.astro`
+    - `src/pages/about.astro`
+  - **Files Modified:**
+    - `backend/src/routes/storefront.ts`, `backend/src/routes/admin/settings.ts`
+    - `src/components/layout/Footer.astro`, `src/features/search/components/SearchDialog.tsx`, `src/features/catalog/components/{ProductCard.tsx, ProductDetailExperience.tsx, StyleItWith.astro, RelatedProducts.astro}`, `src/features/cart/components/CartDrawer.tsx`, `src/features/wishlist/components/WishlistExperience.tsx`, `src/features/home/components/StyleLayering.tsx`
+    - `src/pages/legal/{privacy-policy.astro, shipping-returns.astro, terms.astro}`, `src/pages/sitemap.xml.ts`, `src/lib/storefront/live-cms.ts`
+    - `admin/src/lib/api.ts`, `admin/src/modules/studio/{StudioPage.tsx, PageEditor.tsx}`, `admin/src/modules/settings/SettingsPage.tsx`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added `backend/src/services/fxRates.ts`, `backend/migrations/0007_legal_and_fx_upgrade.sql`, `src/lib/currency/currency.store.ts`, `src/components/layout/CurrencySelector.tsx`, `src/pages/legal/cookie-policy.astro`, and `src/pages/about.astro`.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`9 / 9` Miniflare D1/Worker tests passing).
+    - `npx astro check`: PASS (104 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests passing).
+    - `npm run build`: PASS (59 Astro pages + Commerce OS `dist/admin` built cleanly).
+    - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0007_legal_and_fx_upgrade.sql` applied).
+    - `npx wrangler deploy`: PASS (`deynold-danny-backend` redeployed live; `/api/storefront/exchange-rates` & `/api/storefront/pages/privacy-policy` verified live).
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.

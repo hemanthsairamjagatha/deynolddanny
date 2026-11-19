@@ -1,6 +1,24 @@
 import { useEffect, useState } from 'react';
-import { PageHeader, Card, Button, Input, SectionHeader, Spinner, InfoTooltip } from '../../components/ui';
+import { PageHeader, Card, Button, Input, Select, SectionHeader, Spinner, InfoTooltip, Badge } from '../../components/ui';
 import { settings as settingsApi } from '../../lib/api';
+
+interface MarketRow {
+  countryCode: string;
+  countryName: string;
+  currency: string;
+  symbol: string;
+  region: string;
+  enabled: boolean;
+  rateFromInr: number;
+}
+
+interface FxData {
+  mode: 'auto' | 'manual';
+  spreadPercent: number;
+  source: string;
+  updatedAt: string;
+  markets: MarketRow[];
+}
 
 interface StoreConfigForm {
   freeShippingThresholdRupees: string;
@@ -16,7 +34,12 @@ interface StoreConfigForm {
   enableReviewsOnPdp: boolean;
   requireVerifiedPurchase: boolean;
   autoApproveReviews: boolean;
+  fxMode: 'auto' | 'manual';
+  fxSpreadPercent: string;
+  enabledMarkets: string[];
 }
+
+const ALL_MARKET_CODES = ['IN', 'US', 'GB', 'EU', 'AE', 'SG', 'AU', 'CA', 'CH', 'JP', 'SA', 'QA'];
 
 const defaults: StoreConfigForm = {
   freeShippingThresholdRupees: '5000',
@@ -32,20 +55,25 @@ const defaults: StoreConfigForm = {
   enableReviewsOnPdp: true,
   requireVerifiedPurchase: true,
   autoApproveReviews: false,
+  fxMode: 'auto',
+  fxSpreadPercent: '0',
+  enabledMarkets: ALL_MARKET_CODES,
 };
 
 export default function SettingsPage() {
   const [form, setForm] = useState<StoreConfigForm>(defaults);
+  const [fxData, setFxData] = useState<FxData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [flushing, setFlushing] = useState(false);
+  const [refreshingFx, setRefreshingFx] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   async function load() {
     setLoading(true);
     try {
-      const res = await settingsApi.get();
+      const [res, fxRes] = await Promise.all([settingsApi.get(), settingsApi.getFx()]);
       const d = (res.data ?? {}) as Record<string, unknown>;
       const toRupees = (k: string, fallback: string) =>
         d[k] !== undefined && d[k] !== null ? String(Math.round(Number(d[k]) / 100)) : fallback;
@@ -63,13 +91,31 @@ export default function SettingsPage() {
         enableReviewsOnPdp: d.enableReviewsOnPdp !== undefined ? Boolean(d.enableReviewsOnPdp) : defaults.enableReviewsOnPdp,
         requireVerifiedPurchase: d.requireVerifiedPurchase !== undefined ? Boolean(d.requireVerifiedPurchase) : defaults.requireVerifiedPurchase,
         autoApproveReviews: d.autoApproveReviews !== undefined ? Boolean(d.autoApproveReviews) : defaults.autoApproveReviews,
+        fxMode: d.fxMode === 'manual' ? 'manual' : 'auto',
+        fxSpreadPercent: d.fxSpreadPercent !== undefined ? String(d.fxSpreadPercent) : '0',
+        enabledMarkets: Array.isArray(d.enabledMarkets)
+          ? Array.from(new Set(['IN', ...(d.enabledMarkets as string[])]))
+          : ALL_MARKET_CODES,
       });
+      if (fxRes.success && fxRes.data) {
+        setFxData(fxRes.data as unknown as FxData);
+      }
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => { load(); }, []);
+
+  function toggleMarket(code: string) {
+    if (code === 'IN') return; // Base INR market always enabled
+    setForm(f => ({
+      ...f,
+      enabledMarkets: f.enabledMarkets.includes(code)
+        ? f.enabledMarkets.filter(c => c !== code)
+        : [...f.enabledMarkets, code],
+    }));
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -90,12 +136,34 @@ export default function SettingsPage() {
         enableReviewsOnPdp: form.enableReviewsOnPdp,
         requireVerifiedPurchase: form.requireVerifiedPurchase,
         autoApproveReviews: form.autoApproveReviews,
+        fxMode: form.fxMode,
+        fxSpreadPercent: Math.max(0, Math.min(15, Number(form.fxSpreadPercent || 0))),
+        enabledMarkets: Array.from(new Set(['IN', ...form.enabledMarkets])),
       });
-      setMessage('Storefront operational settings saved and propagated.');
+      const fxRes = await settingsApi.getFx();
+      if (fxRes.success && fxRes.data) setFxData(fxRes.data as unknown as FxData);
+      setMessage('Storefront operational & multi-currency settings saved and propagated.');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleRefreshFx() {
+    setRefreshingFx(true);
+    setMessage('');
+    setError('');
+    try {
+      const res = await settingsApi.refreshFx();
+      if (res.success && res.data) {
+        setFxData(res.data as unknown as FxData);
+        setMessage('Live foreign-exchange rates refreshed from global market feed into Cloudflare Edge KV.');
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'FX refresh failed');
+    } finally {
+      setRefreshingFx(false);
     }
   }
 
@@ -132,7 +200,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Store Configuration"
-        description="Configure shipping policies, Indian GST compliance, payment guardrails, inventory reservations, and storefront feature switches."
+        description="Configure global target countries & live FX auto-conversion, shipping policies, Indian GST compliance, payment guardrails, and storefront switches."
         actions={
           <>
             <Button variant="outline" loading={flushing} onClick={handleFlushCache}>Purge Edge Cache</Button>
@@ -143,6 +211,89 @@ export default function SettingsPage() {
 
       {message && <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3 rounded-xl">{message}</div>}
       {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>}
+
+      {/* Global Markets & Live Multi-Currency FX Engine */}
+      <Card>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+          <SectionHeader
+            title="Global Markets & Live Foreign-Exchange Engine"
+            description="Controls the storefront footer Country/Currency selector and automatic 6-hour live INR exchange-rate updates."
+          />
+          <Button size="sm" variant="secondary" loading={refreshingFx} onClick={handleRefreshFx}>
+            Refresh Live FX Now
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Select
+            label="Exchange Rate Mode"
+            tooltip="Auto syncs live daily INR exchange rates into Cloudflare KV every 6 hours so product display prices track market FX automatically."
+            value={form.fxMode}
+            onChange={e => setForm(f => ({ ...f, fxMode: e.target.value as 'auto' | 'manual' }))}
+            options={[
+              { value: 'auto', label: 'Automatic — Live Daily Market Rates (Recommended)' },
+              { value: 'manual', label: 'Manual — Fixed Boutique Baseline Rates' },
+            ]}
+          />
+          <Input
+            label="International FX Buffer / Spread (%)"
+            tooltip="Optional 0%–15% conversion buffer applied to non-INR display currencies to cover international card FX variance."
+            type="number"
+            step="0.25"
+            min="0"
+            max="15"
+            value={form.fxSpreadPercent}
+            onChange={e => setForm(f => ({ ...f, fxSpreadPercent: e.target.value }))}
+          />
+        </div>
+
+        {fxData && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-500">
+              <span>
+                Active Source: <Badge variant="gold">{fxData.source}</Badge>
+              </span>
+              <span>
+                Last Synced: {fxData.updatedAt ? new Date(fxData.updatedAt).toLocaleString('en-IN') : 'Baseline'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {fxData.markets.map(m => {
+                const checked = form.enabledMarkets.includes(m.countryCode);
+                const sampleConverted = (10000 * m.rateFromInr).toLocaleString('en-US', {
+                  maximumFractionDigits: m.currency === 'JPY' ? 0 : 2,
+                });
+                return (
+                  <label
+                    key={m.countryCode}
+                    className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition ${
+                      checked ? 'border-ink-900 bg-ink-50/70' : 'border-ink-200 bg-white opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={m.countryCode === 'IN'}
+                        onChange={() => toggleMarket(m.countryCode)}
+                        className="rounded text-gold-600 focus:ring-gold-400"
+                      />
+                      <div className="truncate">
+                        <p className="font-semibold text-ink-900 truncate">{m.countryName}</p>
+                        <p className="text-[11px] text-ink-500">{m.countryCode} · {m.currency} ({m.symbol.trim()})</p>
+                      </div>
+                    </div>
+                    <span className="font-mono text-[11px] text-ink-700 shrink-0 ml-2">
+                      ₹10k → {m.symbol}{sampleConverted}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

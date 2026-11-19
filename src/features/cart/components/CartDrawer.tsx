@@ -15,6 +15,13 @@ import {
 } from '../store/cart.store';
 import { fetchStorefrontConfigApi } from '../../checkout/api/checkout.api';
 import { ecommerceConfig } from '../../../config/ecommerce.config';
+import {
+  $fxSnapshot,
+  $selectedCountry,
+  formatInrAmount,
+  formatInrDisplayString,
+  getActiveMarket,
+} from '../../../lib/currency/currency.store';
 
 export const CartDrawer: React.FC = () => {
   const items = useStore($cartItems);
@@ -22,6 +29,9 @@ export const CartDrawer: React.FC = () => {
   const count = useStore($totalCount);
   const subtotalNum = useStore($subtotalNum);
   const formattedSubtotal = useStore($formattedSubtotal);
+  const selectedCountry = useStore($selectedCountry);
+  const fx = useStore($fxSnapshot);
+  const activeMarket = getActiveMarket(selectedCountry, fx);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(
     ecommerceConfig.freeShippingThreshold,
   );
@@ -201,7 +211,9 @@ export const CartDrawer: React.FC = () => {
                             </>
                           )}
                         </dl>
-                        <div className="cart-item-price font-montserrat">{item.price}</div>
+                        <div className="cart-item-price font-montserrat">
+                          {formatInrDisplayString(item.price, selectedCountry, fx)}
+                        </div>
                         <div className="cart-item__quantity">
                           <div className="quantity cart-qty-box">
                             <button
@@ -266,7 +278,7 @@ export const CartDrawer: React.FC = () => {
                   <p className="progress-bar__text h6">
                     {qualifiedFreeShipping
                       ? 'Complimentary express delivery unlocked'
-                      : `Add ₹${remainingForFreeShipping.toLocaleString('en-IN')} more for complimentary express delivery`}
+                      : `Add ${formatInrAmount(remainingForFreeShipping, selectedCountry, fx)} more for complimentary express delivery`}
                   </p>
                   <div className="progress-bar__progress">
                     <span
@@ -279,7 +291,11 @@ export const CartDrawer: React.FC = () => {
               <div className="cart-drawer__summary-total h4">
                 <span>Subtotal:</span>
                 <span className="cart-subtotal-val" id="cart-subtotal-val">
-                  {items.length === 0 ? '₹ 0.00 INR' : formattedSubtotal}
+                  {items.length === 0
+                    ? `${formatInrAmount(0, selectedCountry, fx)} ${activeMarket.currency}`
+                    : activeMarket.currency === 'INR'
+                      ? formattedSubtotal
+                      : `${formatInrAmount(subtotalNum, selectedCountry, fx)} ${activeMarket.currency}`}
                 </span>
               </div>
               <div className="cart-drawer__summary-actions">

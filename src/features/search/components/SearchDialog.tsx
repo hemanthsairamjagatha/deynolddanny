@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '@nanostores/react';
-import { $isSearchOpen, closeSearch } from '../store/search.store';
+import { $isSearchOpen, openSearch, closeSearch } from '../store/search.store';
 import { searchCatalog } from '../../catalog/api/catalog.api';
 import type { ProductCardData } from '../../catalog/types/product.types';
+import { $fxSnapshot, $selectedCountry, formatInrDisplayString } from '../../../lib/currency/currency.store';
 
 export const SearchDialog: React.FC = () => {
   const isOpen = useStore($isSearchOpen);
+  const selectedCountry = useStore($selectedCountry);
+  const fx = useStore($fxSnapshot);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProductCardData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +23,13 @@ export const SearchDialog: React.FC = () => {
       setResults([]);
     }
   }, [isOpen]);
+
+  // Footer / global custom event listener for opening search
+  useEffect(() => {
+    const handleOpen = () => openSearch();
+    window.addEventListener('open-search-modal', handleOpen);
+    return () => window.removeEventListener('open-search-modal', handleOpen);
+  }, []);
 
   // Escape key listener
   useEffect(() => {
@@ -178,7 +188,7 @@ export const SearchDialog: React.FC = () => {
                       {product.title}
                     </h4>
                     <p className="text-xs text-neutral-600 font-light font-mono">
-                      {product.price}
+                      {formatInrDisplayString(product.price, selectedCountry, fx)}
                     </p>
                   </a>
                 );

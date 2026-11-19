@@ -1,66 +1,104 @@
 ---
 // src/pages/legal/privacy-policy.astro
 import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+
+const clauses = [
+  {
+    heading: '1. Data Fiduciary & Global Scope',
+    body: 'DEYNOLD DANNY Atelier Pvt. Ltd. ("DEYNOLD DANNY", "the House", "we", "our") acts as the Data Fiduciary under India\'s Digital Personal Data Protection Act, 2023 (DPDP Act) and as Data Controller for international patrons under the EU/UK General Data Protection Regulation (GDPR) and the California Consumer Privacy Act (CCPA/CPRA). This Policy governs personal data collected across our digital flagship, private client portal, international orders, and concierge channels.'
+  },
+  {
+    heading: '2. Personal Data We Collect',
+    body: 'We collect only data strictly necessary for luxury retail operations and client service: (a) Identity & Contact Data — full name, email address, telephone number, and billing/shipping addresses; (b) Transactional & Tax Data — order references, SKU selections, GST invoice details, return/exchange records, and statutory PAN information where mandated by Indian tax law for high-value orders; (c) Fit & Styling Data — optional garment measurements or Fit Finder inputs you provide; (d) Technical & Security Data — anonymized session identifiers, anti-fraud rate-limiting metadata, and consent records.'
+  },
+  {
+    heading: '3. Lawful Basis & Purpose of Processing',
+    body: 'We process personal data strictly on verifiable lawful grounds: (a) Contractual Necessity — authenticating passwordless OTP sessions, reserving inventory, fulfilling orders, issuing GST invoices, processing returns and refunds, and delivering shipments; (b) Legal Obligation — complying with the GST Act, Income Tax Act, RBI payment directives, and Consumer Protection (E-Commerce) Rules, 2020; (c) Explicit Opt-In Consent — optional storefront analytics, restock alerts, and editorial newsletters, which remain disabled until you affirmatively opt in.'
+  },
+  {
+    heading: '4. Passwordless Authentication & Payment Security',
+    body: 'DEYNOLD DANNY uses one-time cryptographic email verification codes (OTP) rather than stored reusable passwords. Active sessions rely on short-lived memory-only access tokens paired with HttpOnly, Secure, SameSite cookies inaccessible to client-side scripts. All payment transactions are processed exclusively through PCI-DSS Level 1 certified gateways (Razorpay and Cashfree). We never capture, transmit, or store raw credit/debit card numbers, CVV codes, UPI PINs, or net-banking credentials.'
+  },
+  {
+    heading: '5. Trusted Data Processors & Logistics Partners',
+    body: 'We never sell, rent, or trade client personal data. Strictly limited operational fields are shared solely with vetted processors bound by written confidentiality agreements: payment gateways (Razorpay, Cashfree) for payment authorization and refunds; domestic and international courier partners (Shiprocket, Blue Dart, DHL Express, FedEx) for insured delivery and customs clearance; transactional email infrastructure (Resend) for OTP codes and order milestones; and Cloudflare edge infrastructure for DDoS mitigation and encrypted storage.'
+  },
+  {
+    heading: '6. International Cross-Border Data Transfers',
+    body: 'Because DEYNOLD DANNY serves patrons across India, the United States, the United Kingdom, the European Union, the United Arab Emirates, Singapore, Australia, Canada, Switzerland, Japan, Saudi Arabia, and Qatar, your data may be processed on encrypted Cloudflare global edge nodes and transferred to destination customs authorities solely to clear international shipments. All transfers adhere to DPDP Act Section 16 notifications and EU Standard Contractual Clauses (SCCs) protected by TLS 1.3 encryption.'
+  },
+  {
+    heading: '7. Data Retention & Statutory Archival',
+    body: 'Account profiles and saved addresses are retained while your client account remains active. One-time verification codes expire within 10 minutes and are purged automatically. Order invoices, GST ledgers, and payment audit logs are retained for the statutory period mandated under Indian tax and corporate statutes (typically 8 financial years), after which personal identifiers are anonymized or destroyed.'
+  },
+  {
+    heading: '8. Your Rights as a Data Principal / Client',
+    body: 'Under the DPDP Act 2023, GDPR, and CCPA, you hold the right to: (a) Access & Portability — export a complete machine-readable JSON archive of your account data directly from your Private Client Portal; (b) Correction & Updating — update inaccurate profile or address details at any time; (c) Erasure & Anonymization — request permanent account erasure/anonymization inside your Account Portal (once no active unfulfilled orders or open disputes remain); (d) Withdraw Consent — adjust cookie, analytics, or newsletter permissions at any time with zero service penalty; (e) Nominate — designate a representative under DPDP Section 14 to exercise your rights in the event of incapacity.'
+  },
+  {
+    heading: '9. Protection of Minors',
+    body: 'Our digital flagship is intended exclusively for individuals aged 18 years or older (or the age of legal majority in your jurisdiction). We do not knowingly collect personal data from children under 18. If a parent or guardian believes a minor has provided personal information, please contact our Data Protection Officer immediately for prompt erasure.'
+  },
+  {
+    heading: '10. Data Protection & Grievance Redressal Officer',
+    body: 'In compliance with the DPDP Act 2023 and the Consumer Protection (E-Commerce) Rules, 2020, privacy inquiries, data access requests, or grievances may be addressed to our Data Protection & Grievance Officer: Email: privacy@deynolddanny.com · Telephone: +91 11 4820 9000 (Mon–Sat, 10:00–19:00 IST) · Address: DEYNOLD DANNY Atelier Pvt. Ltd., New Delhi, India. All grievances are acknowledged within 48 hours and resolved within 30 calendar days.'
+  }
+];
 ---
 
 <StorefrontLayout
-  title="Privacy Policy | DEYNOLD DANNY"
-  description="Client data confidentiality and privacy commitment of DEYNOLD DANNY."
+  title="Privacy & Data Protection Policy | DEYNOLD DANNY"
+  description="Comprehensive Privacy and Data Protection Policy of DEYNOLD DANNY Atelier Pvt. Ltd., compliant with India DPDP Act 2023, GDPR, UK-GDPR, and CCPA."
 >
   <main id="main-content" class="min-h-screen bg-white">
-    <article class="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 text-neutral-800 font-light leading-relaxed">
+    <article
+      class="max-w-[840px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-24 text-neutral-800 font-light leading-relaxed"
+      data-cms-page="privacy-policy"
+    >
       <nav aria-label="Breadcrumb" class="mb-8">
         <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
-          <li>
-            <a href="/" class="hover:text-black transition-colors">Home</a>
-          </li>
+          <li><a href="/" class="hover:text-black transition-colors">Home</a></li>
           <li class="select-none">/</li>
-          <li class="text-neutral-900 font-medium" aria-current="page">
-            Privacy Policy
-          </li>
+          <li class="text-neutral-900 font-medium" aria-current="page">Privacy Policy</li>
         </ol>
       </nav>
 
-      <div class="mb-12 border-b border-neutral-100 pb-8">
-        <span class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
-          Legal Governance
+      <header class="mb-12 border-b border-neutral-200 pb-8">
+        <span data-cms-eyebrow class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-500 block mb-2.5">
+          Legal Governance &amp; Data Protection
         </span>
-        <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
-          Privacy & Confidentiality Policy
+        <h1 data-cms-heading class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
+          Privacy &amp; Data Protection Policy
         </h1>
-        <p class="text-xs text-neutral-500 font-mono mt-2">Effective Date: January 1, 2026</p>
+        <p data-cms-effective class="text-xs text-neutral-500 font-mono mt-3">
+          Effective: November 2026 &middot; Compliant with India DPDP Act 2023, GDPR &amp; CCPA
+        </p>
+      </header>
+
+      <div data-cms-clauses class="space-y-9 text-[14px] text-neutral-700 leading-[1.85]">
+        {clauses.map((clause) => (
+          <section class="space-y-2.5">
+            <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide font-medium">
+              {clause.heading}
+            </h2>
+            <p>{clause.body}</p>
+          </section>
+        ))}
       </div>
 
-      <div class="space-y-8 text-sm text-neutral-700 leading-relaxed">
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">1. Our Commitment to Client Discretion</h2>
-          <p>
-            At DEYNOLD DANNY, client discretion and data integrity are fundamental to our atelier heritage. We protect all personal, measurements, and transactional data with military-grade encryption and adhere strictly to international data privacy statutes (GDPR, CCPA).
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">2. Information We Collect</h2>
-          <p>
-            We collect personal information necessary to deliver bespoke tailoring, process orders, and facilitate private showroom viewings. This includes: contact details, delivery addresses, bespoke measurements, and order history.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">3. Payment & Security</h2>
-          <p>
-            All payment processing is executed through PCI-DSS Level 1 compliant gateway partners (Cashfree, Stripe). DEYNOLD DANNY does not store raw credit card credentials or sensitive payment tokens on our servers.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">4. Client Rights & Contact</h2>
-          <p>
-            You have the right to inspect, correct, or request deletion of your client profile at any time. For privacy inquiries, please contact our Data Governance Officer at <span class="font-mono text-neutral-900">privacy@deynolddanny.com</span>.
-          </p>
-        </section>
-      </div>
+      <aside class="mt-14 pt-8 border-t border-neutral-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-neutral-600">
+        <p>
+          Manage your data export, erasure, or consent choices directly inside your{' '}
+          <a href="/account" class="underline text-neutral-900 font-medium">Private Client Portal</a> or review our{' '}
+          <a href="/legal/cookie-policy" class="underline text-neutral-900 font-medium">Cookie Policy</a>.
+        </p>
+        <a
+          href="/contact"
+          class="inline-flex items-center justify-center px-5 py-2.5 bg-neutral-900 text-white text-[11px] uppercase tracking-[0.16em] hover:bg-black transition-colors shrink-0"
+        >
+          Contact Data Officer
+        </a>
+      </aside>
     </article>
   </main>
 </StorefrontLayout>
-

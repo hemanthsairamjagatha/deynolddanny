@@ -73,22 +73,22 @@ export const brand = {
 // ─── CMS ──────────────────────────────────────────────────────────────────────
 export const cms = {
   pages: {
-    list: () => get<CmsPage[]>('/api/admin/cms/pages'),
-    get: (id: string) => get<CmsPage>(`/api/admin/cms/pages/${id}`),
-    create: (d: Partial<CmsPage>) => post<CmsPage>('/api/admin/cms/pages', d),
-    update: (id: string, d: Partial<CmsPage>) => patch<CmsPage>(`/api/admin/cms/pages/${id}`, d),
+    list: () => get<{ items: Record<string, unknown>[] } | CmsPage[]>('/api/admin/cms/pages'),
+    get: (id: string) => get<{ page: Record<string, unknown>; sections: Record<string, unknown>[] }>(`/api/admin/cms/pages/${id}`),
+    create: (d: Record<string, unknown>) => post<Record<string, unknown>>('/api/admin/cms/pages', d),
+    update: (id: string, d: Record<string, unknown>) => patch<Record<string, unknown>>(`/api/admin/cms/pages/${id}`, d),
     delete: (id: string) => del<void>(`/api/admin/cms/pages/${id}`),
-    publish: (id: string) => post<void>(`/api/admin/cms/pages/${id}/publish`),
-    previewToken: (id: string) => post<{ token: string; url: string }>(`/api/admin/cms/pages/${id}/preview-token`),
-    revisions: (id: string) => get<Record<string, unknown>[]>(`/api/admin/cms/pages/${id}/revisions`),
-    restore: (pid: string, rid: string) => post<void>(`/api/admin/cms/pages/${pid}/revisions/${rid}/restore`),
+    publish: (id: string) => post<{ publishedAt: string; status: string }>(`/api/admin/cms/pages/${id}/publish`),
+    previewToken: (id: string) => post<{ token: string; previewPath: string; url?: string }>(`/api/admin/cms/pages/${id}/preview-token`),
+    revisions: (id: string) => get<{ items: Record<string, unknown>[] } | Record<string, unknown>[]>(`/api/admin/cms/pages/${id}/revisions`),
+    restore: (_pid: string, rid: string) => post<void>(`/api/admin/cms/revisions/${rid}/restore`),
   },
   sections: {
-    add: (pid: string, d: Partial<CmsSection>) => post<CmsSection>(`/api/admin/cms/pages/${pid}/sections`, d),
-    update: (pid: string, sid: string, d: Partial<CmsSection>) => patch<CmsSection>(`/api/admin/cms/pages/${pid}/sections/${sid}`, d),
-    delete: (pid: string, sid: string) => del<void>(`/api/admin/cms/pages/${pid}/sections/${sid}`),
-    duplicate: (pid: string, sid: string) => post<CmsSection>(`/api/admin/cms/pages/${pid}/sections/${sid}/duplicate`),
-    reorder: (pid: string, ids: string[]) => post<void>(`/api/admin/cms/pages/${pid}/sections/reorder`, { orderedIds: ids }),
+    add: (pid: string, d: Record<string, unknown>) => post<Record<string, unknown>>(`/api/admin/cms/pages/${pid}/sections`, d),
+    update: (_pid: string, sid: string, d: Record<string, unknown>) => patch<Record<string, unknown>>(`/api/admin/cms/sections/${sid}`, d),
+    delete: (_pid: string, sid: string) => del<void>(`/api/admin/cms/sections/${sid}`),
+    duplicate: (_pid: string, sid: string) => post<Record<string, unknown>>(`/api/admin/cms/sections/${sid}/duplicate`),
+    reorder: (pid: string, ids: string[]) => patch<void>(`/api/admin/cms/pages/${pid}/reorder`, { orderedSectionIds: ids }),
   },
 };
 
@@ -253,6 +253,8 @@ export const settings = {
   get: () => get<Record<string, unknown>>('/api/admin/settings'),
   update: (d: Record<string, unknown>) => patch<Record<string, unknown>>('/api/admin/settings', d),
   flushCache: () => post<void>('/api/admin/settings/cache/flush'),
+  getFx: () => get<Record<string, unknown>>('/api/admin/settings/fx'),
+  refreshFx: () => post<Record<string, unknown>>('/api/admin/settings/fx/refresh'),
 };
 
 // ─── Security ─────────────────────────────────────────────────────────────────

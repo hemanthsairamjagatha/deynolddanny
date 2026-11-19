@@ -3,11 +3,13 @@ import { fetchProducts } from '../features/catalog/api/catalog.api';
 
 const STATIC_PUBLIC_PATHS = [
   '/',
+  '/about',
   '/categories',
   '/contact',
   '/legal/privacy-policy',
   '/legal/shipping-returns',
-  '/legal/terms'
+  '/legal/terms',
+  '/legal/cookie-policy'
 ];
 
 const CATEGORY_SLUGS = [

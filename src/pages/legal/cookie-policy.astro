@@ -1,0 +1,133 @@
+---
+// src/pages/legal/cookie-policy.astro
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+
+const clauses = [
+  {
+    heading: '1. Privacy-by-Default Architecture',
+    body: 'DEYNOLD DANNY operates a strict fail-closed consent architecture. Non-essential analytics and marketing telemetry remain disabled by default until you explicitly opt in via our Cookie Governance Banner. We never load third-party advertising trackers without your affirmative consent.'
+  },
+  {
+    heading: '2. Strictly Necessary Cookies & Security Storage',
+    body: 'These mechanisms are essential for site security, session integrity, and checkout reliability and cannot be disabled: (a) dd_refresh_token (HttpOnly, Secure, SameSite cookie) — maintains authenticated passwordless sessions without exposing credentials to browser JavaScript; (b) dd_session_id — binds anonymous shopping bags to our server cart engine; (c) dd_consent_v1 — records your exact DPDP/GDPR consent selections.'
+  },
+  {
+    heading: '3. Functional Client Preferences',
+    body: 'Stored locally in your browser solely to personalize browsing without cross-site tracking: (a) dd_region_currency — remembers your selected shipping country and display currency (e.g., INR, USD, GBP, EUR, AED); (b) dd_wishlist — preserves your saved wishlist garments between visits.'
+  },
+  {
+    heading: '4. Optional Analytics & Personalization (Opt-In Only)',
+    body: 'Only when you explicitly select Accept All or enable Analytics inside Cookie Preferences do we record anonymized first-party storefront telemetry (such as page views and collection interest) to refine garment sizing, navigation clarity, and seasonal inventory planning.'
+  },
+  {
+    heading: '5. Managing or Withdrawing Consent',
+    body: 'You may inspect, modify, or withdraw optional cookie permissions at any time using the Manage Cookie Preferences button below, via the Cookie Preferences link in the site footer, or through your browser privacy settings. Withdrawing optional consent never limits your ability to browse, purchase, or track orders.'
+  }
+];
+---
+
+<StorefrontLayout
+  title="Cookie & Storage Policy | DEYNOLD DANNY"
+  description="How DEYNOLD DANNY uses strictly necessary cookies, functional regional preferences, and opt-in analytics under DPDP Act 2023 and GDPR."
+>
+  <main id="main-content" class="min-h-screen bg-white">
+    <article
+      class="max-w-[840px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-24 text-neutral-800 font-light leading-relaxed"
+      data-cms-page="cookie-policy"
+    >
+      <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
+          <li><a href="/" class="hover:text-black transition-colors">Home</a></li>
+          <li class="select-none">/</li>
+          <li class="text-neutral-900 font-medium" aria-current="page">Cookie Policy</li>
+        </ol>
+      </nav>
+
+      <header class="mb-12 border-b border-neutral-200 pb-8">
+        <span data-cms-eyebrow class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-500 block mb-2.5">
+          Digital Privacy &amp; Consent Governance
+        </span>
+        <h1 data-cms-heading class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
+          Cookie &amp; Storage Policy
+        </h1>
+        <p data-cms-effective class="text-xs text-neutral-500 font-mono mt-3">
+          Effective: November 2026 &middot; Privacy-by-Default Architecture
+        </p>
+      </header>
+
+      <div data-cms-clauses class="space-y-9 text-[14px] text-neutral-700 leading-[1.85]">
+        {clauses.map((clause) => (
+          <section class="space-y-2.5">
+            <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide font-medium">
+              {clause.heading}
+            </h2>
+            <p>{clause.body}</p>
+          </section>
+        ))}
+      </div>
+
+      <!-- Cookie Inventory Table -->
+      <section class="mt-12 pt-8 border-t border-neutral-200">
+        <h2 class="text-sm font-serif uppercase tracking-wider text-neutral-900 mb-4 font-medium">
+          Technical Cookie &amp; Storage Registry
+        </h2>
+        <div class="overflow-x-auto border border-neutral-200">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-neutral-50 border-b border-neutral-200 uppercase tracking-wider text-neutral-500 font-mono">
+              <tr>
+                <th class="py-3 px-4">Key</th>
+                <th class="py-3 px-4">Category</th>
+                <th class="py-3 px-4">Purpose</th>
+                <th class="py-3 px-4">Retention</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-neutral-100 text-neutral-700">
+              <tr>
+                <td class="py-3 px-4 font-mono text-neutral-900">dd_refresh_token</td>
+                <td class="py-3 px-4">Strictly Necessary</td>
+                <td class="py-3 px-4">HttpOnly Secure session renewal token (inaccessible to JS)</td>
+                <td class="py-3 px-4">30 days / logout</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-neutral-900">dd_session_id</td>
+                <td class="py-3 px-4">Strictly Necessary</td>
+                <td class="py-3 px-4">Anonymous shopping bag synchronization</td>
+                <td class="py-3 px-4">Persistent until cleared</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-neutral-900">dd_consent_v1</td>
+                <td class="py-3 px-4">Strictly Necessary</td>
+                <td class="py-3 px-4">Stores DPDP / GDPR consent preferences</td>
+                <td class="py-3 px-4">12 months</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-neutral-900">dd_region_currency</td>
+                <td class="py-3 px-4">Functional</td>
+                <td class="py-3 px-4">Selected shipping country &amp; live display currency</td>
+                <td class="py-3 px-4">Persistent preference</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-mono text-neutral-900">dd_wishlist</td>
+                <td class="py-3 px-4">Functional</td>
+                <td class="py-3 px-4">Preserves saved luxury pieces prior to sign-in</td>
+                <td class="py-3 px-4">Persistent preference</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="mt-10 pt-8 border-t border-neutral-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-neutral-600">
+        <p>
+          Update your consent preferences immediately without affecting essential checkout functionality.
+        </p>
+        <button
+          type="button"
+          class="footer-consent-trigger inline-flex items-center justify-center px-5 py-2.5 bg-neutral-900 text-white text-[11px] uppercase tracking-[0.16em] hover:bg-black transition-colors shrink-0 cursor-pointer"
+        >
+          Manage Cookie Preferences
+        </button>
+      </aside>
+    </article>
+  </main>
+</StorefrontLayout>

@@ -1,0 +1,103 @@
+---
+// src/pages/about.astro
+import StorefrontLayout from '../layouts/StorefrontLayout.astro';
+
+const clauses = [
+  {
+    heading: '1. Architectural Quiet Luxury',
+    body: 'Founded in New Delhi, DEYNOLD DANNY is a contemporary luxury fashion house devoted to architectural restraint, enduring proportion, and tactile excellence. Every garment is conceived to outlast seasonal noise—engineered around clean shoulder geometry, fluid drape, and understated permanence.'
+  },
+  {
+    heading: '2. Noble Fibers & Material Provenance',
+    body: 'We partner exclusively with certified heritage mills and responsible raw-fiber producers to source extra-fine virgin wool, Grade-A inner-fleece cashmere, long-staple cotton poplin, mulberry silk, and full-grain vegetable-tanned calfskin. Each cloth is inspected by hand prior to pattern cutting for tensile recovery, breathability, and lustre.'
+  },
+  {
+    heading: '3. Artisanal Indian Craftsmanship',
+    body: 'Every piece is cut, canvas-structured, hand-finished, and quality-certified in India by master tailors and patternmakers. From horn buttons stitched with waxed thread to balanced hand-pressed seams and breathable Bemberg cupro linings, each silhouette carries the quiet discipline of true atelier construction.'
+  },
+  {
+    heading: '4. Responsible Small-Batch Production',
+    body: 'Rather than overproducing for clearance cycles, DEYNOLD DANNY crafts garments in numbered small batches aligned with patron demand. Our archival keepsake packaging uses FSC-certified rigid board, acid-free tissue, and reusable cotton garment covers designed for decades of wardrobe stewardship.'
+  },
+  {
+    heading: '5. Global Patronage & Private Client Services',
+    body: 'From our New Delhi flagship atelier, we serve patrons across India, the United States, the United Kingdom, the European Union, the United Arab Emirates, Singapore, Australia, Canada, Switzerland, Japan, Saudi Arabia, and Qatar with insured international express logistics and personal sizing consultation.'
+  }
+];
+---
+
+<StorefrontLayout
+  title="The House of Deynold Danny | Artisanal Luxury Tailoring — Made in India"
+  description="Discover the heritage, architectural tailoring, noble natural fibers, and New Delhi flagship atelier of DEYNOLD DANNY."
+>
+  <main id="main-content" class="min-h-screen bg-white">
+    <article
+      class="max-w-[880px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-24 text-neutral-800 font-light leading-relaxed"
+      data-cms-page="about"
+    >
+      <nav aria-label="Breadcrumb" class="mb-8">
+        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
+          <li><a href="/" class="hover:text-black transition-colors">Home</a></li>
+          <li class="select-none">/</li>
+          <li class="text-neutral-900 font-medium" aria-current="page">About The House</li>
+        </ol>
+      </nav>
+
+      <header class="mb-12 border-b border-neutral-200 pb-8">
+        <span data-cms-eyebrow class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-500 block mb-2.5">
+          The House &middot; Est. New Delhi
+        </span>
+        <h1 data-cms-heading class="text-3xl sm:text-5xl font-light tracking-tight text-neutral-900 font-serif">
+          The House of Deynold Danny
+        </h1>
+        <p data-cms-effective class="text-xs text-neutral-500 font-mono mt-3 uppercase tracking-widest">
+          Handcrafted in India &middot; Dispatched Worldwide
+        </p>
+      </header>
+
+      <div data-cms-clauses class="space-y-9 text-[15px] text-neutral-700 leading-[1.9]">
+        {clauses.map((clause) => (
+          <section class="space-y-2.5">
+            <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide font-medium">
+              {clause.heading}
+            </h2>
+            <p>{clause.body}</p>
+          </section>
+        ))}
+      </div>
+
+      <section class="mt-16 pt-10 border-t border-neutral-200 grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs">
+        <div class="p-6 border border-neutral-200 bg-neutral-50/50 space-y-2">
+          <p class="font-mono uppercase tracking-[0.18em] text-neutral-400 text-[10px]">Origin</p>
+          <p class="text-sm font-medium text-neutral-900">Made in India</p>
+          <p class="text-neutral-600 leading-relaxed">Patterned, hand-finished, and quality-certified in our New Delhi atelier.</p>
+        </div>
+        <div class="p-6 border border-neutral-200 bg-neutral-50/50 space-y-2">
+          <p class="font-mono uppercase tracking-[0.18em] text-neutral-400 text-[10px]">Global Reach</p>
+          <p class="text-sm font-medium text-neutral-900">12+ International Markets</p>
+          <p class="text-neutral-600 leading-relaxed">Insured air-express delivery across India, US, UK, EU, UAE, APAC &amp; Gulf.</p>
+        </div>
+        <div class="p-6 border border-neutral-200 bg-neutral-50/50 space-y-2">
+          <p class="font-mono uppercase tracking-[0.18em] text-neutral-400 text-[10px]">Private Concierge</p>
+          <p class="text-sm font-medium text-neutral-900">Bespoke Sizing &amp; Care</p>
+          <p class="text-neutral-600 leading-relaxed">Dedicated client advisors available Monday–Saturday, 10:00–19:00 IST.</p>
+        </div>
+      </section>
+
+      <div class="mt-12 flex flex-wrap gap-4">
+        <a
+          href="/categories"
+          class="inline-flex items-center justify-center px-7 py-3.5 bg-neutral-900 text-white text-[11px] uppercase tracking-[0.18em] hover:bg-black transition-colors"
+        >
+          Explore Collections
+        </a>
+        <a
+          href="/contact"
+          class="inline-flex items-center justify-center px-7 py-3.5 border border-neutral-900 text-neutral-900 text-[11px] uppercase tracking-[0.18em] hover:bg-neutral-100 transition-colors"
+        >
+          Private Atelier Inquiry
+        </a>
+      </div>
+    </article>
+  </main>
+</StorefrontLayout>

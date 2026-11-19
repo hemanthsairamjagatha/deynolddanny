@@ -8,10 +8,13 @@ import {
   syncWishlistWithBackend,
 } from '../store/wishlist.store';
 import { addToCart, openCart } from '../../cart/store/cart.store';
+import { $fxSnapshot, $selectedCountry, formatInrDisplayString } from '../../../lib/currency/currency.store';
 
 export const WishlistExperience: React.FC = () => {
   const items = useStore($wishlistItems);
   const count = useStore($wishlistCount);
+  const selectedCountry = useStore($selectedCountry);
+  const fx = useStore($fxSnapshot);
   const [isMounted, setIsMounted] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
   const [sizePickerOpenId, setSizePickerOpenId] = useState<string | null>(null);
@@ -192,7 +195,7 @@ export const WishlistExperience: React.FC = () => {
                           </a>
                         </h3>
                         <p className="text-xs font-mono text-neutral-700">
-                          {item.price}
+                          {formatInrDisplayString(item.price, selectedCountry, fx)}
                         </p>
                         {selectedSizes[item.id] && (
                           <span className="inline-block text-[10px] font-mono text-neutral-500 uppercase">

@@ -1,66 +1,116 @@
 ---
 // src/pages/legal/shipping-returns.astro
 import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+
+const clauses = [
+  {
+    id: 'shipping',
+    heading: '1. Atelier Preparation & Dispatch Timelines',
+    body: 'Every ready-to-wear commission undergoes multi-point atelier inspection, steam finishing, and signature archival boxing before dispatch from our New Delhi studio. Verified orders placed before 14:00 IST (Monday–Saturday) are dispatched within 24–48 business hours. Customized, altered, or made-to-order pieces require 7–14 business days of tailoring prior to shipment.'
+  },
+  {
+    heading: '2. Domestic Express Delivery Across India',
+    body: 'Domestic Indian orders exceeding our complimentary shipping threshold (currently ₹5,000, evaluated dynamically at checkout) qualify for complimentary insured air-express delivery via Shiprocket, Blue Dart Apex, and Delhivery Air. Metro destinations typically arrive within 2–4 business days; Tier-2 and Tier-3 PIN codes arrive within 4–6 business days. Full transit insurance covers every shipment until signed hand-delivery.'
+  },
+  {
+    heading: '3. Worldwide Express Delivery (12+ Global Markets)',
+    body: 'DEYNOLD DANNY dispatches insured international air express via DHL Express and FedEx International Priority to the United States, United Kingdom, European Union, United Arab Emirates, Singapore, Australia, Canada, Switzerland, Japan, Saudi Arabia, Qatar, and select global destinations. Typical international transit is 3–7 business days from dispatch with real-time AWB tracking emailed automatically upon handover.'
+  },
+  {
+    heading: '4. International Customs Duties, Import VAT & Taxes',
+    body: 'Unless explicitly designated Delivered Duty Paid (DDP) at checkout, international consignments are dispatched on a Delivered Duty Unpaid (DDU / DAP) basis. Applicable import duties, customs clearance fees, and destination VAT/GST assessed by local customs authorities are payable by the recipient directly to the courier prior to final release. Refusal to clear statutory import duties may result in return-to-origin freight and customs charges being deducted from any eligible refund.'
+  },
+  {
+    heading: '5. Signature Archival Presentation',
+    body: 'Each garment arrives housed in a rigid FSC-certified DEYNOLD DANNY magnetic keepsake box, layered in acid-free archival tissue, accompanied by a contoured hanger (for tailored suiting and outerwear), a breathable cotton garment travel cover, and a tamper-evident Atelier Authenticity Tag.'
+  },
+  {
+    id: 'returns',
+    heading: '6. Order Cancellation Window',
+    body: 'Clients may cancel an unshipped order directly inside the Private Client Portal (Account > Orders) or by writing to concierge@deynolddanny.com prior to courier handover/AWB generation. Cancelled pre-dispatch orders receive an automatic 100% refund back to the original payment instrument within 5–7 business days.'
+  },
+  {
+    heading: '7. 14-Day Returns & Size Exchanges',
+    body: 'Eligible ready-to-wear garments may be returned for a refund or exchanged for an alternate size within 14 calendar days of recorded delivery. To qualify: (a) garments must remain completely unworn, unwashed, unaltered, and free of perfume, makeup, or odour; (b) the tamper-evident Atelier Authenticity Tag and original hangtags must remain attached; and (c) all original presentation boxes, hangers, dust bags, and invoice documentation must be returned intact.'
+  },
+  {
+    heading: '8. Non-Returnable & Final-Sale Items',
+    body: 'For hygiene and bespoke tailoring integrity, the following items are final sale and ineligible for return unless received damaged or defective: bespoke or made-to-measure commissions, garments altered to client measurements, monogrammed pieces, intimate apparel, fragrances with broken security seals, and items explicitly designated Archive / Final Sale at purchase.'
+  },
+  {
+    heading: '9. Reverse Pickup, Quality Inspection & Refund Timelines',
+    body: 'Within India, DEYNOLD DANNY arranges complimentary insured reverse pickup via Shiprocket within 48 hours of return authorization. International patrons receive a prepaid DHL Express return waybill (international return courier fees and non-refundable destination duties may apply unless the garment is defective). Upon receipt at our New Delhi atelier, items undergo quality inspection within 2–3 business days. Approved refunds are credited strictly to the original payment method (Razorpay UPI, card, net banking, or wallet) and reflect within 5–7 business days depending on your issuing bank.'
+  },
+  {
+    heading: '10. Damaged, Defective, or Incorrect Garments',
+    body: 'If a parcel arrives visibly tampered, damaged in transit, or contains an incorrect item, please photograph the outer shipping carton, courier label, and garment within 48 hours of delivery and email returns@deynolddanny.com quoting your order number. We prioritize an immediate complimentary replacement or a full 100% refund including all shipping charges.'
+  }
+];
 ---
 
 <StorefrontLayout
-  title="Shipping & Returns | DEYNOLD DANNY"
-  description="Complimentary express delivery, white-glove packaging, and return policies."
+  title="Shipping, Returns & Refund Policy | DEYNOLD DANNY"
+  description="Domestic India and worldwide DHL/FedEx express shipping, customs transparency, order cancellation, 14-day returns, size exchanges, and refund timelines."
 >
   <main id="main-content" class="min-h-screen bg-white">
-    <article class="max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 text-neutral-800 font-light leading-relaxed">
+    <article
+      class="max-w-[840px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-24 text-neutral-800 font-light leading-relaxed"
+      data-cms-page="shipping-returns"
+    >
       <nav aria-label="Breadcrumb" class="mb-8">
         <ol class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-400 font-mono">
-          <li>
-            <a href="/" class="hover:text-black transition-colors">Home</a>
-          </li>
+          <li><a href="/" class="hover:text-black transition-colors">Home</a></li>
           <li class="select-none">/</li>
-          <li class="text-neutral-900 font-medium" aria-current="page">
-            Shipping & Returns
-          </li>
+          <li class="text-neutral-900 font-medium" aria-current="page">Shipping &amp; Returns</li>
         </ol>
       </nav>
 
-      <div class="mb-12 border-b border-neutral-100 pb-8">
-        <span class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
-          Client Fulfillment
+      <header class="mb-10 border-b border-neutral-200 pb-8">
+        <span data-cms-eyebrow class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-500 block mb-2.5">
+          Global Logistics, Returns &amp; Refunds
         </span>
-        <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
-          Delivery & Returns
+        <h1 data-cms-heading class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif">
+          Shipping, Returns &amp; Refund Policy
         </h1>
-        <p class="text-xs text-neutral-500 font-mono mt-2">White-Glove Global Logistics</p>
+        <p data-cms-effective class="text-xs text-neutral-500 font-mono mt-3">
+          Effective: November 2026 &middot; Domestic India &amp; Worldwide Express Dispatch
+        </p>
+
+        <!-- Quick jump anchors for Shipping vs Returns -->
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="#shipping" class="px-4 py-2 border border-neutral-300 text-[11px] uppercase tracking-[0.15em] text-neutral-800 hover:border-black transition-colors">
+            Shipping &amp; International Delivery
+          </a>
+          <a href="#returns" class="px-4 py-2 border border-neutral-300 text-[11px] uppercase tracking-[0.15em] text-neutral-800 hover:border-black transition-colors">
+            Returns, Exchanges &amp; Refunds
+          </a>
+        </div>
+      </header>
+
+      <div data-cms-clauses class="space-y-9 text-[14px] text-neutral-700 leading-[1.85]">
+        {clauses.map((clause) => (
+          <section id={clause.id} class="space-y-2.5 scroll-mt-28">
+            <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide font-medium">
+              {clause.heading}
+            </h2>
+            <p>{clause.body}</p>
+          </section>
+        ))}
       </div>
 
-      <div class="space-y-8 text-sm text-neutral-700 leading-relaxed">
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">1. Complimentary Express Delivery</h2>
-          <p>
-            We provide complimentary insured express shipping across India on all orders exceeding ₹10,000. Orders placed before 14:00 IST are dispatched the next business day. Deliveries typically arrive within 2–4 business days via DHL Express or Blue Dart Apex.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">2. Signature Presentation Box</h2>
-          <p>
-            Every order is encased in the signature DEYNOLD DANNY magnetic presentation box, wrapped in archival tissue paper, and accompanied by an archival hanger and breathable garment travel cover.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">3. 14-Day Complimentary Returns</h2>
-          <p>
-            Items may be returned within 14 days of delivery. Returned pieces must remain unworn, unaltered, with original security tags and garment bags intact. Bespoke customized and monogrammed creations are final-sale.
-          </p>
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="text-base font-serif text-neutral-900 uppercase tracking-wide">4. Initiating a Return</h2>
-          <p>
-            To arrange a complimentary courier collection, please visit your Client Account dashboard or email <span class="font-mono text-neutral-900">returns@deynolddanny.com</span> quoting your order reference.
-          </p>
-        </section>
-      </div>
+      <aside class="mt-14 pt-8 border-t border-neutral-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-neutral-600">
+        <p>
+          Need to initiate a return, exchange, or live shipment check? Visit{' '}
+          <a href="/orders/track" class="underline text-neutral-900 font-medium">Track Your Order</a> or your{' '}
+          <a href="/account" class="underline text-neutral-900 font-medium">Client Account</a>.
+        </p>
+        <a
+          href="/contact"
+          class="inline-flex items-center justify-center px-5 py-2.5 bg-neutral-900 text-white text-[11px] uppercase tracking-[0.16em] hover:bg-black transition-colors shrink-0"
+        >
+          Concierge Assistance
+        </a>
+      </aside>
     </article>
   </main>
 </StorefrontLayout>
-

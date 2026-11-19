@@ -1,6 +1,7 @@
 ---
 // src/components/layout/Footer.astro
 // Luxury Minimalist White Footer for DEYNOLD DANNY
+import CurrencySelector from './CurrencySelector';
 ---
 
 <footer class="site-footer" id="footer">
@@ -12,7 +13,7 @@
         <h4 class="footer-col-title">GET TO KNOW US</h4>
         <ul class="footer-link-list">
           <li><button type="button" class="footer-link footer-search-trigger">SEARCH</button></li>
-          <li><a href="/#thread-of-mastery" class="footer-link">ABOUT US</a></li>
+          <li><a href="/about" class="footer-link">ABOUT US</a></li>
           <li><a href="/contact" class="footer-link">CONTACT US</a></li>
         </ul>
       </div>
@@ -22,10 +23,11 @@
         <h4 class="footer-col-title">CUSTOMER CARE</h4>
         <ul class="footer-link-list">
           <li><a href="/orders/track" class="footer-link font-medium">TRACK YOUR ORDER</a></li>
-          <li><a href="/legal/shipping-returns" class="footer-link">RETURN AND EXCHANGE POLICY</a></li>
+          <li><a href="/legal/shipping-returns#returns" class="footer-link">RETURN AND EXCHANGE POLICY</a></li>
           <li><a href="/legal/privacy-policy" class="footer-link">PRIVACY POLICY</a></li>
-          <li><a href="/legal/shipping-returns" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
-          <li><a href="/legal/terms" class="footer-link">TERMS AND CONDITION</a></li>
+          <li><a href="/legal/shipping-returns#shipping" class="footer-link">SHIPPING &amp; DELIVERY</a></li>
+          <li><a href="/legal/terms" class="footer-link">TERMS AND CONDITIONS</a></li>
+          <li><a href="/legal/cookie-policy" class="footer-link">COOKIE POLICY</a></li>
           <li><button type="button" class="footer-link footer-consent-trigger">COOKIE PREFERENCES</button></li>
         </ul>
       </div>
@@ -68,12 +70,7 @@
       </div>
 
       <div class="footer-currency-wrap">
-        <button type="button" class="footer-currency-btn" aria-label="Select currency and region">
-          <span class="footer-currency-label">IN (INR ₹)</span>
-          <svg class="footer-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
+        <CurrencySelector client:load />
       </div>
     </div>
   </div>

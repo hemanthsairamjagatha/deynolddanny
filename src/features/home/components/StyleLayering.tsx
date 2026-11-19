@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useStore } from '@nanostores/react';
 import { WishlistButton } from '../../wishlist/components/WishlistButton';
+import { $fxSnapshot, $selectedCountry, formatInrDisplayString } from '../../../lib/currency/currency.store';
 
 export interface LayeredProduct {
   id: string;
@@ -371,6 +373,8 @@ export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
 ];
 
 export const StyleLayering: React.FC = () => {
+  const selectedCountry = useStore($selectedCountry);
+  const fx = useStore($fxSnapshot);
   const looks = STYLE_LAYERING_LOOKS;
   const LOOKS_COUNT = looks.length;
   // Triple the looks array for infinite looping: [0..7, 8..15 (middle original), 16..23]
@@ -618,14 +622,14 @@ export const StyleLayering: React.FC = () => {
                                   {prod.title}
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
-                                  {prod.originalPrice}
+                                  {formatInrDisplayString(prod.originalPrice, selectedCountry, fx)}
                                 </p>
                                 <p className="text-[11px] sm:text-[12px] font-montserrat leading-none flex items-center gap-1.5">
                                   <span className="text-[#ff4d4f] font-bold">
                                     {prod.discount}
                                   </span>
                                   <span className="text-white font-semibold">
-                                    {prod.price}
+                                    {formatInrDisplayString(prod.price, selectedCountry, fx)}
                                   </span>
                                 </p>
                               </div>

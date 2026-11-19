@@ -2,8 +2,21 @@ import { Hono } from 'hono';
 import type { Env } from '../../types/bindings.js';
 import { requirePermission } from '../../middleware/adminAuth.js';
 import { invalidateStorefrontCache } from '../../services/storefrontCache.js';
+import { getLiveFxSnapshot } from '../../services/fxRates.js';
 
 const settings = new Hono<{ Bindings: Env }>();
+
+// GET /fx — view all 12 global markets + current live/manual FX rates
+settings.get('/fx', async (c) => {
+  const snapshot = await getLiveFxSnapshot(c.env, false);
+  return c.json({ success: true, data: snapshot });
+});
+
+// POST /fx/refresh — force-refresh live FX rates from upstream into KV immediately
+settings.post('/fx/refresh', requirePermission('settings.write'), async (c) => {
+  const snapshot = await getLiveFxSnapshot(c.env, true);
+  return c.json({ success: true, data: snapshot });
+});
 
 // GET / — returns store_settings singleton
 settings.get('/', async (c) => {

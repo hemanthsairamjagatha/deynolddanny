@@ -7,8 +7,28 @@ import {
 } from '../services/storefrontCache.js';
 import { verifyPreviewToken } from '../services/mfa.js';
 import { formatPaiseToDisplay, paiseToRupees } from '../services/money.js';
+import { getLiveFxSnapshot } from '../services/fxRates.js';
 
 const storefront = new Hono<{ Bindings: Env }>();
+
+// ─── GET /api/storefront/exchange-rates ──────────────────────────────────────
+// Live KV-cached multi-country INR FX rates with admin spread/market controls
+storefront.get('/exchange-rates', async (c) => {
+  const snapshot = await getLiveFxSnapshot(c.env, false);
+  return c.json(
+    {
+      success: true,
+      data: {
+        ...snapshot,
+        markets: snapshot.markets.filter((m) => m.enabled),
+      },
+    },
+    200,
+    {
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900',
+    },
+  );
+});
 
 // ─── GET /api/storefront/published ───────────────────────────────────────────
 // Edge-cached published snapshot containing Brand, Nav, Homepage, Categories, Collections, Redirects

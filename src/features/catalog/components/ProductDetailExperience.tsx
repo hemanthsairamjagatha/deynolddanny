@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useStore } from '@nanostores/react';
 import type { ProductCardData, ProductVariant } from '../types/product.types';
 import { ProductLightbox } from './ProductLightbox';
 import { FitFinderDialog } from '../fit-finder/FitFinderDialog';
@@ -8,6 +9,7 @@ import { WishlistButton } from '../../wishlist/components/WishlistButton';
 import { apiFetch } from '../../../lib/api/client';
 import { fetchStorefrontConfigApi } from '../../checkout/api/checkout.api';
 import { ecommerceConfig } from '../../../config/ecommerce.config';
+import { $fxSnapshot, $selectedCountry, formatInrDisplayString } from '../../../lib/currency/currency.store';
 
 interface ProductDetailExperienceProps {
   product: ProductCardData;
@@ -51,6 +53,8 @@ const DetailAccordion: React.FC<DetailAccordionProps> = ({ id, title, isOpen, on
 );
 
 export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = ({ product }) => {
+  const selectedCountry = useStore($selectedCountry);
+  const fx = useStore($fxSnapshot);
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
@@ -346,7 +350,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               </span>
             ) : (
               <span className="text-black font-semibold text-[13px] flex-shrink-0">
-                {livePrice}
+                {formatInrDisplayString(livePrice, selectedCountry, fx)}
               </span>
             )}
           </div>

@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useStore } from '@nanostores/react';
 import type { ProductCardData } from '../types/product.types';
 import { addToCart, openCart } from '../../cart/store/cart.store';
 import { WishlistButton } from '../../wishlist/components/WishlistButton';
+import { $fxSnapshot, $selectedCountry, formatInrAmount, getActiveMarket } from '../../../lib/currency/currency.store';
 
 interface ProductCardProps {
   product: ProductCardData;
@@ -9,6 +11,9 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView = true }) => {
+  const selectedCountry = useStore($selectedCountry);
+  const fx = useStore($fxSnapshot);
+  const activeMarket = getActiveMarket(selectedCountry, fx);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [isSizePickerOpen, setIsSizePickerOpen] = useState<boolean>(false);
   const [selectedColorIndex, setSelectedColorIndex] = useState<number>(0);
@@ -178,13 +183,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isModelView =
 
         <p className="mastery-item-price product-item-meta__price-list-container price-list font-montserrat">
           <span className="price product-item-meta__price font-montserrat">
-            <span className="currency-symbol price-currency font-montserrat">₹</span>
-            <span className="price-val font-montserrat">
-              {product.priceNum.toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })}
-            </span>
+            {activeMarket.currency === 'INR' ? (
+              <>
+                <span className="currency-symbol price-currency font-montserrat">₹</span>
+                <span className="price-val font-montserrat">
+                  {product.priceNum.toLocaleString('en-IN', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
+                </span>
+              </>
+            ) : (
+              <span className="price-val font-montserrat">
+                {formatInrAmount(product.priceNum, selectedCountry, fx)}
+              </span>
+            )}
           </span>
         </p>
 
