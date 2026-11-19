@@ -3369,3 +3369,32 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-19 — Full Admin Panel Cross-Check, Zero-Code Visual Nav/Footer/Hero/Brand Builders, End-to-End API Alignment & Live Storefront Hydration**:
+  - **Status:** COMPLETE
+  - **Summary:** Conducted a complete end-to-end audit across all 27 Commerce OS admin modules, backend Hono admin routes, D1 schemas, and the storefront live hydration engine (`src/lib/storefront/live-cms.ts`). Fixed critical API endpoint/payload mismatches (`auth.requestOtp` -> `/api/auth/send-otp`, `auth.me` -> `/api/auth/me`, `auth.verifyMfa` -> `/api/auth/admin/mfa/verify`, `brand.update` -> `/api/admin/brand/draft`, `navigation.update` -> `{ draft }`, `media` -> `/assets/:id` + `items`/`folderId`/`q`, `templates` -> `/outbox` route ordering + `subjectTemplate`/`htmlTemplate`/`targetEmail`, `products` -> `title`/`sku_prefix`/`price_paise`/`default_img`/`hover_img`, `categories`/`collections`/`sizeGuides` -> `items` unwrapping). Created reusable `admin/src/components/MediaPickerModal.tsx` (`MediaPickerModal` + `ImageUrlField`) with direct image upload & folder browsing across Hero, Category Grid, Editorial Duo, Style Layering, Brand Identity, Categories, Collections, and Products. Rebuilt `NavigationPage.tsx` into a 100% visual zero-JSON editor for Header Navigation + Mega Menus, Footer Columns & Newsletter, Global Announcement Bar, Mobile/Side Drawer, and Cookie Governance Banner. Rebuilt `BrandPage.tsx`, `StudioPage.tsx` (with 4 executive quick-launch cards), and `PageEditor.tsx` (visual Hero Banner editor with live preview + overlay/CTA controls, visual Category Grid, Editorial Duo, Style Layering, Legal Clauses, Page SEO modal, and Revision History restore). Upgraded `src/lib/storefront/live-cms.ts` to fix `homepageSections` binding and hydrate Brand logos/colours/copyright, rotating Announcement Bar, Desktop Header Nav, Side Drawer, Footer Columns & Newsletter, Hero imagery/overlay/CTAs, Product Carousel headings, Category Grid cards, Editorial Duo panels, and custom promotional strips live from `/api/storefront/published` and Draft Previews. Applied D1 migration `0008_sync_navigation_defaults.sql`, flushed KV cache, and redeployed `deynold-danny-backend` live.
+  - **Files Added:**
+    - `admin/src/components/MediaPickerModal.tsx`
+    - `backend/migrations/0008_sync_navigation_defaults.sql`
+  - **Files Modified:**
+    - `admin/src/lib/api.ts`, `admin/src/contexts/AuthContext.tsx`
+    - `admin/src/modules/navigation/NavigationPage.tsx`, `admin/src/modules/brand/BrandPage.tsx`, `admin/src/modules/media/MediaLibraryPage.tsx`
+    - `admin/src/modules/studio/{StudioPage.tsx, PageEditor.tsx}`
+    - `admin/src/modules/catalog/{CategoriesPage.tsx, CollectionsPage.tsx, ProductsListPage.tsx, ProductEditor.tsx, SizeGuidesPage.tsx}`
+    - `admin/src/modules/messaging/TemplatesPage.tsx`
+    - `backend/src/routes/admin/{brand.ts, templates.ts}`
+    - `src/lib/storefront/live-cms.ts`, `src/components/layout/CurrencySelector.tsx`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added `admin/src/components/MediaPickerModal.tsx` and `backend/migrations/0008_sync_navigation_defaults.sql`.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`9 / 9` Miniflare D1/Worker tests passing).
+    - `npm --prefix admin run build`: PASS (`tsc && vite build`, 0 errors, 28 chunks).
+    - `npx astro check`: PASS (104 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests passing).
+    - `npm run build`: PASS (59 Astro pages + Commerce OS `dist/admin` built cleanly).
+    - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0008_sync_navigation_defaults.sql` applied).
+    - `npx wrangler deploy`: PASS (`deynold-danny-backend` live with Version ID `a9a28ae0-c64e-44ff-baa7-985a0d1b9571`; `/api/storefront/published` verified live: 6 HeaderLinks, 2 FooterCols, 6 HomeSections, BrandName `DEYNOLD DANNY`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

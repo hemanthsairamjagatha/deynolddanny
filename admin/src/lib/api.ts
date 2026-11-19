@@ -48,12 +48,33 @@ function qs(params?: Record<string, string | number | undefined>): string {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 export const auth = {
-  requestOtp: (email: string) => post('/api/auth/sign-in', { email }),
-  verifyOtp: (email: string, otp: string) => post<{ accessToken: string; mfaRequired?: boolean }>('/api/auth/verify-otp', { email, otp }),
-  verifyMfa: (code: string) => post<{ accessToken: string }>('/api/auth/mfa/verify', { code }),
+  requestOtp: (email: string) => post('/api/auth/send-otp', { email }),
+  verifyOtp: (email: string, otp: string) =>
+    post<{ accessToken: string; mfaRequired?: boolean; user?: Record<string, unknown> }>('/api/auth/verify-otp', { email, otp }),
+  verifyMfa: (code: string) => post<{ accessToken: string }>('/api/auth/admin/mfa/verify', { code }),
   refresh: () => post<{ accessToken: string }>('/api/auth/refresh'),
   logout: () => post('/api/auth/logout'),
-  me: () => get<{ id: string; email: string; name: string | null; role: string; permissions: string[]; mfaEnabled: boolean }>('/api/auth/session'),
+  me: () =>
+    get<{
+      user?: {
+        id: string;
+        email: string;
+        fullName?: string | null;
+        role: string;
+        adminAccess?: {
+          roleSlug: string;
+          permissions: string[];
+          mfaEnabled: boolean;
+          mfaSetupRequired?: boolean;
+        };
+      };
+      id?: string;
+      email?: string;
+      name?: string | null;
+      role?: string;
+      permissions?: string[];
+      mfaEnabled?: boolean;
+    }>('/api/auth/me'),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -63,11 +84,11 @@ export const dashboard = {
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 export const brand = {
-  get: () => get<BrandSettings>('/api/admin/brand'),
-  update: (d: Partial<BrandSettings>) => patch<BrandSettings>('/api/admin/brand', d),
-  publish: () => post<void>('/api/admin/brand/publish'),
-  revisions: () => get<Record<string, unknown>[]>('/api/admin/brand/revisions'),
-  restore: (revId: string) => post<BrandSettings>(`/api/admin/brand/revisions/${revId}/restore`),
+  get: () => get<Record<string, unknown>>('/api/admin/brand'),
+  update: (d: Record<string, unknown>) => patch<Record<string, unknown>>('/api/admin/brand/draft', d),
+  publish: () => post<Record<string, unknown>>('/api/admin/brand/publish'),
+  revisions: () => get<{ items: Record<string, unknown>[] } | Record<string, unknown>[]>('/api/admin/brand/revisions'),
+  restore: (revId: string) => post<Record<string, unknown>>(`/api/admin/brand/revisions/${revId}/restore`),
 };
 
 // ─── CMS ──────────────────────────────────────────────────────────────────────
@@ -94,32 +115,40 @@ export const cms = {
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 export const navigation = {
-  list: () => get<NavMenu[]>('/api/admin/navigation'),
-  update: (key: string, items: unknown) => patch<void>(`/api/admin/navigation/${key}`, { items }),
-  publish: (key: string) => post<void>(`/api/admin/navigation/${key}/publish`),
+  list: () => get<{ items: Record<string, unknown>[] } | NavMenu[]>('/api/admin/navigation'),
+  update: (key: string, draft: unknown, title?: string) =>
+    patch<Record<string, unknown>>(`/api/admin/navigation/${key}`, title ? { draft, title } : { draft }),
+  publish: (key: string) => post<Record<string, unknown>>(`/api/admin/navigation/${key}/publish`),
 };
 
 // ─── Media ────────────────────────────────────────────────────────────────────
 export const media = {
-  list: (folderId?: string, search?: string) =>
-    get<{ assets: MediaAsset[]; folders: MediaFolder[] }>(`/api/admin/media/library${qs({ folder_id: folderId, search })}`),
-  createFolder: (name: string, parentId?: string) => post<MediaFolder>('/api/admin/media/library/folders', { name, parent_id: parentId }),
-  upload: (formData: FormData) => request<MediaAsset>('/api/admin/media/library/upload', { method: 'POST', body: formData }),
-  update: (id: string, d: { alt_text?: string; focal_x?: number; focal_y?: number }) => patch<MediaAsset>(`/api/admin/media/library/${id}`, d),
-  delete: (id: string) => del<void>(`/api/admin/media/library/${id}`),
+  list: (folderId?: string, q?: string) =>
+    get<{ items?: Record<string, unknown>[]; assets?: MediaAsset[]; folders: Record<string, unknown>[] }>(
+      `/api/admin/media/library${qs({ folderId, q })}`,
+    ),
+  createFolder: (name: string, parentId?: string) =>
+    post<MediaFolder>('/api/admin/media/library/folders', { name, parentId: parentId ?? null }),
+  upload: (formData: FormData) => request<Record<string, unknown>>('/api/admin/media/library/upload', { method: 'POST', body: formData }),
+  update: (id: string, d: { altText?: string; defaultFocalX?: number; defaultFocalY?: number; folderId?: string | null; tags?: string[] }) =>
+    patch<Record<string, unknown>>(`/api/admin/media/library/assets/${id}`, d),
+  delete: (id: string, force = false) =>
+    del<void>(`/api/admin/media/library/assets/${id}${force ? '?force=true' : ''}`),
 };
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 export const products = {
-  list: (p?: { search?: string; status?: string; category?: string; page?: number }) =>
-    get<{ items: Product[]; total: number }>(`/api/admin/products${qs(p)}`),
-  get: (id: string) => get<Product>(`/api/admin/products/${id}`),
-  create: (d: Partial<Product>) => post<Product>('/api/admin/products', d),
-  update: (id: string, d: Partial<Product>) => patch<Product>(`/api/admin/products/${id}`, d),
-  archive: (id: string) => post<void>(`/api/admin/products/${id}/archive`),
+  list: (p?: { search?: string; q?: string; status?: string; category?: string; categoryId?: string; page?: number }) =>
+    get<{ items: Record<string, unknown>[]; total: number }>(
+      `/api/admin/products${qs({ q: p?.q ?? p?.search, status: p?.status, categoryId: p?.categoryId ?? p?.category, page: p?.page })}`,
+    ),
+  get: (id: string) => get<Record<string, unknown>>(`/api/admin/products/${id}`),
+  create: (d: Record<string, unknown>) => post<Record<string, unknown>>('/api/admin/products', d),
+  update: (id: string, d: Record<string, unknown>) => patch<Record<string, unknown>>(`/api/admin/products/${id}`, d),
+  archive: (id: string) => del<void>(`/api/admin/products/${id}`),
   restore: (id: string) => post<void>(`/api/admin/products/${id}/restore`),
-  duplicate: (id: string) => post<Product>(`/api/admin/products/${id}/duplicate`),
-  updateImages: (id: string, images: string[]) => put<void>(`/api/admin/products/${id}/images`, { images }),
+  duplicate: (id: string) => post<Record<string, unknown>>(`/api/admin/products/${id}/duplicate`),
+  updateImages: (id: string, images: unknown[]) => put<void>(`/api/admin/products/${id}/images`, { images }),
   updateCrossSells: (id: string, ids: string[]) => put<void>(`/api/admin/products/${id}/cross-sells`, { ids }),
   variants: {
     create: (pid: string, d: unknown) => post<unknown>(`/api/admin/products/${pid}/variants`, d),
@@ -130,7 +159,7 @@ export const products = {
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 export const categories = {
-  list: () => get<Record<string, unknown>[]>('/api/admin/categories'),
+  list: () => get<{ items: Record<string, unknown>[] } | Record<string, unknown>[]>('/api/admin/categories'),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/categories/${id}`),
   create: (d: unknown) => post<Record<string, unknown>>('/api/admin/categories', d),
   update: (id: string, d: unknown) => patch<Record<string, unknown>>(`/api/admin/categories/${id}`, d),
@@ -139,7 +168,7 @@ export const categories = {
 
 // ─── Collections ─────────────────────────────────────────────────────────────
 export const collections = {
-  list: () => get<Record<string, unknown>[]>('/api/admin/collections'),
+  list: () => get<{ items: Record<string, unknown>[] } | Record<string, unknown>[]>('/api/admin/collections'),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/collections/${id}`),
   create: (d: unknown) => post<Record<string, unknown>>('/api/admin/collections', d),
   update: (id: string, d: unknown) => patch<Record<string, unknown>>(`/api/admin/collections/${id}`, d),
@@ -228,13 +257,13 @@ export const sizeGuides = {
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 export const templates = {
-  list: () => get<Record<string, unknown>>('/api/admin/templates'),
-  get: (id: string) => get<Record<string, unknown>>(`/api/admin/templates/${id}`),
-  update: (id: string, d: { subject?: string; html_body?: string; variables_doc?: string }) =>
-    patch<Record<string, unknown>>(`/api/admin/templates/${id}`, d),
-  testSend: (id: string, toEmail: string, vars: Record<string, string>) =>
-    post<void>(`/api/admin/templates/${id}/test-send`, { toEmail, vars }),
-  outbox: (page?: number) => get<Record<string, unknown>>(`/api/admin/templates/outbox${qs({ page })}`),
+  list: () => get<{ items: Record<string, unknown>[] }>('/api/admin/templates'),
+  get: (key: string) => get<Record<string, unknown>>(`/api/admin/templates/${key}`),
+  update: (key: string, d: { subjectTemplate?: string; htmlTemplate?: string; textTemplate?: string; isActive?: boolean }) =>
+    patch<Record<string, unknown>>(`/api/admin/templates/${key}`, d),
+  testSend: (key: string, targetEmail: string, sampleVars: Record<string, string>) =>
+    post<void>(`/api/admin/templates/${key}/test-send`, { targetEmail, sampleVars }),
+  outbox: (status?: string) => get<{ items: Record<string, unknown>[] }>(`/api/admin/templates/outbox${qs({ status })}`),
 };
 
 // ─── SEO ──────────────────────────────────────────────────────────────────────

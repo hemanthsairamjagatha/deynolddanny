@@ -31,6 +31,25 @@ adminTemplates.get('/', requirePermission('templates.write'), async (c) => {
   });
 });
 
+// ─── GET /api/admin/templates/outbox & /outbox/all ───────────────────────────
+const handleOutbox = async (c: any) => {
+  const status = c.req.query('status')?.trim();
+  let sql = `SELECT * FROM email_outbox WHERE 1=1`;
+  const bindings: any[] = [];
+  if (status) {
+    bindings.push(status);
+    sql += ` AND status = ?${bindings.length}`;
+  }
+  sql += ` ORDER BY created_at DESC LIMIT 100`;
+
+  const rows = await c.env.DB.prepare(sql).bind(...bindings).all();
+
+  return c.json({ success: true, data: { items: rows.results ?? [] } });
+};
+
+adminTemplates.get('/outbox', requirePermission('templates.write', 'logs.read'), handleOutbox);
+adminTemplates.get('/outbox/all', requirePermission('templates.write', 'logs.read'), handleOutbox);
+
 // ─── GET /api/admin/templates/:key ───────────────────────────────────────────
 adminTemplates.get('/:key', requirePermission('templates.write'), async (c) => {
   const key = c.req.param('key');
@@ -144,21 +163,5 @@ adminTemplates.post(
     return c.json({ success: true, data: { sent: true, targetEmail } });
   },
 );
-
-// ─── GET /api/admin/templates/outbox ─────────────────────────────────────────
-adminTemplates.get('/outbox/all', requirePermission('templates.write', 'logs.read'), async (c) => {
-  const status = c.req.query('status')?.trim();
-  let sql = `SELECT * FROM email_outbox WHERE 1=1`;
-  const bindings: any[] = [];
-  if (status) {
-    bindings.push(status);
-    sql += ` AND status = ?${bindings.length}`;
-  }
-  sql += ` ORDER BY created_at DESC LIMIT 100`;
-
-  const rows = await c.env.DB.prepare(sql).bind(...bindings).all<Record<string, unknown>>();
-
-  return c.json({ success: true, data: { items: rows.results ?? [] } });
-});
 
 export default adminTemplates;

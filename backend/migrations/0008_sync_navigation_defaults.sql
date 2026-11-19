@@ -1,0 +1,28 @@
+-- =============================================================================
+-- 0008_sync_navigation_defaults.sql
+-- Synchronizes the default Header, Drawer, and Footer navigation menus in D1
+-- with the verified luxury storefront layout (including Search trigger, About Us,
+-- DPDP Cookie Preferences trigger, and all legal governance links) so the store
+-- owner starts from an exact 1:1 mirror of the live site in /admin/navigation.
+-- =============================================================================
+
+UPDATE navigation_menus
+SET
+  draft_items_json = '[{"id":"hn_1","label":"Women","href":"/categories/clothing","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_2","label":"Men","href":"/categories/shirts","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_3","label":"Shop by Occasion","href":"/#new-arrival","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_4","label":"Shop by Category","href":"/categories","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_5","label":"Shop by Fabric","href":"/#thread-of-mastery","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_6","label":"Journal","href":"/#latest-news","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}}]',
+  published_items_json = '[{"id":"hn_1","label":"Women","href":"/categories/clothing","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_2","label":"Men","href":"/categories/shirts","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_3","label":"Shop by Occasion","href":"/#new-arrival","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_4","label":"Shop by Category","href":"/categories","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_5","label":"Shop by Fabric","href":"/#thread-of-mastery","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}},{"id":"hn_6","label":"Journal","href":"/#latest-news","badge":null,"visible":true,"megaMenu":{"enabled":false,"columns":[]}}]',
+  updated_at = datetime('now')
+WHERE menu_key = 'header_primary';
+
+UPDATE navigation_menus
+SET
+  draft_items_json = '{"columns":[{"id":"fc_1","title":"GET TO KNOW US","links":[{"label":"SEARCH","href":"#search"},{"label":"ABOUT US","href":"/about"},{"label":"CONTACT US","href":"/contact"}]},{"id":"fc_2","title":"CUSTOMER CARE","links":[{"label":"TRACK YOUR ORDER","href":"/orders/track"},{"label":"RETURN AND EXCHANGE POLICY","href":"/legal/shipping-returns#returns"},{"label":"PRIVACY POLICY","href":"/legal/privacy-policy"},{"label":"SHIPPING & DELIVERY","href":"/legal/shipping-returns#shipping"},{"label":"TERMS AND CONDITIONS","href":"/legal/terms"},{"label":"COOKIE POLICY","href":"/legal/cookie-policy"},{"label":"COOKIE PREFERENCES","href":"#cookie-preferences"}]}],"newsletter":{"enabled":true,"heading":"Newsletter","description":"Never miss any news and be the first to know about sale and offers","placeholder":"Email","buttonLabel":"Subscribe","successMessage":"Thank you for subscribing to DEYNOLD DANNY."}}',
+  published_items_json = '{"columns":[{"id":"fc_1","title":"GET TO KNOW US","links":[{"label":"SEARCH","href":"#search"},{"label":"ABOUT US","href":"/about"},{"label":"CONTACT US","href":"/contact"}]},{"id":"fc_2","title":"CUSTOMER CARE","links":[{"label":"TRACK YOUR ORDER","href":"/orders/track"},{"label":"RETURN AND EXCHANGE POLICY","href":"/legal/shipping-returns#returns"},{"label":"PRIVACY POLICY","href":"/legal/privacy-policy"},{"label":"SHIPPING & DELIVERY","href":"/legal/shipping-returns#shipping"},{"label":"TERMS AND CONDITIONS","href":"/legal/terms"},{"label":"COOKIE POLICY","href":"/legal/cookie-policy"},{"label":"COOKIE PREFERENCES","href":"#cookie-preferences"}]}],"newsletter":{"enabled":true,"heading":"Newsletter","description":"Never miss any news and be the first to know about sale and offers","placeholder":"Email","buttonLabel":"Subscribe","successMessage":"Thank you for subscribing to DEYNOLD DANNY."}}',
+  updated_at = datetime('now')
+WHERE menu_key = 'footer_columns';
+
+UPDATE navigation_menus
+SET
+  draft_items_json = '{"collections":[{"label":"Women","href":"/categories/clothing"},{"label":"Men","href":"/categories/shirts"},{"label":"Shop by Occasion","href":"/#new-arrival"},{"label":"Shop by Category","href":"/categories"},{"label":"Shop by Fabric","href":"/#thread-of-mastery"},{"label":"Journal","href":"/#latest-news"}],"services":[{"label":"Track Order Shipment","href":"/orders/track"},{"label":"My Client Account","href":"/account"},{"label":"Saved Wishlist","href":"/wishlist"},{"label":"Private Styling Concierge","href":"/contact"},{"label":"Global Delivery & Returns","href":"/legal/shipping-returns"},{"label":"About The House","href":"/about"}]}',
+  published_items_json = '{"collections":[{"label":"Women","href":"/categories/clothing"},{"label":"Men","href":"/categories/shirts"},{"label":"Shop by Occasion","href":"/#new-arrival"},{"label":"Shop by Category","href":"/categories"},{"label":"Shop by Fabric","href":"/#thread-of-mastery"},{"label":"Journal","href":"/#latest-news"}],"services":[{"label":"Track Order Shipment","href":"/orders/track"},{"label":"My Client Account","href":"/account"},{"label":"Saved Wishlist","href":"/wishlist"},{"label":"Private Styling Concierge","href":"/contact"},{"label":"Global Delivery & Returns","href":"/legal/shipping-returns"},{"label":"About The House","href":"/about"}]}',
+  updated_at = datetime('now')
+WHERE menu_key = 'header_drawer';

@@ -3,7 +3,6 @@ import { useStore } from '@nanostores/react';
 import {
   $detectedMarket,
   $fxSnapshot,
-  $hasManualSelection,
   $selectedCountry,
   getActiveMarket,
   initCurrencyStore,
@@ -22,7 +21,6 @@ const REGION_ORDER: MarketOption['region'][] = [
 export const CurrencySelector: React.FC = () => {
   const selectedCountry = useStore($selectedCountry);
   const detectedMarket = useStore($detectedMarket);
-  const hasManual = useStore($hasManualSelection);
   const fx = useStore($fxSnapshot);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');

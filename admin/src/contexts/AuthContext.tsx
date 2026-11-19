@@ -24,7 +24,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await authApi.me();
       if (res.success && res.data) {
-        setUser({ ...res.data, mfaEnabled: res.data.mfaEnabled, mfaVerified: true });
+        const u = res.data.user;
+        if (u) {
+          const access = u.adminAccess;
+          if (!access && u.role !== 'admin' && u.role !== 'superadmin' && u.role !== 'staff') {
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+          setUser({
+            id: u.id,
+            email: u.email,
+            name: u.fullName ?? null,
+            role: (access?.roleSlug ?? u.role ?? 'super_admin') as AdminUser['role'],
+            permissions: access?.permissions ?? ['*'],
+            mfaEnabled: Boolean(access?.mfaEnabled),
+            mfaVerified: true,
+          });
+        } else if (res.data.id && res.data.email) {
+          setUser({
+            id: res.data.id,
+            email: res.data.email,
+            name: res.data.name ?? null,
+            role: (res.data.role ?? 'super_admin') as AdminUser['role'],
+            permissions: res.data.permissions ?? ['*'],
+            mfaEnabled: Boolean(res.data.mfaEnabled),
+            mfaVerified: true,
+          });
+        }
       }
     } catch { /* ignore */ }
     setLoading(false);
@@ -65,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission = (permission: string) => {
     if (!user) return false;
-    if (user.role === 'super_admin') return true;
+    if (user.role === 'super_admin' || (user.role as string) === 'superadmin' || user.permissions.includes('*')) return true;
     return user.permissions.includes(permission);
   };
 
