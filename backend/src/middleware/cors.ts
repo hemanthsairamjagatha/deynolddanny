@@ -19,7 +19,7 @@ export const cors = createMiddleware(async (c, next) => {
       env.ADMIN_URL,
       'https://deynolddanny.com',
       'https://www.deynolddanny.com',
-      'https://deynolddanny.pixenox.com',
+      'https://deynold-danny-backend.deynolddanny.workers.dev',
       ...(env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()) : []),
     ]
       .filter(Boolean)

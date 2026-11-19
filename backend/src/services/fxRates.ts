@@ -47,8 +47,8 @@ const EU_COUNTRY_CODES = new Set([
 ]);
 
 /**
- * Resolves an incoming edge ISO 3166-1 alpha-2 country code (from Cloudflare cf-ipcountry
- * or Vercel x-vercel-ip-country) to the most appropriate supported luxury market.
+ * Resolves an incoming Cloudflare edge ISO 3166-1 alpha-2 country code (cf-ipcountry)
+ * to the most appropriate supported luxury market.
  */
 export function resolveMarketFromCountryCode(rawCountry: string | null | undefined): string {
   if (!rawCountry) return 'IN';

@@ -1,7 +1,7 @@
 // scripts/build-admin.mjs
 // Cross-platform build helper: installs admin/ deps if missing, builds the
 // Deynold Danny Commerce OS React SPA, and copies admin/dist -> dist/admin
-// so Vercel serves both the Astro storefront and /admin/* from one deployment.
+// so Cloudflare Workers Static Assets serves both the Astro storefront and /admin/* from one unified edge deployment.
 
 import fs from 'node:fs';
 import path from 'node:path';

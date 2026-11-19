@@ -3398,3 +3398,28 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-19 — Complete Vercel Removal & Unified Cloudflare Workers Static Assets Deployment + Live Product Carousel Hydration**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed all Vercel configuration (`vercel.json`) and references across the entire repository in favor of a single unified Cloudflare Workers deployment using Workers Static Assets (`[assets]` -> `../dist` bound as `ASSETS`). Scoped API `securityHeaders` & `cors` in `backend/src/index.ts` strictly to `/api/*`, `/media/*`, and `/health*`, added dedicated `/admin` and `/admin/*` SPA routing with `X-Robots-Tag: noindex, nofollow` and `X-Frame-Options: DENY`, added D1 `cms_redirects` resolution and branded `/404.html` fallback, created `public/_headers`, updated `cors.ts` to allow `https://deynold-danny-backend.deynolddanny.workers.dev` and `deynolddanny.com`, added unified `npm run deploy` script in root `package.json`, and wired shared live `/api/products` hydration inside `src/features/catalog/components/ProductCarousel.tsx` so product price/title/image changes in Admin reflect live on the homepage without rebuilding.
+  - **Files Added:**
+    - `public/_headers`
+  - **Files Deleted:**
+    - `vercel.json`
+  - **Files Modified:**
+    - `backend/wrangler.toml`, `backend/src/index.ts`, `backend/src/types/bindings.d.ts`, `backend/src/middleware/cors.ts`, `backend/src/routes/storefront.ts`, `backend/src/services/fxRates.ts`
+    - `src/features/catalog/components/ProductCarousel.tsx`
+    - `scripts/build-admin.mjs`, `package.json`, `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Removed `vercel.json`; added `public/_headers` and Cloudflare Workers `[assets]` binding in `backend/wrangler.toml` so Storefront + Commerce OS Admin SPA + Hono API + D1 + KV + Cron deploy as one unified Cloudflare Worker.
+  - **Validation:**
+    - `git grep -i vercel`: PASS (0 matches in active source/config).
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`9 / 9` Miniflare D1/Worker tests passing).
+    - `npx astro check`: PASS (104 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests passing).
+    - `npm run build`: PASS (59 Astro pages + Commerce OS `dist/admin` + `dist/_headers`).
+    - `npx wrangler deploy`: PASS (204 static assets uploaded; unified Worker live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `fb1f4e9d-a2c8-4ef4-b247-c81160a04eb9`).
+    - Live Smoke Tests: PASS (`/` 200, `/about` 200, `/legal/privacy-policy` 200, `/admin` 200 + `noindex`, `/admin/navigation` 200 + `noindex`, `/api/storefront/published` 200, `/api/storefront/exchange-rates` 200, `/api/products` 200 [12 items], `OPTIONS /api/auth/send-otp` 204).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

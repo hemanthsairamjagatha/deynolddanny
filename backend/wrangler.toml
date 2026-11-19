@@ -26,6 +26,11 @@ COURIER_FAIL_OPEN = "false"
 SINGLE_USE_COUPONS_PER_USER = "true"
 RETURN_WINDOW_DAYS = "14"
 
+# Unified Cloudflare Workers Static Assets (Astro Storefront + /admin Commerce OS SPA)
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+
 # Cloudflare D1 Database
 [[d1_databases]]
 binding = "DB"
@@ -47,12 +52,15 @@ crons = ["*/5 * * * *"]
 # -----------------------------------------------------------------------------
 [env.staging]
 name = "deynold-danny-backend-staging"
+[env.staging.assets]
+directory = "../dist"
+binding = "ASSETS"
 [env.staging.vars]
 ENVIRONMENT = "staging"
-FRONTEND_URL = "https://deynolddanny.pixenox.com"
-BACKEND_URL = "https://deynold-danny-backend.deynolddanny.workers.dev"
-ADMIN_URL = "https://deynolddanny.pixenox.com"
-MEDIA_BUCKET_PUBLIC_URL = "https://deynolddanny.pixenox.com/media"
+FRONTEND_URL = "https://deynold-danny-backend-staging.deynolddanny.workers.dev"
+BACKEND_URL = "https://deynold-danny-backend-staging.deynolddanny.workers.dev"
+ADMIN_URL = "https://deynold-danny-backend-staging.deynolddanny.workers.dev"
+MEDIA_BUCKET_PUBLIC_URL = "https://deynold-danny-backend-staging.deynolddanny.workers.dev/media"
 SHIPROCKET_PICKUP_PINCODE = ""
 SHIPROCKET_CHANNEL_ID = ""
 CASHFREE_API_URL = "https://sandbox.cashfree.com/pg"
@@ -85,12 +93,15 @@ crons = ["*/5 * * * *"]
 # -----------------------------------------------------------------------------
 [env.production]
 name = "deynold-danny-backend"
+[env.production.assets]
+directory = "../dist"
+binding = "ASSETS"
 [env.production.vars]
 ENVIRONMENT = "production"
 FRONTEND_URL = "https://deynolddanny.com"
-BACKEND_URL = "https://api.deynolddanny.com"
-ADMIN_URL = "https://admin.deynolddanny.com"
-MEDIA_BUCKET_PUBLIC_URL = "https://media.deynolddanny.com"
+BACKEND_URL = "https://deynolddanny.com"
+ADMIN_URL = "https://deynolddanny.com"
+MEDIA_BUCKET_PUBLIC_URL = "https://deynolddanny.com/media"
 SHIPROCKET_PICKUP_PINCODE = ""
 SHIPROCKET_CHANNEL_ID = ""
 CASHFREE_API_URL = "https://api.cashfree.com/pg"

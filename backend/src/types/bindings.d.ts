@@ -3,6 +3,7 @@ export interface Env {
   // Cloudflare Bindings
   DB: D1Database;
   CATALOG_KV: KVNamespace;        // KV namespace for catalog read-cache and ephemeral courier auth tokens
+  ASSETS?: Fetcher;               // Cloudflare Workers Static Assets binding (Astro storefront + /admin SPA)
   MEDIA_BUCKET?: R2Bucket;        // R2 bucket for product images
   EMAIL_QUEUE?: Queue;            // Optional Queue for email jobs
 

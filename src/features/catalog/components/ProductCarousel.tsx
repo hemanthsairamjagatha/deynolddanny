@@ -1,6 +1,16 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { ProductCardData } from '../types/product.types';
+import { fetchProducts } from '../api/catalog.api';
 import ProductCard from './ProductCard';
+
+// Shared in-memory browser fetch so multiple carousels on the homepage trigger only 1 live /api/products request
+let sharedLiveCatalogPromise: Promise<ProductCardData[]> | null = null;
+function getLiveCatalogOnce(): Promise<ProductCardData[]> {
+  if (!sharedLiveCatalogPromise) {
+    sharedLiveCatalogPromise = fetchProducts({ limit: 48 }).catch(() => []);
+  }
+  return sharedLiveCatalogPromise;
+}
 
 export interface CarouselCategory {
   label: string;
@@ -37,17 +47,40 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [canScrollPrev, setCanScrollPrev] = useState<boolean>(false);
   const [canScrollNext, setCanScrollNext] = useState<boolean>(true);
+  const [liveCatalog, setLiveCatalog] = useState<ProductCardData[] | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    getLiveCatalogOnce().then((items) => {
+      if (active && Array.isArray(items) && items.length > 0) {
+        setLiveCatalog(items);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Merge live D1 product updates (price, title, images, badges) into the initial carousel items
+  const liveInitialProducts = useMemo(() => {
+    if (!liveCatalog || liveCatalog.length === 0) return products;
+    const bySlug = new Map(liveCatalog.map((p) => [p.slug || p.id, p]));
+    return products.map((p) => bySlug.get(p.slug || p.id) ?? p);
+  }, [products, liveCatalog]);
 
   // Compute filtered products based on active category
   const displayedProducts = useMemo(() => {
     if (!categories || categories.length === 0 || !activeCategory || activeCategory === 'all') {
-      return products;
+      return liveInitialProducts;
     }
 
-    const source = (allCatalogProducts && allCatalogProducts.length > 0)
-      ? allCatalogProducts
-      : products;
+    const source =
+      liveCatalog && liveCatalog.length > 0
+        ? liveCatalog
+        : allCatalogProducts && allCatalogProducts.length > 0
+          ? allCatalogProducts
+          : liveInitialProducts;
 
     const catLower = activeCategory.toLowerCase();
 
@@ -130,8 +163,8 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
       );
     });
 
-    return matches.length > 0 ? matches : products;
-  }, [activeCategory, categories, products, allCatalogProducts]);
+    return matches.length > 0 ? matches : liveInitialProducts;
+  }, [activeCategory, categories, liveInitialProducts, liveCatalog, allCatalogProducts]);
 
   // Dynamic View All destination when category is selected
   const activeViewAllLink = useMemo(() => {

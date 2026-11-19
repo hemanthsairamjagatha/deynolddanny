@@ -8,6 +8,7 @@
     "start": "astro dev",
     "build:admin": "node scripts/build-admin.mjs",
     "build": "npm run clean && astro build && npm run build:admin",
+    "deploy": "npm run build && npm --prefix backend run deploy",
     "preview": "astro preview",
     "astro": "astro"
   },
