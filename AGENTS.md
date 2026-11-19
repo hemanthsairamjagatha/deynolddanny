@@ -3348,3 +3348,24 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-19 — Automatic Edge GeoIP Location Detection & Dynamic Localized Pricing**:
+  - **Status:** COMPLETE
+  - **Summary:** Implemented automatic visitor location detection and localized currency switching using Cloudflare edge headers (`CF-IPCountry`) and Vercel headers (`X-Vercel-IP-Country`) with European Union member state aggregation (`EU`) and universal international reserve benchmark fallback (`US`). Enabled zero-prompt seamless pricing updates: when an international customer visits, prices across all catalog cards, detail views, cart, wishlist, and search reactively format in their local currency (`USD $`, `GBP £`, `EUR €`, `AED`, `SGD S$`, `AUD A$`, `CAD C$`, `CHF`, `JPY ¥`, `SAR`, `QAR`) without intrusive permission popups. Added manual override persistence (`localStorage`) so explicit user market choices are permanently preserved. Updated `CurrencySelector.tsx` to display a subtle "Detected Location" badge next to the user's origin country.
+  - **Files Modified:**
+    - `backend/src/services/fxRates.ts`
+    - `backend/src/routes/storefront.ts`
+    - `src/lib/currency/currency.store.ts`
+    - `src/components/layout/CurrencySelector.tsx`
+    - `AGENTS.md`
+    - `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests passing).
+    - `npm run build`: PASS (59 Astro pages + Commerce OS `dist/admin` built cleanly).
+    - `npx wrangler deploy`: PASS (`deynold-danny-backend` live with Current Version ID `44eed535-99f2-4d8f-9ef5-0a1386e3229d`).
+    - Live Edge GeoIP tests: PASS (`US` -> `US`, `DE` -> `EU`, `AE` -> `AE`, domestic -> `IN`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

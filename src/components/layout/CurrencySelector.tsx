@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '@nanostores/react';
 import {
+  $detectedMarket,
   $fxSnapshot,
+  $hasManualSelection,
   $selectedCountry,
   getActiveMarket,
   initCurrencyStore,
@@ -19,6 +21,8 @@ const REGION_ORDER: MarketOption['region'][] = [
 
 export const CurrencySelector: React.FC = () => {
   const selectedCountry = useStore($selectedCountry);
+  const detectedMarket = useStore($detectedMarket);
+  const hasManual = useStore($hasManualSelection);
   const fx = useStore($fxSnapshot);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -199,9 +203,22 @@ export const CurrencySelector: React.FC = () => {
                           }`}
                         >
                           <div className="min-w-0">
-                            <p className="text-xs font-medium tracking-wide uppercase">
-                              {m.countryName}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs font-medium tracking-wide uppercase">
+                                {m.countryName}
+                              </p>
+                              {m.countryCode === detectedMarket && (
+                                <span
+                                  className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-[2px] font-mono ${
+                                    isSelected
+                                      ? 'bg-white/20 text-white'
+                                      : 'bg-neutral-100 text-neutral-600 border border-neutral-200'
+                                  }`}
+                                >
+                                  Detected Location
+                                </span>
+                              )}
+                            </div>
                             <p
                               className={`text-[10px] mt-1 leading-snug ${
                                 isSelected ? 'text-neutral-300' : 'text-neutral-500'

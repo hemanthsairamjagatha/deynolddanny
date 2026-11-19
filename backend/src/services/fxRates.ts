@@ -36,6 +36,31 @@ export interface FxSnapshot {
   settlementDisclosure: string;
   rates: Record<string, number>;
   markets: MarketCurrency[];
+  detectedCountry?: string | null;
+  detectedMarket?: string;
+}
+
+const EU_COUNTRY_CODES = new Set([
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
+  'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
+  'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+]);
+
+/**
+ * Resolves an incoming edge ISO 3166-1 alpha-2 country code (from Cloudflare cf-ipcountry
+ * or Vercel x-vercel-ip-country) to the most appropriate supported luxury market.
+ */
+export function resolveMarketFromCountryCode(rawCountry: string | null | undefined): string {
+  if (!rawCountry) return 'IN';
+  const code = rawCountry.trim().toUpperCase();
+  if (GLOBAL_MARKETS.some((m) => m.countryCode === code)) {
+    return code;
+  }
+  if (EU_COUNTRY_CODES.has(code)) {
+    return 'EU';
+  }
+  // Universal international luxury reserve benchmark
+  return 'US';
 }
 
 interface MarketSeed {

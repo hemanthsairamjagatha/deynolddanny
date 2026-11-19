@@ -27,6 +27,8 @@ export interface FxSnapshot {
   settlementDisclosure: string;
   rates: Record<string, number>;
   markets: MarketOption[];
+  detectedCountry?: string | null;
+  detectedMarket?: string;
 }
 
 export const DEFAULT_MARKETS: MarketOption[] = [
@@ -59,6 +61,8 @@ const DEFAULT_SNAPSHOT: FxSnapshot = {
 const STORAGE_KEY = 'dd_region_currency';
 
 export const $selectedCountry = atom<string>('IN');
+export const $detectedMarket = atom<string | null>(null);
+export const $hasManualSelection = atom<boolean>(false);
 export const $fxSnapshot = atom<FxSnapshot>(DEFAULT_SNAPSHOT);
 
 let fxInitialized = false;
@@ -134,6 +138,7 @@ export function selectMarket(countryCode: string): void {
   const snap = $fxSnapshot.get();
   const valid = snap.markets.some((m) => m.countryCode === countryCode) ? countryCode : 'IN';
   $selectedCountry.set(valid);
+  $hasManualSelection.set(true);
   if (typeof window !== 'undefined') {
     try {
       window.localStorage.setItem(STORAGE_KEY, valid);
@@ -181,10 +186,13 @@ export function syncStaticDomPrices(): void {
 export async function initCurrencyStore(): Promise<void> {
   if (typeof window === 'undefined') return;
 
+  let hasSavedPreference = false;
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved && /^[A-Z]{2}$/.test(saved)) {
       $selectedCountry.set(saved);
+      $hasManualSelection.set(true);
+      hasSavedPreference = true;
     }
   } catch {
     // Ignore storage read failure
@@ -201,10 +209,23 @@ export async function initCurrencyStore(): Promise<void> {
     const json = (await res.json()) as { success?: boolean; data?: FxSnapshot };
     if (json.success && json.data && Array.isArray(json.data.markets) && json.data.markets.length > 0) {
       $fxSnapshot.set(json.data);
-      // If previously selected market was disabled by Admin, revert gracefully to India
-      const current = $selectedCountry.get();
-      if (!json.data.markets.some((m) => m.countryCode === current)) {
-        $selectedCountry.set('IN');
+
+      if (json.data.detectedMarket) {
+        $detectedMarket.set(json.data.detectedMarket);
+      }
+
+      // If customer has NOT manually chosen a market before, auto-apply the edge-detected country market
+      if (!hasSavedPreference && json.data.detectedMarket) {
+        const detected = json.data.detectedMarket;
+        if (json.data.markets.some((m) => m.countryCode === detected)) {
+          $selectedCountry.set(detected);
+        }
+      } else {
+        // If previously selected market was disabled by Admin, revert gracefully to India
+        const current = $selectedCountry.get();
+        if (!json.data.markets.some((m) => m.countryCode === current)) {
+          $selectedCountry.set('IN');
+        }
       }
       syncStaticDomPrices();
     }

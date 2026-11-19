@@ -7,25 +7,41 @@ import {
 } from '../services/storefrontCache.js';
 import { verifyPreviewToken } from '../services/mfa.js';
 import { formatPaiseToDisplay, paiseToRupees } from '../services/money.js';
-import { getLiveFxSnapshot } from '../services/fxRates.js';
+import { getLiveFxSnapshot, resolveMarketFromCountryCode } from '../services/fxRates.js';
 
 const storefront = new Hono<{ Bindings: Env }>();
 
 // ─── GET /api/storefront/exchange-rates ──────────────────────────────────────
-// Live KV-cached multi-country INR FX rates with admin spread/market controls
+// Live KV-cached multi-country INR FX rates with edge GeoIP auto-detection
 storefront.get('/exchange-rates', async (c) => {
   const snapshot = await getLiveFxSnapshot(c.env, false);
+
+  // Edge GeoIP detection: check Cloudflare, Vercel headers, or optional ?country= override
+  const queryCountry = c.req.query('country')?.trim().toUpperCase();
+  const cfCountry =
+    (c.req.raw as unknown as { cf?: { country?: string } }).cf?.country ||
+    c.req.header('cf-ipcountry') ||
+    c.req.header('x-vercel-ip-country') ||
+    null;
+
+  const rawCountry = queryCountry && /^[A-Z]{2}$/.test(queryCountry) ? queryCountry : cfCountry;
+  const detectedMarket = resolveMarketFromCountryCode(rawCountry);
+
   return c.json(
     {
       success: true,
       data: {
         ...snapshot,
+        detectedCountry: rawCountry ? rawCountry.toUpperCase() : null,
+        detectedMarket,
         markets: snapshot.markets.filter((m) => m.enabled),
       },
     },
     200,
     {
-      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900',
+      // Private so client browser caches briefly, but shared CDN does not cache GeoIP across users
+      'Cache-Control': 'private, no-cache, no-store',
+      Vary: 'CF-IPCountry, X-Vercel-IP-Country',
     },
   );
 });
