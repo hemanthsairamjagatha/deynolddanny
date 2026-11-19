@@ -13,6 +13,8 @@ export interface JwtPayload {
   email: string;
   role: string;
   ver?: number;
+  mfa?: boolean;
+  adminRole?: string;
 }
 
 /**
@@ -20,12 +22,16 @@ export interface JwtPayload {
  */
 export async function signAccessToken(payload: JwtPayload, secret: string): Promise<string> {
   const key = new TextEncoder().encode(secret);
-  return new SignJWT({
+  const claims: Record<string, unknown> = {
     sub: payload.sub,
     email: payload.email,
     role: payload.role,
     ver: payload.ver ?? 1,
-  })
+  };
+  if (typeof payload.mfa === 'boolean') claims.mfa = payload.mfa;
+  if (payload.adminRole) claims.adminRole = payload.adminRole;
+
+  return new SignJWT(claims)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)

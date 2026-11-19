@@ -71,6 +71,10 @@ const ogImageUrl = ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteB
   </a>
   <slot />
   <CookieConsentBanner client:load />
+  <script>
+    import { hydrateLiveStorefront } from '../lib/storefront/live-cms';
+    hydrateLiveStorefront();
+  </script>
 </body>
 </html>
 

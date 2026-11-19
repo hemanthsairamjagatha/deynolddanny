@@ -200,11 +200,11 @@ implementation record accurate, not to rewrite standing rules.
 
 ### Current repository structure / implementation snapshot
 
-- **Verification date:** 2026-11-16
-- **Verification status:** Verified against active working repository (`Get-ChildItem`, `astro check`, `tsc --noEmit`, `astro build`, `tests/frontend-unit.test.mjs`, `backend/tests/*.test.mjs`)
-- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Frontend) · Hono + Cloudflare Workers + D1 + KV + R2 + Queues (Backend)
-- **Active Routes (`src/pages/`):**
-  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, `ProductCarousel`, `StyleLayering`, `Organization`/`WebSite` JSON-LD)
+- **Verification date:** 2026-11-19
+- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix admin run build`, `npm run build`, `node --test tests/frontend-unit.test.mjs`, `npm --prefix backend run type-check`, `npm --prefix backend test`, live Cloudflare D1 migrations `0005` + `0006` & Worker deploy)
+- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Storefront `src/`) · React 18.3.1 + Vite 5.4 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + `@dnd-kit` (Commerce OS Admin SPA `admin/`) · Hono + Cloudflare Workers + D1 + KV + R2 + Queues (Backend `backend/`)
+- **Active Routes (`src/pages/` + `/admin/*` SPA):**
+  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, `ProductCarousel`, `StyleLayering`, `Organization`/`WebSite` JSON-LD, live CMS & Brand hydration bridge via `src/lib/storefront/live-cms.ts`)
   - `/categories` -> `src/pages/categories/index.astro` (Storefront category directory)
   - `/categories/[slug]` -> `src/pages/categories/[slug].astro` (Strictly isolated category product listing)
   - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with live `/availability` stock, `Product` JSON-LD, Fit Finder, Size Guide)
@@ -218,18 +218,50 @@ implementation record accurate, not to rewrite standing rules.
   - `/account/sign-in` (alias `/login`), `/account/sign-up` (alias `/signup`), `/account/forgot-password` -> `src/pages/account/*.astro` (`noindex`, pure Email OTP authentication)
   - `/legal/{privacy-policy,shipping-returns,terms}` -> `src/pages/legal/*.astro`
   - `/orders/track` (alias `/track`) -> `src/pages/orders/track.astro` (`noindex`, PII-verified milestone & Shiprocket tracking)
+  - `/admin` & `/admin/*` -> Dedicated Commerce OS SPA (`admin/`, compiled into `dist/admin` during `npm run build` and rewritten by `vercel.json` with `X-Robots-Tag: noindex, nofollow` and `Disallow: /admin/` in `robots.txt`)
   - `/404` & `/500` -> `src/pages/404.astro`, `src/pages/500.astro` (`noindex`, branded error pages)
   - `/robots.txt` & `/sitemap.xml` -> `src/pages/robots.txt.ts`, `src/pages/sitemap.xml.ts`
 
 ```text
 deynold-danny-ecommerce/
+├── admin/                               # Deynold Danny Commerce Operating System (dedicated React + Vite SPA served at /admin/*)
+│   ├── src/
+│   │   ├── components/ui/index.tsx      # Design system primitives (Button, Badge, InfoTooltip, Input, Textarea, Select, Modal, Tabs, DataTable, KpiCard, SearchBar)
+│   │   ├── contexts/AuthContext.tsx     # Memory-only JWT + HttpOnly refresh cookie + OTP/TOTP MFA + RBAC permission guard
+│   │   ├── layouts/AdminLayout.tsx      # 7-group operational navigation shell + mobile drawer
+│   │   ├── lib/{api.ts, types.ts}       # Complete typed admin API client & domain contracts
+│   │   ├── modules/
+│   │   │   ├── analytics/AnalyticsPage.tsx
+│   │   │   ├── auth/SignInPage.tsx
+│   │   │   ├── brand/BrandPage.tsx
+│   │   │   ├── catalog/{CategoriesPage.tsx, CollectionsPage.tsx, ProductEditor.tsx, ProductsListPage.tsx, SizeGuidesPage.tsx}
+│   │   │   ├── concierge/InquiriesPage.tsx
+│   │   │   ├── customers/{CustomerDetailPage.tsx, CustomersListPage.tsx}
+│   │   │   ├── dashboard/DashboardPage.tsx
+│   │   │   ├── disputes/DisputesPage.tsx
+│   │   │   ├── inventory/InventoryPage.tsx
+│   │   │   ├── media/MediaLibraryPage.tsx
+│   │   │   ├── messaging/TemplatesPage.tsx
+│   │   │   ├── navigation/NavigationPage.tsx
+│   │   │   ├── orders/{OrderDetailPage.tsx, OrdersListPage.tsx}
+│   │   │   ├── promotions/CouponsPage.tsx
+│   │   │   ├── returns/ReturnsPage.tsx
+│   │   │   ├── reviews/ReviewsPage.tsx
+│   │   │   ├── security/SecurityPage.tsx
+│   │   │   ├── seo/SeoPage.tsx
+│   │   │   ├── settings/SettingsPage.tsx
+│   │   │   └── studio/{PageEditor.tsx, StudioPage.tsx}
+│   │   ├── styles/globals.css
+│   │   └── {App.tsx, main.tsx, vite-env.d.ts}
+│   └── {index.html, package.json, package-lock.json, postcss.config.js, tailwind.config.ts, tsconfig.json, vite.config.ts}
 ├── backend/
 │   ├── migrations/
 │   │   ├── 0001_initial_schema.sql
 │   │   ├── 0002_seed_data.sql
 │   │   ├── 0003_refresh_tokens_and_hardening.sql
 │   │   ├── 0004_audit_logs.sql
-│   │   └── 0005_schema_hardening_and_triggers.sql
+│   │   ├── 0005_schema_hardening_and_triggers.sql
+│   │   └── 0006_commerce_os.sql
 │   ├── src/
 │   │   ├── config/{constants.ts, env.ts, policy.ts}
 │   │   ├── db/{client.ts, queries/{analytics.ts, cart.ts, inventory.ts, orders.ts, otps.ts, products.ts, users.ts}}
@@ -237,20 +269,22 @@ deynold-danny-ecommerce/
 │   │   ├── middleware/{adminAuth.ts, auth.ts, cors.ts, errorHandler.ts, rateLimit.ts, securityHeaders.ts}
 │   │   ├── queues/emailConsumer.ts
 │   │   ├── routes/
-│   │   │   ├── admin/{coupons.ts, customers.ts, dashboard.ts, index.ts, inventory.ts, logs.ts, orders.ts, products.ts, uploads.ts}
-│   │   │   └── {auth.ts, cart.ts, categories.ts, checkout.ts, contact.ts, coupons.ts, newsletter.ts, orders.ts, payments.ts, products.ts, search.ts, shipping.ts, users.ts, webhooks.ts, wishlist.ts}
-│   │   ├── services/{cache.ts, cashfree.ts, crypto.ts, jwt.ts, money.ts, orderLifecycle.ts, r2Storage.ts, razorpay.ts, resend.ts, shiprocket.ts, stockEngine.cron.ts, stockEngine.ts}
+│   │   │   ├── admin/{analyticsAdmin.ts, brand.ts, categories.ts, cms.ts, collections.ts, coupons.ts, customers.ts, dashboard.ts, disputes.ts, index.ts, inquiries.ts, inventory.ts, logs.ts, media.ts, navigation.ts, orders.ts, payments.ts, products.ts, returns.ts, reviews.ts, security.ts, seo.ts, settings.ts, sizeGuides.ts, templates.ts, uploads.ts}
+│   │   │   └── {analytics.ts, auth.ts, cart.ts, categories.ts, checkout.ts, contact.ts, coupons.ts, media.ts, newsletter.ts, orders.ts, payments.ts, products.ts, reviews.ts, search.ts, shipping.ts, storefront.ts, users.ts, webhooks.ts, wishlist.ts}
+│   │   ├── services/{cache.ts, cashfree.ts, crypto.ts, jwt.ts, mfa.ts, money.ts, orderLifecycle.ts, r2Storage.ts, razorpay.ts, resend.ts, shiprocket.ts, stockEngine.cron.ts, stockEngine.ts, storefrontCache.ts}
 │   │   └── types/{api.ts, bindings.d.ts, models.ts}
 │   ├── tests/
 │   │   ├── helpers/miniflare-harness.mjs
 │   │   ├── db-and-worker.test.mjs
 │   │   └── payment-security.test.mjs
-│   ├── {.dev.vars.example, package.json, package-lock.json, SETUP.md, tsconfig.json, wrangler.toml}
+│   └── {.dev.vars.example, package.json, package-lock.json, SETUP.md, tsconfig.json, wrangler.toml}
 ├── public/
 │   ├── hero-banner.jpg
 │   ├── hero-banner.png
 │   ├── logo.png
 │   └── images/...
+├── scripts/
+│   └── build-admin.mjs
 ├── src/
 │   ├── components/
 │   │   └── layout/{AccountTrigger.tsx, Footer.astro, Header.astro}
@@ -276,7 +310,7 @@ deynold-danny-ecommerce/
 │   │   ├── search/{components/{SearchDialog.tsx, SearchPageExperience.tsx, SearchTrigger.tsx}, store/search.store.ts}
 │   │   └── wishlist/{api/wishlist.api.ts, components/{WishlistButton.tsx, WishlistExperience.tsx}, store/wishlist.store.ts, types/wishlist.types.ts}
 │   ├── layouts/{AuthLayout.astro, BaseLayout.astro, Layout.astro, StorefrontLayout.astro}
-│   ├── lib/{api/client.ts, consent/consent.store.ts}
+│   ├── lib/{api/client.ts, consent/consent.store.ts, storefront/live-cms.ts}
 │   ├── pages/
 │   │   ├── account/{forgot-password.astro, index.astro, sign-in.astro, sign-up.astro}
 │   │   ├── categories/{[slug].astro, index.astro}
@@ -2144,3 +2178,32 @@ task.
 
 
 
+
+- **2026-11-19 — Deynold Danny Commerce Operating System (Dedicated Admin Control Centre, CMS, Brand Identity, RBAC/MFA & Live Deployment)**:
+  - **Status:** COMPLETE
+  - **Summary:** Built and deployed the full **Deynold Danny Commerce Operating System** spanning D1 schema migration `0006_commerce_os.sql`, 17 new Hono admin route modules + 4 public storefront/media/reviews/analytics endpoints, dedicated React + Vite + TypeScript + Tailwind SPA in `admin/` with 27 complete operational and visual studio modules (every configurable field documented with `InfoTooltip`), storefront runtime hydration bridge (`src/lib/storefront/live-cms.ts`) for published Brand Identity / announcement bar / CMS sections plus signed private draft preview (`?dd_preview=`), and single-deployment Vercel build integration (`scripts/build-admin.mjs` + `vercel.json` `/admin/*` SPA rewrites & `noindex` security headers). Applied remote Cloudflare D1 migrations `0005` and `0006`, deployed `deynold-danny-backend` to Cloudflare Workers, and verified live edge endpoints.
+  - **Files Added:**
+    - `admin/**` (27 modules across auth, dashboard, brand, studio, navigation, media, catalog, inventory, orders, customers, returns, disputes, promotions, reviews, concierge, analytics, messaging, seo, settings, security + shared UI primitives, AuthContext, AdminLayout, typed API client, Vite/Tailwind/TS config)
+    - `backend/migrations/0006_commerce_os.sql`
+    - `backend/src/routes/admin/{analyticsAdmin.ts, brand.ts, categories.ts, cms.ts, collections.ts, disputes.ts, inquiries.ts, media.ts, navigation.ts, payments.ts, returns.ts, reviews.ts, security.ts, seo.ts, settings.ts, sizeGuides.ts, templates.ts}`
+    - `backend/src/routes/{analytics.ts, media.ts, reviews.ts, storefront.ts}`
+    - `backend/src/services/{mfa.ts, storefrontCache.ts}`
+    - `src/lib/storefront/live-cms.ts`
+    - `scripts/build-admin.mjs`
+  - **Files Modified:**
+    - `backend/src/index.ts`, `backend/src/middleware/adminAuth.ts`, `backend/src/routes/admin/{index.ts, inventory.ts, products.ts}`, `backend/src/routes/{auth.ts, contact.ts}`, `backend/src/services/{jwt.ts, resend.ts}`
+    - `src/layouts/BaseLayout.astro`, `src/pages/robots.txt.ts`
+    - `package.json`, `tsconfig.json`, `vercel.json`, `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added root `admin/` workspace for the dedicated Commerce OS React SPA, added `scripts/build-admin.mjs`, added `src/lib/storefront/live-cms.ts`, and extended `backend/` with migration `0006`, 17 admin route modules, 4 public routes, and MFA/storefront-cache services.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`9 / 9` Miniflare D1/Worker tests passing).
+    - `npm --prefix admin run build`: PASS (`tsc && vite build`, 0 errors, 27 lazy-split chunks).
+    - `npx astro check`: PASS (100 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests passing).
+    - `npm run build`: PASS (57 Astro pages + Commerce OS `dist/admin` bundle built cleanly).
+    - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0005` + `0006` applied).
+    - `npx wrangler deploy`: PASS (`deynold-danny-backend` live at `https://deynold-danny-backend.deynolddanny.workers.dev`; `/health`, `/api/storefront/published`, `/api/storefront/pages` 200 OK; `/api/admin/ping` 401 guard verified).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

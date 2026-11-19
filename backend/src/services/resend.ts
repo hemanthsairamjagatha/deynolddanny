@@ -377,3 +377,46 @@ export async function sendRefundProcessedEmail(
     fromAddress,
   );
 }
+
+/**
+ * Safely interpolates {{var}} tokens with HTML escaping for email templates.
+ */
+export function interpolateTemplate(
+  template: string,
+  variables: Record<string, string | number | undefined | null>,
+  escapeValues = true,
+): string {
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_m, key: string) => {
+    const raw = variables[key] ?? '';
+    return escapeValues ? escapeHtml(raw) : String(raw);
+  });
+}
+
+export async function renderDbEmailTemplate(
+  db: D1Database,
+  templateKey: string,
+  variables: Record<string, string | number | undefined | null>,
+): Promise<{ subject: string; html: string } | null> {
+  const row = await db
+    .prepare(
+      `SELECT subject_template, html_template, is_active FROM email_templates WHERE template_key = ?1 LIMIT 1`,
+    )
+    .bind(templateKey)
+    .first<{ subject_template: string; html_template: string; is_active: number }>();
+
+  if (!row || row.is_active !== 1) return null;
+  return {
+    subject: interpolateTemplate(row.subject_template, variables, false),
+    html: interpolateTemplate(row.html_template, variables, true),
+  };
+}
+
+export async function sendConfiguredEmail(
+  resendApiKey: string,
+  to: string,
+  subject: string,
+  html: string,
+  fromAddress?: string,
+): Promise<boolean> {
+  return sendEmail(to, subject, html, resendApiKey, fromAddress);
+}

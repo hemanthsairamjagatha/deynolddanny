@@ -28,6 +28,10 @@ import contact from './routes/contact.js';
 import coupons from './routes/coupons.js';
 import shipping from './routes/shipping.js';
 import webhooks from './routes/webhooks.js';
+import storefront from './routes/storefront.js';
+import publicMedia from './routes/media.js';
+import publicReviews from './routes/reviews.js';
+import publicAnalytics from './routes/analytics.js';
 import admin from './routes/admin/index.js';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -140,6 +144,10 @@ app.route('/api/contact', contact);
 app.route('/api/coupons', coupons);
 app.route('/api/shipping', shipping);
 app.route('/api/webhooks', webhooks);
+app.route('/api/storefront', storefront);
+app.route('/media', publicMedia);
+app.route('/api/reviews', publicReviews);
+app.route('/api/analytics', publicAnalytics);
 
 // ─── Protected Admin Routes ─────────────────────────────────────────────────
 

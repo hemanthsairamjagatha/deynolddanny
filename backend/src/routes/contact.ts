@@ -4,6 +4,8 @@ import { z } from 'zod';
 import type { Env } from '../types/bindings.js';
 import { checkD1RateLimit, createRateLimitResponse } from '../middleware/rateLimit.js';
 import { sendContactAdminEmail } from '../services/resend.js';
+import { generateId } from '../services/crypto.js';
+import { nowIso } from '../db/client.js';
 
 const contact = new Hono<{ Bindings: Env }>();
 
@@ -23,7 +25,6 @@ contact.post('/', zValidator('json', contactSchema), async (c) => {
   const env = c.env;
   const ip = c.req.header('CF-Connecting-IP') || c.req.header('x-forwarded-for') || 'unknown';
 
-  // D1-backed dual rate limit (email + IP) — avoids consuming KV daily write quota
   const [emailLimit, ipLimit] = await Promise.all([
     checkD1RateLimit(env.DB, `contact_email:${body.email}`, 3, 3600),
     checkD1RateLimit(env.DB, `contact_ip:${ip}`, 6, 3600),
@@ -32,6 +33,25 @@ contact.post('/', zValidator('json', contactSchema), async (c) => {
   if (!emailLimit.allowed || !ipLimit.allowed) {
     return c.json(createRateLimitResponse('Too many contact submissions. Please try again later.'), 429);
   }
+
+  const inquiryId = generateId('inq_');
+  const now = nowIso();
+  await env.DB
+    .prepare(
+      `INSERT INTO contact_inquiries (id, name, email, phone, subject, message, preferred_contact, status, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'new', ?8, ?8)`,
+    )
+    .bind(
+      inquiryId,
+      body.name,
+      body.email,
+      body.phone ?? null,
+      body.subject,
+      body.message,
+      body.preferredContact,
+      now,
+    )
+    .run();
 
   if (env.RESEND_API_KEY && env.ADMIN_EMAILS) {
     const adminEmails = env.ADMIN_EMAILS.split(',')
@@ -53,6 +73,7 @@ contact.post('/', zValidator('json', contactSchema), async (c) => {
   return c.json({
     success: true,
     data: {
+      inquiryId,
       received: true,
       message:
         'Thank you for reaching out. A member of our client concierge team will respond within 24 hours.',

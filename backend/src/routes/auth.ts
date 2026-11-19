@@ -21,7 +21,17 @@ import {
   clearRefreshCookie,
   getRefreshTokenFromCookie,
 } from '../services/jwt.js';
-import { sendOtpEmail } from '../services/resend.js';
+import {
+  sendOtpEmail,
+  renderDbEmailTemplate,
+  sendConfiguredEmail,
+} from '../services/resend.js';
+import { resolveAdminAccessProfile } from '../middleware/adminAuth.js';
+import {
+  decryptMfaSecret,
+  verifyTotpCode,
+  consumeBackupCode,
+} from '../services/mfa.js';
 import {
   revokePendingOtps,
   createOtp,
@@ -84,7 +94,24 @@ auth.post('/send-otp', zValidator('json', emailSchema), async (c) => {
 
   if (c.env.RESEND_API_KEY) {
     c.executionCtx.waitUntil(
-      sendOtpEmail(c.env.RESEND_API_KEY, email, otp, c.env.RESEND_FROM_EMAIL).catch((err) => {
+      (async () => {
+        const rendered = await renderDbEmailTemplate(db, 'otp', {
+          brandName: 'DEYNOLD DANNY',
+          otp,
+          conciergeEmail: 'concierge@deynolddanny.com',
+        });
+        if (rendered) {
+          await sendConfiguredEmail(
+            c.env.RESEND_API_KEY,
+            email,
+            rendered.subject,
+            rendered.html,
+            c.env.RESEND_FROM_EMAIL,
+          );
+        } else {
+          await sendOtpEmail(c.env.RESEND_API_KEY, email, otp, c.env.RESEND_FROM_EMAIL);
+        }
+      })().catch((err) => {
         console.error('Failed to send OTP email:', err);
       }),
     );
@@ -185,6 +212,25 @@ auth.post('/verify-otp', zValidator('json', verifyOtpSchema), async (c) => {
   const userId = user.id as string;
   const userRole = (user.role as string) ?? 'customer';
   const tokenVersion = Number(user.token_version ?? 1);
+  const fullUserRow = await db
+    .prepare(`SELECT id, email, role, full_name, admin_role_id, mfa_enabled FROM users WHERE id = ?1 LIMIT 1`)
+    .bind(userId)
+    .first<{
+      id: string;
+      email: string;
+      role: string;
+      full_name: string | null;
+      admin_role_id: string | null;
+      mfa_enabled: number;
+    }>();
+
+  const adminProfile = await resolveAdminAccessProfile(c.env, {
+    id: userId,
+    email,
+    role: userRole,
+    admin_role_id: fullUserRow?.admin_role_id ?? null,
+    mfa_enabled: fullUserRow?.mfa_enabled ?? 0,
+  });
 
   await updateLastLogin(db, userId);
 
@@ -194,17 +240,25 @@ auth.post('/verify-otp', zValidator('json', verifyOtpSchema), async (c) => {
     Date.now() + REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
   ).toISOString();
   const tokenFamily = generateId('fam_');
+  const initialMfaVerified = !adminProfile.mfaEnabled;
 
   await db
     .prepare(
-      `INSERT OR REPLACE INTO refresh_tokens (token_hash, user_id, expires_at, created_at, token_family, revoked_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, NULL)`,
+      `INSERT OR REPLACE INTO refresh_tokens (token_hash, user_id, expires_at, created_at, token_family, revoked_at, mfa_verified)
+       VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6)`,
     )
-    .bind(refreshTokenHash, userId, refreshExpiresAt, nowIso(), tokenFamily)
+    .bind(refreshTokenHash, userId, refreshExpiresAt, nowIso(), tokenFamily, initialMfaVerified ? 1 : 0)
     .run();
 
   const accessToken = await signAccessToken(
-    { sub: userId, email, role: userRole, ver: tokenVersion },
+    {
+      sub: userId,
+      email,
+      role: userRole,
+      ver: tokenVersion,
+      mfa: initialMfaVerified,
+      adminRole: adminProfile.isAdmin ? adminProfile.roleSlug : undefined,
+    },
     c.env.JWT_SECRET,
   );
 
@@ -215,11 +269,23 @@ auth.post('/verify-otp', zValidator('json', verifyOtpSchema), async (c) => {
     success: true,
     data: {
       accessToken,
+      mfaRequired: adminProfile.isAdmin && adminProfile.mfaEnabled,
       user: {
         id: userId,
         email,
-        fullName: (user.full_name as string) ?? null,
+        fullName: (fullUserRow?.full_name ?? (user.full_name as string)) ?? null,
         role: userRole,
+        ...(adminProfile.isAdmin
+          ? {
+              adminAccess: {
+                roleSlug: adminProfile.roleSlug,
+                permissions: adminProfile.permissions,
+                mfaEnabled: adminProfile.mfaEnabled,
+                mfaVerified: initialMfaVerified,
+                mfaSetupRequired: adminProfile.mfaRequiredByPolicy && !adminProfile.mfaEnabled,
+              },
+            }
+          : {}),
       },
     },
   });
@@ -239,8 +305,8 @@ auth.post('/refresh', async (c) => {
   let tokenHash = await hashOtp(rawToken, c.env.JWT_SECRET);
   let record = await c.env.DB
     .prepare(
-      `SELECT rt.token_hash, rt.user_id, rt.expires_at, rt.token_family, rt.revoked_at,
-              u.email, u.role, u.is_active, u.token_version, u.full_name
+      `SELECT rt.token_hash, rt.user_id, rt.expires_at, rt.token_family, rt.revoked_at, rt.mfa_verified,
+              u.email, u.role, u.is_active, u.token_version, u.full_name, u.admin_role_id, u.mfa_enabled
        FROM refresh_tokens rt
        INNER JOIN users u ON u.id = rt.user_id
        WHERE rt.token_hash = ?1`,
@@ -252,19 +318,22 @@ auth.post('/refresh', async (c) => {
       expires_at: string;
       token_family: string | null;
       revoked_at: string | null;
+      mfa_verified: number;
       email: string;
       role: string;
       is_active: number;
       token_version: number;
       full_name: string | null;
+      admin_role_id: string | null;
+      mfa_enabled: number;
     }>();
 
   if (!record && c.env.JWT_SECRET_PREV) {
     tokenHash = await hashOtp(rawToken, c.env.JWT_SECRET_PREV);
     record = await c.env.DB
       .prepare(
-        `SELECT rt.token_hash, rt.user_id, rt.expires_at, rt.token_family, rt.revoked_at,
-                u.email, u.role, u.is_active, u.token_version, u.full_name
+        `SELECT rt.token_hash, rt.user_id, rt.expires_at, rt.token_family, rt.revoked_at, rt.mfa_verified,
+                u.email, u.role, u.is_active, u.token_version, u.full_name, u.admin_role_id, u.mfa_enabled
          FROM refresh_tokens rt
          INNER JOIN users u ON u.id = rt.user_id
          WHERE rt.token_hash = ?1`,
@@ -323,6 +392,15 @@ auth.post('/refresh', async (c) => {
     Date.now() + REFRESH_TOKEN_EXPIRY_SECONDS * 1000,
   ).toISOString();
 
+  const adminProfile = await resolveAdminAccessProfile(c.env, {
+    id: record.user_id,
+    email: record.email,
+    role: record.role,
+    admin_role_id: record.admin_role_id,
+    mfa_enabled: record.mfa_enabled,
+  });
+  const mfaVerified = !adminProfile.mfaEnabled || Number(record.mfa_verified ?? 0) === 1;
+
   // Mark old token revoked rather than deleting immediately so replay triggers family revocation
   await runBatch(c.env.DB, [
     c.env.DB
@@ -330,8 +408,8 @@ auth.post('/refresh', async (c) => {
       .bind(now, tokenHash),
     c.env.DB
       .prepare(
-        `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, created_at, token_family, revoked_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, NULL)`,
+        `INSERT INTO refresh_tokens (token_hash, user_id, expires_at, created_at, token_family, revoked_at, mfa_verified)
+         VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6)`,
       )
       .bind(
         newRefreshTokenHash,
@@ -339,6 +417,7 @@ auth.post('/refresh', async (c) => {
         newExpiresAt,
         now,
         record.token_family || generateId('fam_'),
+        mfaVerified ? 1 : 0,
       ),
   ]);
 
@@ -348,6 +427,8 @@ auth.post('/refresh', async (c) => {
       email: record.email,
       role: record.role,
       ver: Number(record.token_version ?? 1),
+      mfa: mfaVerified,
+      adminRole: adminProfile.isAdmin ? adminProfile.roleSlug : undefined,
     },
     c.env.JWT_SECRET,
   );
@@ -358,11 +439,144 @@ auth.post('/refresh', async (c) => {
     success: true,
     data: {
       accessToken,
+      mfaRequired: adminProfile.isAdmin && adminProfile.mfaEnabled && !mfaVerified,
       user: {
         id: record.user_id,
         email: record.email,
         fullName: record.full_name,
         role: record.role,
+        ...(adminProfile.isAdmin
+          ? {
+              adminAccess: {
+                roleSlug: adminProfile.roleSlug,
+                permissions: adminProfile.permissions,
+                mfaEnabled: adminProfile.mfaEnabled,
+                mfaVerified,
+                mfaSetupRequired: adminProfile.mfaRequiredByPolicy && !adminProfile.mfaEnabled,
+              },
+            }
+          : {}),
+      },
+    },
+  });
+});
+
+// ─── POST /api/auth/admin/mfa/verify ────────────────────────────────────────
+
+const mfaVerifySchema = z.object({
+  code: z.string().min(6).max(20),
+});
+
+auth.post('/admin/mfa/verify', authRequired, zValidator('json', mfaVerifySchema), async (c) => {
+  const userId = c.get('userId');
+  const { code } = c.req.valid('json');
+  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
+
+  const limit = await checkD1RateLimit(c.env.DB, `mfa_verify:${userId}:${ip}`, 8, 900);
+  if (!limit.allowed) {
+    return c.json(createRateLimitResponse('Too many MFA attempts. Try again later.'), 429);
+  }
+
+  const user = await c.env.DB
+    .prepare(
+      `SELECT id, email, role, full_name, token_version, admin_role_id, mfa_enabled
+       FROM users WHERE id = ?1 AND is_active = 1 LIMIT 1`,
+    )
+    .bind(userId)
+    .first<{
+      id: string;
+      email: string;
+      role: string;
+      full_name: string | null;
+      token_version: number;
+      admin_role_id: string | null;
+      mfa_enabled: number;
+    }>();
+
+  if (!user) {
+    return c.json(
+      { success: false, error: { code: 'UNAUTHORIZED', message: 'User not found.', status: 401 } },
+      401,
+    );
+  }
+
+  const adminProfile = await resolveAdminAccessProfile(c.env, user);
+  if (!adminProfile.isAdmin) {
+    return c.json(
+      { success: false, error: { code: 'FORBIDDEN', message: 'Admin privileges required.', status: 403 } },
+      403,
+    );
+  }
+
+  const mfaRow = await c.env.DB
+    .prepare(`SELECT totp_secret_enc, backup_hashes_json FROM admin_mfa_secrets WHERE user_id = ?1 LIMIT 1`)
+    .bind(userId)
+    .first<{ totp_secret_enc: string; backup_hashes_json: string }>();
+
+  if (!mfaRow) {
+    return c.json(
+      { success: false, error: { code: 'MFA_NOT_CONFIGURED', message: 'MFA is not configured for this account.', status: 400 } },
+      400,
+    );
+  }
+
+  const plainSecret = await decryptMfaSecret(mfaRow.totp_secret_enc, c.env.JWT_SECRET);
+  let matched = await verifyTotpCode(plainSecret, code);
+  if (!matched) {
+    const backup = await consumeBackupCode(code, mfaRow.backup_hashes_json, c.env.JWT_SECRET);
+    if (backup.matched) {
+      matched = true;
+      await c.env.DB
+        .prepare(`UPDATE admin_mfa_secrets SET backup_hashes_json = ?1, updated_at = ?2 WHERE user_id = ?3`)
+        .bind(backup.remainingJson, nowIso(), userId)
+        .run();
+    }
+  }
+
+  if (!matched) {
+    return c.json(
+      { success: false, error: { code: 'INVALID_MFA_CODE', message: 'Invalid authenticator or backup code.', status: 400 } },
+      400,
+    );
+  }
+
+  const rawCookie = getRefreshTokenFromCookie(c);
+  if (rawCookie) {
+    const hash = await hashOtp(rawCookie, c.env.JWT_SECRET);
+    await c.env.DB
+      .prepare(`UPDATE refresh_tokens SET mfa_verified = 1 WHERE token_hash = ?1 AND user_id = ?2`)
+      .bind(hash, userId)
+      .run();
+  }
+
+  const accessToken = await signAccessToken(
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      ver: user.token_version,
+      mfa: true,
+      adminRole: adminProfile.roleSlug,
+    },
+    c.env.JWT_SECRET,
+  );
+
+  return c.json({
+    success: true,
+    data: {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        role: user.role,
+        adminAccess: {
+          roleSlug: adminProfile.roleSlug,
+          permissions: adminProfile.permissions,
+          mfaEnabled: true,
+          mfaVerified: true,
+          mfaSetupRequired: false,
+        },
       },
     },
   });
@@ -373,7 +587,7 @@ auth.post('/refresh', async (c) => {
 auth.get('/me', authRequired, async (c) => {
   const userId = c.get('userId');
   const user = await c.env.DB
-    .prepare(`SELECT id, email, full_name, role, is_active FROM users WHERE id = ?1`)
+    .prepare(`SELECT id, email, full_name, role, is_active, admin_role_id, mfa_enabled FROM users WHERE id = ?1`)
     .bind(userId)
     .first<{
       id: string;
@@ -381,6 +595,8 @@ auth.get('/me', authRequired, async (c) => {
       full_name: string | null;
       role: string;
       is_active: number;
+      admin_role_id: string | null;
+      mfa_enabled: number;
     }>();
 
   if (!user || user.is_active === 0) {
@@ -390,6 +606,8 @@ auth.get('/me', authRequired, async (c) => {
     );
   }
 
+  const adminProfile = await resolveAdminAccessProfile(c.env, user);
+
   return c.json({
     success: true,
     data: {
@@ -398,6 +616,16 @@ auth.get('/me', authRequired, async (c) => {
         email: user.email,
         fullName: user.full_name,
         role: user.role,
+        ...(adminProfile.isAdmin
+          ? {
+              adminAccess: {
+                roleSlug: adminProfile.roleSlug,
+                permissions: adminProfile.permissions,
+                mfaEnabled: adminProfile.mfaEnabled,
+                mfaSetupRequired: adminProfile.mfaRequiredByPolicy && !adminProfile.mfaEnabled,
+              },
+            }
+          : {}),
       },
     },
   });

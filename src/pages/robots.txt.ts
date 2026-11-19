@@ -8,6 +8,8 @@ export const GET: APIRoute = ({ site }) => {
     'User-agent: *',
     'Allow: /',
     'Disallow: /api/',
+    'Disallow: /admin',
+    'Disallow: /admin/',
     'Disallow: /account',
     'Disallow: /account/',
     'Disallow: /cart',
