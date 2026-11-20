@@ -15,6 +15,12 @@ export interface ProductVariant {
   stock: number;
   reservedStock: number;
   inStock?: boolean;
+  pricePaise?: number;
+  price?: string;
+  priceNum?: number;
+  comparePaise?: number | null;
+  comparePrice?: string | null;
+  hasCustomPrice?: boolean;
 }
 
 export interface RelatedItem {

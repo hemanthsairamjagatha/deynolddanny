@@ -423,8 +423,11 @@ const createVariantSchema = z.object({
   id: z.string().min(2).max(80).optional(),
   sku: z.string().min(2).max(80),
   size: z.string().min(1).max(30),
-  color_name: z.string().min(1).max(50).default('Default'),
+  color_name: z.string().min(1).max(50).optional(),
+  color: z.string().min(1).max(50).optional(),
   color_hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#111111'),
+  price_paise: z.number().int().positive().nullable().optional(),
+  compare_paise: z.number().int().positive().nullable().optional(),
   stock: z.number().int().min(0).default(0),
   sort_order: z.number().int().default(0),
 });
@@ -436,6 +439,7 @@ adminProducts.post(
   async (c) => {
     const productId = c.req.param('id');
     const body = c.req.valid('json');
+    const colorName = (body.color_name || body.color || 'Default').trim();
 
     const product = await c.env.DB.prepare(`SELECT id, slug FROM products WHERE id = ?1`).bind(productId).first<{ id: string; slug: string }>();
     if (!product) {
@@ -447,16 +451,18 @@ adminProducts.post(
 
     await c.env.DB
       .prepare(
-        `INSERT INTO product_variants (id, product_id, sku, size, color_name, color_hex, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 1, ?8, ?9, ?9)`,
+        `INSERT INTO product_variants (id, product_id, sku, size, color_name, color_hex, price_paise, compare_paise, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, 1, ?10, ?11, ?11)`,
       )
       .bind(
         variantId,
         productId,
         body.sku,
         body.size,
-        body.color_name,
+        colorName,
         body.color_hex,
+        body.price_paise ?? null,
+        body.compare_paise ?? null,
         body.stock,
         body.sort_order,
         now,
@@ -476,18 +482,21 @@ adminProducts.post(
     }
 
     await bumpCatalogCacheVersion(c.env.CATALOG_KV, product.slug);
-    await auditAdminAction(c, 'CREATE_VARIANT', 'product_variant', variantId, body);
+    await invalidateStorefrontCache(c.env);
+    await auditAdminAction(c, 'CREATE_VARIANT', 'product_variant', variantId, { ...body, color_name: colorName });
 
     return c.json({ success: true, data: { variantId } }, 201);
   },
 );
 
 // ─── POST /api/admin/products/:id/variants/matrix ────────────────────────────
-// Bulk creates combinations of Sizes × Colors
+// Bulk creates combinations of Sizes × Colors with optional per-size pricing
 const matrixSchema = z.object({
   sizes: z.array(z.string().min(1)).min(1),
   colors: z.array(z.object({ name: z.string().min(1), hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/) })).min(1),
   initialStock: z.number().int().min(0).default(5),
+  sizePrices: z.record(z.string(), z.number().int().positive().nullable()).optional(),
+  sizeComparePrices: z.record(z.string(), z.number().int().positive().nullable()).optional(),
 });
 
 adminProducts.post(
@@ -496,7 +505,7 @@ adminProducts.post(
   zValidator('json', matrixSchema),
   async (c) => {
     const productId = c.req.param('id');
-    const { sizes, colors, initialStock } = c.req.valid('json');
+    const { sizes, colors, initialStock, sizePrices, sizeComparePrices } = c.req.valid('json');
 
     const product = await c.env.DB
       .prepare(`SELECT id, slug, sku_prefix FROM products WHERE id = ?1`)
@@ -514,31 +523,139 @@ adminProducts.post(
 
     for (const color of colors) {
       for (const size of sizes) {
-        const sku = `${product.sku_prefix}-${color.name.slice(0, 3).toUpperCase()}-${size}`;
-        const varId = `${productId}-${color.name.toLowerCase().replace(/\s+/g, '-')}-${size.toLowerCase()}`;
+        const cleanSize = size.trim();
+        const sku = `${product.sku_prefix}-${color.name.slice(0, 3).toUpperCase()}-${cleanSize.replace(/\s+/g, '')}`;
+        const varId = `${productId}-${color.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${cleanSize.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+        const pricePaise = sizePrices?.[cleanSize] ?? null;
+        const comparePaise = sizeComparePrices?.[cleanSize] ?? null;
         createdVariants.push(varId);
         stmts.push(
           c.env.DB
             .prepare(
-              `INSERT OR REPLACE INTO product_variants
-               (id, product_id, sku, size, color_name, color_hex, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
-               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 1, ?8, ?9, ?9)`,
+              `INSERT INTO product_variants
+               (id, product_id, sku, size, color_name, color_hex, price_paise, compare_paise, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, 1, ?10, ?11, ?11)
+               ON CONFLICT(id) DO UPDATE SET
+                 price_paise = excluded.price_paise,
+                 compare_paise = excluded.compare_paise,
+                 color_name = excluded.color_name,
+                 color_hex = excluded.color_hex,
+                 is_active = 1,
+                 updated_at = excluded.updated_at`,
             )
-            .bind(varId, productId, sku, size, color.name, color.hex, initialStock, order++, now),
+            .bind(varId, productId, sku, cleanSize, color.name, color.hex, pricePaise, comparePaise, initialStock, order++, now),
         );
       }
     }
 
     await c.env.DB.batch(stmts);
     await bumpCatalogCacheVersion(c.env.CATALOG_KV, product.slug);
-    await auditAdminAction(c, 'GENERATE_VARIANT_MATRIX', 'product', productId, { count: createdVariants.length });
+    await invalidateStorefrontCache(c.env);
+    await auditAdminAction(c, 'GENERATE_VARIANT_MATRIX', 'product', productId, { count: createdVariants.length, hasSizePrices: Boolean(sizePrices) });
 
     return c.json({ success: true, data: { count: createdVariants.length, variantIds: createdVariants } }, 201);
   },
 );
 
+// ─── PATCH /api/admin/products/:id/variants/bulk-price ───────────────────────
+// Updates size-wise prices in bulk either by individual variantId OR by size label across colors
+const bulkVariantPriceSchema = z.object({
+  updates: z
+    .array(
+      z.object({
+        variantId: z.string().min(1).optional(),
+        size: z.string().min(1).optional(),
+        price_paise: z.number().int().positive().nullable().optional(),
+        compare_paise: z.number().int().positive().nullable().optional(),
+        stock: z.number().int().min(0).optional(),
+        is_active: z.union([z.literal(0), z.literal(1)]).optional(),
+      }),
+    )
+    .min(1),
+});
+
+adminProducts.patch(
+  '/:id/variants/bulk-price',
+  requirePermission('catalog.write'),
+  zValidator('json', bulkVariantPriceSchema),
+  async (c) => {
+    const productId = c.req.param('id');
+    const { updates } = c.req.valid('json');
+    const product = await c.env.DB.prepare(`SELECT id, slug FROM products WHERE id = ?1`).bind(productId).first<{ id: string; slug: string }>();
+    if (!product) {
+      return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Product not found.', status: 404 } }, 404);
+    }
+
+    const now = nowIso();
+    const stmts: D1PreparedStatement[] = [];
+    for (const u of updates) {
+      if (u.variantId) {
+        const sets: string[] = [];
+        const binds: unknown[] = [];
+        if (u.price_paise !== undefined) {
+          binds.push(u.price_paise);
+          sets.push(`price_paise = ?${binds.length}`);
+        }
+        if (u.compare_paise !== undefined) {
+          binds.push(u.compare_paise);
+          sets.push(`compare_paise = ?${binds.length}`);
+        }
+        if (u.stock !== undefined) {
+          binds.push(u.stock);
+          sets.push(`stock = MAX(reserved_stock, ?${binds.length})`);
+        }
+        if (u.is_active !== undefined) {
+          binds.push(u.is_active);
+          sets.push(`is_active = ?${binds.length}`);
+        }
+        if (sets.length > 0) {
+          binds.push(now, u.variantId, productId);
+          stmts.push(
+            c.env.DB
+              .prepare(`UPDATE product_variants SET ${sets.join(', ')}, updated_at = ?${binds.length - 2} WHERE id = ?${binds.length - 1} AND product_id = ?${binds.length}`)
+              .bind(...binds),
+          );
+        }
+      } else if (u.size) {
+        const sets: string[] = [];
+        const binds: unknown[] = [];
+        if (u.price_paise !== undefined) {
+          binds.push(u.price_paise);
+          sets.push(`price_paise = ?${binds.length}`);
+        }
+        if (u.compare_paise !== undefined) {
+          binds.push(u.compare_paise);
+          sets.push(`compare_paise = ?${binds.length}`);
+        }
+        if (sets.length > 0) {
+          binds.push(now, u.size, productId);
+          stmts.push(
+            c.env.DB
+              .prepare(`UPDATE product_variants SET ${sets.join(', ')}, updated_at = ?${binds.length - 2} WHERE size = ?${binds.length - 1} AND product_id = ?${binds.length}`)
+              .bind(...binds),
+          );
+        }
+      }
+    }
+
+    if (stmts.length > 0) {
+      await c.env.DB.batch(stmts);
+    }
+
+    await bumpCatalogCacheVersion(c.env.CATALOG_KV, product.slug);
+    await invalidateStorefrontCache(c.env);
+    await auditAdminAction(c, 'BULK_UPDATE_VARIANT_PRICING', 'product', productId, { count: stmts.length });
+
+    return c.json({ success: true, data: { updatedCount: stmts.length } });
+  },
+);
+
 // ─── PATCH /api/admin/products/:id/variants/:variantId ───────────────────────
 const updateVariantSchema = z.object({
+  sku: z.string().min(2).max(80).optional(),
+  size: z.string().min(1).max(30).optional(),
+  price_paise: z.number().int().positive().nullable().optional(),
+  compare_paise: z.number().int().positive().nullable().optional(),
   stock: z.number().int().min(0).optional(),
   is_active: z.union([z.literal(0), z.literal(1)]).optional(),
   color_name: z.string().optional(),

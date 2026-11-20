@@ -153,6 +153,21 @@ export const products = {
   variants: {
     create: (pid: string, d: unknown) => post<unknown>(`/api/admin/products/${pid}/variants`, d),
     update: (pid: string, vid: string, d: unknown) => patch<unknown>(`/api/admin/products/${pid}/variants/${vid}`, d),
+    matrix: (pid: string, d: {
+      sizes: string[];
+      colors: { name: string; hex: string }[];
+      initialStock: number;
+      sizePrices?: Record<string, number | null>;
+      sizeComparePrices?: Record<string, number | null>;
+    }) => post<{ count: number; variantIds: string[] }>(`/api/admin/products/${pid}/variants/matrix`, d),
+    bulkPrice: (pid: string, updates: Array<{
+      variantId?: string;
+      size?: string;
+      price_paise?: number | null;
+      compare_paise?: number | null;
+      stock?: number;
+      is_active?: 0 | 1;
+    }>) => patch<{ updatedCount: number }>(`/api/admin/products/${pid}/variants/bulk-price`, { updates }),
     delete: (pid: string, vid: string) => del<void>(`/api/admin/products/${pid}/variants/${vid}`),
   },
 };
@@ -186,11 +201,17 @@ export const inventory = {
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 export const orders = {
-  list: (p?: { status?: string; page?: number; search?: string }) => get<Record<string, unknown>>(`/api/admin/orders${qs(p)}`),
+  list: (p?: { status?: string; page?: number; search?: string; limit?: number }) => get<Record<string, unknown>>(`/api/admin/orders${qs(p)}`),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/orders/${id}`),
-  updateStatus: (id: string, status: string, awbCode?: string) => patch<void>(`/api/admin/orders/${id}/status`, { status, awbCode }),
+  updateStatus: (id: string, status: string, reason?: string) => patch<void>(`/api/admin/orders/${id}/status`, { status, reason }),
+  updateTracking: (id: string, courierPartner: string, trackingNumber: string) =>
+    patch<void>(`/api/admin/orders/${id}/tracking`, { courierPartner, trackingNumber }),
+  ship: (id: string, d?: { lengthCm?: number; breadthCm?: number; heightCm?: number; weightKg?: number }) =>
+    post<Record<string, unknown>>(`/api/admin/orders/${id}/ship`, d ?? {}),
+  reconcile: (id: string) => post<Record<string, unknown>>(`/api/admin/orders/${id}/reconcile`),
   cancel: (id: string, reason: string) => post<void>(`/api/admin/orders/${id}/cancel`, { reason }),
-  refund: (id: string, amountPaise: number, reason: string) => post<void>(`/api/admin/orders/${id}/refund`, { amountPaise, reason }),
+  refund: (id: string, amountPaise: number, reason: string, restockItems = false) =>
+    post<Record<string, unknown>>(`/api/admin/orders/${id}/refund`, { amountPaise, reason, restockItems }),
 };
 
 // ─── Customers ────────────────────────────────────────────────────────────────
@@ -215,9 +236,38 @@ export const disputes = {
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
 export const payments = {
-  attempts: (orderId?: string) => get<Record<string, unknown>>(`/api/admin/payments/attempts${qs({ order_id: orderId })}`),
-  refunds: () => get<Record<string, unknown>>('/api/admin/payments/refunds'),
+  attempts: (p?: { order_id?: string; gateway?: string; status?: string; q?: string; limit?: number }) =>
+    get<{ items: Record<string, unknown>[]; total: number }>(`/api/admin/payments/attempts${qs(p)}`),
+  refunds: () => get<{ items: Record<string, unknown>[] }>('/api/admin/payments/refunds'),
   stats: () => get<Record<string, unknown>>('/api/admin/payments/stats'),
+  health: () => get<Record<string, unknown>>('/api/admin/payments/health'),
+  testGateway: () => post<Record<string, unknown>>('/api/admin/payments/test-gateway'),
+  markPaid: (orderId: string, d: { paymentMethod: string; referenceNumber: string; reason: string }) =>
+    post<Record<string, unknown>>(`/api/admin/payments/orders/${orderId}/mark-paid`, d),
+  adjustAmount: (orderId: string, d: { adjustmentPaise?: number; shippingPaise?: number; discountPaise?: number; reason: string }) =>
+    post<Record<string, unknown>>(`/api/admin/payments/orders/${orderId}/adjust-amount`, d),
+  statusOverride: (orderId: string, d: { paymentStatus: string; referenceNumber?: string; reason: string }) =>
+    post<Record<string, unknown>>(`/api/admin/payments/orders/${orderId}/status-override`, d),
+  adjustments: () => get<{ items: Record<string, unknown>[] }>('/api/admin/payments/adjustments'),
+  webhooks: (p?: { gateway?: string; status?: string }) =>
+    get<{ items: Record<string, unknown>[] }>(`/api/admin/payments/webhooks${qs(p)}`),
+};
+
+// ─── Newsletter ───────────────────────────────────────────────────────────────
+export const newsletter = {
+  list: (p?: { status?: string; q?: string }) =>
+    get<{ items: Record<string, unknown>[]; stats: { total: number; active: number; unsubscribed: number } }>(
+      `/api/admin/newsletter${qs(p)}`,
+    ),
+  updateStatus: (id: string, status: 'active' | 'unsubscribed') => patch<void>(`/api/admin/newsletter/${id}`, { status }),
+  delete: (id: string) => del<void>(`/api/admin/newsletter/${id}`),
+};
+
+// ─── System Health ────────────────────────────────────────────────────────────
+export const system = {
+  health: () => get<Record<string, unknown>>('/api/admin/system/health'),
+  reapHolds: () => post<{ cancelledOrders: number; releasedItems: number }>('/api/admin/system/reap-holds'),
+  flushCache: () => post<{ flushed: boolean; at: string }>('/api/admin/system/flush-cache'),
 };
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────

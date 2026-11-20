@@ -201,13 +201,31 @@ checkout.post(
       });
     }
 
+    // Read live admin payment & shipping policy overrides from store_settings
+    let storeSettings: Record<string, unknown> = {};
+    try {
+      const sRow = await env.DB
+        .prepare(`SELECT settings_json FROM store_settings WHERE id = 'default' LIMIT 1`)
+        .first<{ settings_json: string }>();
+      if (sRow?.settings_json) storeSettings = JSON.parse(sRow.settings_json);
+    } catch {}
+
+    const effectiveFreeThresholdPaise =
+      typeof storeSettings.freeShippingThresholdPaise === 'number' && storeSettings.freeShippingThresholdPaise >= 0
+        ? storeSettings.freeShippingThresholdPaise
+        : policy.freeShippingThresholdPaise;
+    const effectiveStandardShippingPaise =
+      typeof storeSettings.standardShippingPaise === 'number' && storeSettings.standardShippingPaise >= 0
+        ? storeSettings.standardShippingPaise
+        : policy.standardShippingPaise;
+
     const subtotalPaise = cartData.items.reduce(
       (sum, item) => sum + item.pricePaise * item.qty,
       0,
     );
 
     const shippingPaise =
-      subtotalPaise >= policy.freeShippingThresholdPaise ? 0 : policy.standardShippingPaise;
+      subtotalPaise >= effectiveFreeThresholdPaise ? 0 : effectiveStandardShippingPaise;
 
     // 3. Validate coupon eligibility & per-user limit WITHOUT mutating counts before stock hold
     let discountPaise = 0;
@@ -350,14 +368,21 @@ checkout.post(
       );
     }
 
-    // 5. Verify gateway availability BEFORE mutating inventory if in production/staging
+    // 5. Verify gateway availability BEFORE mutating inventory (respecting admin gateway enable/routing settings)
+    const allowRazorpay = storeSettings.enableRazorpay !== false;
+    const allowCashfree = storeSettings.enableCashfree !== false;
+    const primaryGateway =
+      storeSettings.primaryGateway === 'cashfree' ? 'cashfree' : 'razorpay';
+
     const isRazorpayConfigured = Boolean(
+      allowRazorpay &&
       env.RAZORPAY_KEY_ID &&
       env.RAZORPAY_KEY_SECRET &&
       !env.RAZORPAY_KEY_ID.includes('placeholder') &&
       env.RAZORPAY_KEY_SECRET.length > 5,
     );
     const isCashfreeConfigured = Boolean(
+      allowCashfree &&
       env.CASHFREE_APP_ID &&
       env.CASHFREE_SECRET_KEY &&
       !env.CASHFREE_APP_ID.includes('placeholder') &&
@@ -498,7 +523,8 @@ checkout.post(
     let activeGateway: 'razorpay' | 'cashfree' | 'test' = 'razorpay';
     const now = nowIso();
 
-    if (isRazorpayConfigured) {
+    const tryRazorpay = async () => {
+      if (!isRazorpayConfigured) return;
       try {
         const rzpResult = await createRazorpayOrder(
           {
@@ -518,16 +544,17 @@ checkout.post(
         console.error('Razorpay order creation failed:', err);
         razorpayOrderId = undefined;
       }
-    }
+    };
 
-    if (!razorpayOrderId && isCashfreeConfigured) {
+    const tryCashfree = async () => {
+      if (!isCashfreeConfigured) return;
       try {
         const cfResult = await createCashfreeOrder(
           {
             orderId: order.order_number,
             orderAmount: parseFloat(paiseToRupeesFloat(totalPaise)),
             customerPhone: body.shippingPhone,
-            customerEmail: userEmail || 'concierge@deynolddanny.com',
+            customerEmail: userEmail || 'concierge@deynolddanny.co.in',
             customerName: body.shippingName,
             returnUrl: `${env.FRONTEND_URL}/checkout/confirmation/${order.id}`,
             notifyUrl: `${env.BACKEND_URL}/api/payments/webhook`,
@@ -544,6 +571,14 @@ checkout.post(
         console.error('Cashfree order creation failed:', err);
         cashfreeOrderId = undefined;
       }
+    };
+
+    if (primaryGateway === 'cashfree') {
+      await tryCashfree();
+      if (!cashfreeOrderId) await tryRazorpay();
+    } else {
+      await tryRazorpay();
+      if (!razorpayOrderId) await tryCashfree();
     }
 
     const gatewayOrderId = razorpayOrderId || cashfreeOrderId;
@@ -605,18 +640,19 @@ checkout.post(
     }
 
     const freshOrder = (await getOrderById(env.DB, order.id)) ?? order;
+    const resolvedGateway = activeGateway as 'razorpay' | 'cashfree' | 'test';
     const response: ApiCheckoutResponse = {
       orderId: freshOrder.id,
       orderNumber: freshOrder.order_number,
       totalPaise: freshOrder.total_paise,
       totalFormatted: formatPaiseToDisplay(freshOrder.total_paise),
-      gateway: activeGateway,
-      razorpayOrderId: activeGateway === 'razorpay' ? razorpayOrderId : undefined,
-      razorpayKeyId: activeGateway === 'razorpay' ? env.RAZORPAY_KEY_ID : undefined,
+      gateway: resolvedGateway,
+      razorpayOrderId: resolvedGateway === 'razorpay' ? razorpayOrderId : undefined,
+      razorpayKeyId: resolvedGateway === 'razorpay' ? env.RAZORPAY_KEY_ID : undefined,
       amount: freshOrder.total_paise,
       currency: 'INR',
-      cfOrderId: activeGateway === 'cashfree' ? cashfreeOrderId : undefined,
-      paymentSessionId: activeGateway === 'cashfree' ? paymentSessionId : undefined,
+      cfOrderId: resolvedGateway === 'cashfree' ? cashfreeOrderId : undefined,
+      paymentSessionId: resolvedGateway === 'cashfree' ? paymentSessionId : undefined,
       cashfreeEnvironment: env.CASHFREE_API_URL?.includes('sandbox') ? 'sandbox' : 'production',
     };
 

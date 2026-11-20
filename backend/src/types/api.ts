@@ -45,11 +45,18 @@ export interface TokenResponse {
 
 export interface ApiVariant {
   id: string;
+  sku?: string;
   size: string;
   colorName: string;
   colorHex: string;
   inStock: boolean;
   availableStock: number;
+  pricePaise: number;
+  price: string;
+  priceNum: number;
+  comparePaise?: number | null;
+  comparePrice?: string | null;
+  hasCustomPrice: boolean;
 }
 
 export interface ApiGalleryGroup {
@@ -77,6 +84,9 @@ export interface ApiProductCard extends MoneyFields {
   sizes: string[];
   colors: { name: string; hex: string }[];
   link: string;
+  minPricePaise?: number;
+  maxPricePaise?: number;
+  hasVariantPricing?: boolean;
 }
 
 export interface ApiProductDetail extends ApiProductCard {

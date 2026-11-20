@@ -200,17 +200,17 @@ implementation record accurate, not to rewrite standing rules.
 
 ### Current repository structure / implementation snapshot
 
-- **Verification date:** 2026-11-19
-- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix admin run build`, `npm run build`, `node --test tests/frontend-unit.test.mjs`, `npm --prefix backend run type-check`, `npm --prefix backend test`, live Cloudflare D1 migrations `0005` + `0006` & Worker deploy)
-- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Storefront `src/`) · React 18.3.1 + Vite 5.4 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + `@dnd-kit` (Commerce OS Admin SPA `admin/`) · Hono + Cloudflare Workers + D1 + KV + R2 + Queues (Backend `backend/`)
+- **Verification date:** 2026-11-20
+- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix backend run type-check`, `npm --prefix backend test` [10/10], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build`, live Cloudflare D1 migrations `0001`..`0009` & unified Cloudflare Worker deploy)
+- **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Storefront `src/`) · React 18.3.1 + Vite 5.4 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + `@dnd-kit` (Commerce OS Admin SPA `admin/`) · Hono + Cloudflare Workers + Workers Static Assets + D1 + KV + R2 + Cron (Backend `backend/`)
 - **Active Routes (`src/pages/` + `/admin/*` SPA):**
   - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, `ProductCarousel`, `StyleLayering`, `Organization`/`WebSite` JSON-LD, live CMS & Brand hydration bridge via `src/lib/storefront/live-cms.ts`)
   - `/categories` -> `src/pages/categories/index.astro` (Storefront category directory)
   - `/categories/[slug]` -> `src/pages/categories/[slug].astro` (Strictly isolated category product listing)
-  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with live `/availability` stock, `Product` JSON-LD, Fit Finder, Size Guide)
+  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with live `/availability` stock & size-wise pricing, `Product` JSON-LD, Fit Finder, Size Guide)
   - `/search` -> `src/pages/search.astro` (`noindex`, hydrated client `?q=` lookup via `SearchPageExperience`)
   - `/cart` -> `src/pages/cart.astro` (`noindex`, server-backed coupon & bag totals)
-  - `/checkout` -> `src/pages/checkout.astro` (`noindex`, fail-closed multi-step checkout with `Idempotency-Key` & `/api/shipping/*` proxy)
+  - `/checkout` -> `src/pages/checkout.astro` (`noindex`, fail-closed multi-step checkout with `Idempotency-Key`, live gateway routing & `/api/shipping/*` proxy)
   - `/checkout/payment-failed` -> `src/pages/checkout/payment-failed.astro` (`noindex`, payment failure recovery view)
   - `/wishlist` -> `src/pages/wishlist.astro` (`noindex`, DPDP/server-synced wishlist)
   - `/contact` -> `src/pages/contact.astro` (Concierge form wired to `POST /api/contact`)
@@ -219,7 +219,7 @@ implementation record accurate, not to rewrite standing rules.
   - `/about` -> `src/pages/about.astro` (The House of Deynold Danny editorial page, live-editable via Commerce OS CMS `page_about`)
   - `/legal/{privacy-policy,shipping-returns,terms,cookie-policy}` -> `src/pages/legal/*.astro` (World-class Indian DPDP Act 2023 / Consumer Protection Rules 2020 / GDPR / CCPA policies, live-editable via Commerce OS Visual Content Studio)
   - `/orders/track` (alias `/track`) -> `src/pages/orders/track.astro` (`noindex`, PII-verified milestone & Shiprocket tracking)
-  - `/admin` & `/admin/*` -> Dedicated Commerce OS SPA (`admin/`, compiled into `dist/admin` during `npm run build` and served directly by Cloudflare Workers Static Assets with `X-Robots-Tag: noindex, nofollow`, `public/_headers`, and `Disallow: /admin/` in `robots.txt`)
+  - `/admin` & `/admin/*` -> Dedicated Commerce OS SPA (`admin/`, compiled into `dist/admin` during `npm run build` and served directly by Cloudflare Workers Static Assets with `X-Robots-Tag: noindex, nofollow`, `public/_headers`, and `Disallow: /admin/` in `robots.txt`; includes `/admin/payments`, `/admin/marketing/newsletter`, `/admin/system/health`)
   - `/404` & `/500` -> `src/pages/404.astro`, `src/pages/500.astro` (`noindex`, branded error pages)
   - `/robots.txt` & `/sitemap.xml` -> `src/pages/robots.txt.ts`, `src/pages/sitemap.xml.ts`
 
@@ -227,7 +227,7 @@ implementation record accurate, not to rewrite standing rules.
 deynold-danny-ecommerce/
 ├── admin/                               # Deynold Danny Commerce Operating System (dedicated React + Vite SPA served at /admin/*)
 │   ├── src/
-│   │   ├── components/ui/index.tsx      # Design system primitives (Button, Badge, InfoTooltip, Input, Textarea, Select, Modal, Tabs, DataTable, KpiCard, SearchBar)
+│   │   ├── components/{MediaPickerModal.tsx, ui/index.tsx}
 │   │   ├── contexts/AuthContext.tsx     # Memory-only JWT + HttpOnly refresh cookie + OTP/TOTP MFA + RBAC permission guard
 │   │   ├── layouts/AdminLayout.tsx      # 7-group operational navigation shell + mobile drawer
 │   │   ├── lib/{api.ts, types.ts}       # Complete typed admin API client & domain contracts
@@ -241,17 +241,20 @@ deynold-danny-ecommerce/
 │   │   │   ├── dashboard/DashboardPage.tsx
 │   │   │   ├── disputes/DisputesPage.tsx
 │   │   │   ├── inventory/InventoryPage.tsx
+│   │   │   ├── marketing/NewsletterPage.tsx
 │   │   │   ├── media/MediaLibraryPage.tsx
 │   │   │   ├── messaging/TemplatesPage.tsx
 │   │   │   ├── navigation/NavigationPage.tsx
 │   │   │   ├── orders/{OrderDetailPage.tsx, OrdersListPage.tsx}
+│   │   │   ├── payments/PaymentsPage.tsx
 │   │   │   ├── promotions/CouponsPage.tsx
 │   │   │   ├── returns/ReturnsPage.tsx
 │   │   │   ├── reviews/ReviewsPage.tsx
 │   │   │   ├── security/SecurityPage.tsx
 │   │   │   ├── seo/SeoPage.tsx
 │   │   │   ├── settings/SettingsPage.tsx
-│   │   │   └── studio/{PageEditor.tsx, StudioPage.tsx}
+│   │   │   ├── studio/{PageEditor.tsx, StudioPage.tsx}
+│   │   │   └── system/SystemHealthPage.tsx
 │   │   ├── styles/globals.css
 │   │   └── {App.tsx, main.tsx, vite-env.d.ts}
 │   └── {index.html, package.json, package-lock.json, postcss.config.js, tailwind.config.ts, tsconfig.json, vite.config.ts}
@@ -262,7 +265,10 @@ deynold-danny-ecommerce/
 │   │   ├── 0003_refresh_tokens_and_hardening.sql
 │   │   ├── 0004_audit_logs.sql
 │   │   ├── 0005_schema_hardening_and_triggers.sql
-│   │   └── 0006_commerce_os.sql
+│   │   ├── 0006_commerce_os.sql
+│   │   ├── 0007_about_and_legal_pages.sql
+│   │   ├── 0008_sync_navigation_defaults.sql
+│   │   └── 0009_variant_pricing_and_payment_controls.sql
 │   ├── src/
 │   │   ├── config/{constants.ts, env.ts, policy.ts}
 │   │   ├── db/{client.ts, queries/{analytics.ts, cart.ts, inventory.ts, orders.ts, otps.ts, products.ts, users.ts}}
@@ -270,7 +276,7 @@ deynold-danny-ecommerce/
 │   │   ├── middleware/{adminAuth.ts, auth.ts, cors.ts, errorHandler.ts, rateLimit.ts, securityHeaders.ts}
 │   │   ├── queues/emailConsumer.ts
 │   │   ├── routes/
-│   │   │   ├── admin/{analyticsAdmin.ts, brand.ts, categories.ts, cms.ts, collections.ts, coupons.ts, customers.ts, dashboard.ts, disputes.ts, index.ts, inquiries.ts, inventory.ts, logs.ts, media.ts, navigation.ts, orders.ts, payments.ts, products.ts, returns.ts, reviews.ts, security.ts, seo.ts, settings.ts, sizeGuides.ts, templates.ts, uploads.ts}
+│   │   │   ├── admin/{analyticsAdmin.ts, brand.ts, categories.ts, cms.ts, collections.ts, coupons.ts, customers.ts, dashboard.ts, disputes.ts, index.ts, inquiries.ts, inventory.ts, logs.ts, media.ts, navigation.ts, newsletterAdmin.ts, orders.ts, payments.ts, products.ts, returns.ts, reviews.ts, security.ts, seo.ts, settings.ts, sizeGuides.ts, systemAdmin.ts, templates.ts, uploads.ts}
 │   │   │   └── {analytics.ts, auth.ts, cart.ts, categories.ts, checkout.ts, contact.ts, coupons.ts, media.ts, newsletter.ts, orders.ts, payments.ts, products.ts, reviews.ts, search.ts, shipping.ts, storefront.ts, users.ts, webhooks.ts, wishlist.ts}
 │   │   ├── services/{cache.ts, cashfree.ts, crypto.ts, jwt.ts, mfa.ts, money.ts, orderLifecycle.ts, r2Storage.ts, razorpay.ts, resend.ts, shiprocket.ts, stockEngine.cron.ts, stockEngine.ts, storefrontCache.ts}
 │   │   └── types/{api.ts, bindings.d.ts, models.ts}
@@ -2328,6 +2334,39 @@ task.
     - `npm run build`: PASS (59 Astro pages + Commerce OS `dist/admin` + `dist/_headers`).
     - `npx wrangler deploy`: PASS (204 static assets uploaded; unified Worker live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `fb1f4e9d-a2c8-4ef4-b247-c81160a04eb9`).
     - Live Smoke Tests: PASS (`/` 200, `/about` 200, `/legal/privacy-policy` 200, `/admin` 200 + `noindex`, `/admin/navigation` 200 + `noindex`, `/api/storefront/published` 200, `/api/storefront/exchange-rates` 200, `/api/products` 200 [12 items], `OPTIONS /api/auth/send-otp` 204).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-20 — Size-Wise Variant Pricing, Payments Command Center & Check-Up, Audited Admin Payment Manipulation, Newsletter Manager & System Health**:
+  - **Status:** COMPLETE
+  - **Summary:** Implemented flexible end-to-end size-wise/variant-wise pricing, a complete Payments Command Center & Live Payment Check-Up module, audited admin payment controls, fixed Order list/detail API contracts, and added missing operational admin sections (Newsletter Audience Manager & System Health/Edge Operations):
+    1. **Migration `0009_variant_pricing_and_payment_controls.sql`:** Added nullable `price_paise` and `compare_paise` override columns to `product_variants`, `admin_adjustment_paise` / `admin_adjustment_reason` to `orders`, and an immutable `payment_adjustments` audit ledger table.
+    2. **Size-Wise Pricing End-to-End:** Updated `backend/src/db/queries/cart.ts` (`COALESCE(pv.price_paise, p.price_paise)`), `backend/src/routes/products.ts` (per-variant `pricePaise`, `price`, `comparePrice`, `hasCustomPrice`, `minPricePaise`/`maxPricePaise`), `backend/src/routes/admin/products.ts` (single variant creation/editing, Size × Color matrix generator with per-size prices, and `PATCH /:id/variants/bulk-price`), `src/features/catalog/components/ProductDetailExperience.tsx` (instant FX-aware price switching on size click + per-size price pills + out-of-stock pill state), and `admin/src/modules/catalog/ProductEditor.tsx` (Quick Size-Wise Pricing Bar, inline editable Variant Pricing/MRP/Stock table, and 1-click Size × Color Matrix Generator modal).
+    3. **Payments Command Center, Payment Check-Up & Admin Payment Manipulation:** Built `admin/src/modules/payments/PaymentsPage.tsx` (`/admin/payments`) and upgraded `backend/src/routes/admin/payments.ts` + `backend/src/routes/checkout.ts` with live 7-point Payment Check-Up diagnostics (`/health`), live Razorpay/Cashfree connectivity ping (`/test-gateway`), live checkout gateway priority routing & COD/shipping rule overrides (`store_settings`), audited Manual Payment Capture (`/orders/:id/mark-paid`), audited Order Total Adjustments (`/orders/:id/adjust-amount`), audited Payment Status Overrides (`/orders/:id/status-override`), Gateway Reconciliation, Partial/Full Refunds, Immutable Manipulation Ledger (`/adjustments`), and Webhook Diagnostics (`/webhooks`).
+    4. **Orders Upgrade & New Admin Sections:** Fixed `OrdersListPage.tsx` & `OrderDetailPage.tsx` field bindings and added Reconcile, Mark Paid, Adjust Total, Book Shiprocket, Courier/AWB, Refund, Cancel, and Audit Timeline directly on order details. Added Newsletter Subscribers Manager (`backend/src/routes/admin/newsletterAdmin.ts` + `admin/src/modules/marketing/NewsletterPage.tsx` at `/admin/marketing/newsletter` with CSV export) and System Health & Edge Maintenance (`backend/src/routes/admin/systemAdmin.ts` + `admin/src/modules/system/SystemHealthPage.tsx` at `/admin/system/health` with 1-click expired stock hold reaper & Edge KV cache purge).
+  - **Files Added:**
+    - `backend/migrations/0009_variant_pricing_and_payment_controls.sql`
+    - `backend/src/routes/admin/newsletterAdmin.ts`
+    - `backend/src/routes/admin/systemAdmin.ts`
+    - `admin/src/modules/payments/PaymentsPage.tsx`
+    - `admin/src/modules/marketing/NewsletterPage.tsx`
+    - `admin/src/modules/system/SystemHealthPage.tsx`
+  - **Files Modified:**
+    - `backend/src/types/{models.ts, api.ts}`, `backend/src/db/queries/cart.ts`, `backend/src/routes/{products.ts, checkout.ts}`, `backend/src/routes/admin/{index.ts, orders.ts, payments.ts, products.ts}`, `backend/tests/db-and-worker.test.mjs`
+    - `src/features/catalog/types/product.types.ts`, `src/features/catalog/components/ProductDetailExperience.tsx`
+    - `admin/src/{App.tsx, layouts/AdminLayout.tsx, lib/api.ts}`, `admin/src/modules/catalog/ProductEditor.tsx`, `admin/src/modules/orders/{OrdersListPage.tsx, OrderDetailPage.tsx}`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added migration `0009`, two backend admin route modules (`newsletterAdmin.ts`, `systemAdmin.ts`), and three Commerce OS admin modules (`payments/PaymentsPage.tsx`, `marketing/NewsletterPage.tsx`, `system/SystemHealthPage.tsx`).
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`10 / 10` Miniflare D1/Worker tests passing, including new size-wise pricing + Payment Check-Up + audited VIP adjustment & manual UPI capture test).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests passing).
+    - `npx astro check`: PASS (104 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (59 Astro pages + 32 Commerce OS Admin SPA chunks built cleanly into `dist/admin`).
+    - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0009_variant_pricing_and_payment_controls.sql` applied in 10.98ms).
+    - `npx wrangler deploy`: PASS (90 updated static assets uploaded; Worker live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `59740c1e-6b6d-4290-a0a6-35c704e44034`).
+    - Live Smoke Tests: PASS (`/health` 200, `/api/products/cady-trousers/availability` 200 [6 variants with `pricePaise`], `/admin/payments` 200 + `X-Robots-Tag: noindex, nofollow`).
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.

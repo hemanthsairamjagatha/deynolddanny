@@ -90,9 +90,12 @@ export interface DbProductVariant {
   size: string;
   color_name: string;
   color_hex: string;
+  price_paise?: number | null;
+  compare_paise?: number | null;
   stock: number;
   reserved_stock: number;
   is_active: 0 | 1;
+  sort_order?: number;
   created_at: string;
   updated_at: string;
 }
@@ -144,6 +147,8 @@ export interface DbOrder {
   shipping_paise: number;
   discount_paise: number;
   tax_paise: number;
+  admin_adjustment_paise?: number;
+  admin_adjustment_reason?: string | null;
   total_paise: number;
   currency?: string;
   payment_status:

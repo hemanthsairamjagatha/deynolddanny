@@ -69,6 +69,9 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
   const [isCompositionOpen, setIsCompositionOpen] = useState(false);
   const [liveVariants, setLiveVariants] = useState<ProductVariant[]>(product.variants || []);
   const [livePrice, setLivePrice] = useState<string>(product.price);
+  const [livePriceNum, setLivePriceNum] = useState<number>(product.priceNum);
+  const [hasVariantPricing, setHasVariantPricing] = useState<boolean>(false);
+  const [minVariantPrice, setMinVariantPrice] = useState<string | null>(null);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(
     ecommerceConfig.freeShippingThreshold,
   );
@@ -76,24 +79,37 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
 
   useEffect(() => {
     const slug = product.slug || product.id;
-    apiFetch<{ price?: string; variants?: Array<any> }>(
+    apiFetch<{ price?: string; pricePaise?: number; minPricePaise?: number; hasVariantPricing?: boolean; variants?: Array<any> }>(
       `/api/products/${encodeURIComponent(slug)}/availability`,
       { skipAuthRefresh: true },
     )
       .then((res) => {
         if (res.success && res.data) {
           if (res.data.price) setLivePrice(res.data.price);
+          if (typeof res.data.pricePaise === 'number') setLivePriceNum(Math.round(res.data.pricePaise / 100));
+          if (res.data.hasVariantPricing) {
+            setHasVariantPricing(true);
+            if (typeof res.data.minPricePaise === 'number') {
+              setMinVariantPrice(`₹ ${(res.data.minPricePaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+            }
+          }
           if (Array.isArray(res.data.variants) && res.data.variants.length > 0) {
             setLiveVariants(
               res.data.variants.map((v) => ({
                 id: v.id,
-                sku: v.id,
+                sku: v.sku || v.id,
                 size: v.size,
                 colorName: v.colorName || 'Default',
                 colorHex: v.colorHex || '#111111',
                 stock: v.availableStock ?? 0,
                 reservedStock: 0,
                 inStock: Boolean(v.inStock),
+                pricePaise: typeof v.pricePaise === 'number' ? v.pricePaise : undefined,
+                price: typeof v.price === 'string' ? v.price : undefined,
+                priceNum: typeof v.priceNum === 'number' ? v.priceNum : undefined,
+                comparePaise: typeof v.comparePaise === 'number' ? v.comparePaise : null,
+                comparePrice: typeof v.comparePrice === 'string' ? v.comparePrice : null,
+                hasCustomPrice: Boolean(v.hasCustomPrice),
               })),
             );
           }
@@ -143,6 +159,27 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
     : (product.images && product.images.length > 0)
     ? product.images
     : [product.defaultImg, product.hoverImg].filter(Boolean);
+
+  // Resolve the currently selected size/color variant for live size-wise pricing & stock
+  const activeVariant: ProductVariant | undefined = selectedSize
+    ? liveVariants.find(
+        (v) =>
+          v.size.toLowerCase() === selectedSize.toLowerCase() &&
+          (!currentColor?.name || v.colorName.toLowerCase() === currentColor.name.toLowerCase()),
+      ) || liveVariants.find((v) => v.size.toLowerCase() === selectedSize.toLowerCase())
+    : undefined;
+
+  const effectiveDisplayPrice = activeVariant?.price || (hasVariantPricing && !selectedSize && minVariantPrice ? minVariantPrice : livePrice);
+  const effectivePriceNum = activeVariant?.priceNum ?? livePriceNum;
+  const effectiveComparePrice = activeVariant?.comparePrice ?? null;
+  const effectiveSku = activeVariant?.sku || product.sku || 'CFC0130327003B098';
+
+  const getSizeVariant = (sizeLabel: string) =>
+    liveVariants.find(
+      (v) =>
+        v.size.toLowerCase() === sizeLabel.toLowerCase() &&
+        (!currentColor?.name || v.colorName.toLowerCase() === currentColor.name.toLowerCase()),
+    ) || liveVariants.find((v) => v.size.toLowerCase() === sizeLabel.toLowerCase());
 
   const totalGallery = galleryImages.length;
   const primaryMosaicIdx = totalGallery >= 3 ? 2 : 0;
@@ -220,8 +257,8 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       id: product.id,
       slug: product.slug,
       title: product.title,
-      price: livePrice,
-      priceNum: product.priceNum,
+      price: matchedVariant?.price || effectiveDisplayPrice,
+      priceNum: matchedVariant?.priceNum ?? effectivePriceNum,
       color: currentColor?.name,
       variantId: matchedVariant?.id,
       img: currentColor.swatchImg || currentColor.img || product.defaultImg,
@@ -343,14 +380,24 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               </span>
             </div>
 
-            {/* Status / Sold Out Badge */}
+            {/* Status / Sold Out / Live Size-Wise Price Badge */}
             {isSoldOut ? (
               <span className="bg-[#e5e5e5] text-neutral-700 text-[10px] font-semibold px-2.5 py-0.5 uppercase tracking-wider rounded-[2px] flex-shrink-0">
                 SOLD OUT
               </span>
             ) : (
-              <span className="text-black font-semibold text-[13px] flex-shrink-0">
-                {formatInrDisplayString(livePrice, selectedCountry, fx)}
+              <span className="flex items-baseline gap-1.5 flex-shrink-0">
+                {hasVariantPricing && !selectedSize && (
+                  <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">From</span>
+                )}
+                {effectiveComparePrice && (
+                  <span className="text-[11px] line-through text-neutral-400">
+                    {formatInrDisplayString(effectiveComparePrice, selectedCountry, fx)}
+                  </span>
+                )}
+                <span className="text-black font-semibold text-[13px]">
+                  {formatInrDisplayString(effectiveDisplayPrice, selectedCountry, fx)}
+                </span>
               </span>
             )}
           </div>
@@ -398,7 +445,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               margin: '4px 0px 0px'
             }}
           >
-            SKU {product.sku || 'CFC0130327003B098'}
+            SKU {effectiveSku}
           </div>
 
           {/* Row 4: Color Label (110.59 x 19.2, 14px, leading 19.2px) */}
@@ -487,25 +534,42 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                 </div>
               </div>
 
-              {/* Size Pill Choices */}
+              {/* Size Pill Choices (with live size-wise price indicator & out-of-stock state) */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 {product.sizes.map((s) => {
                   const isChosen = selectedSize === s;
+                  const sizeVar = getSizeVariant(s);
+                  const outOfStock = sizeVar ? sizeVar.inStock === false : false;
                   return (
                     <button
                       key={s}
                       type="button"
+                      disabled={outOfStock}
+                      title={
+                        outOfStock
+                          ? `${s} — Sold out`
+                          : sizeVar?.price
+                            ? `${s} — ${formatInrDisplayString(sizeVar.price, selectedCountry, fx)}`
+                            : s
+                      }
                       onClick={() => {
                         setSelectedSize(s);
                         setSizeError(false);
                       }}
-                      className={`h-8 px-3 rounded-[3px] text-xs font-medium border transition-all ${
-                        isChosen
-                          ? 'bg-neutral-900 text-white border-neutral-900'
-                          : 'border-neutral-300 text-neutral-800 hover:border-black'
+                      className={`min-h-[32px] px-3 py-1 rounded-[3px] text-xs font-medium border transition-all flex flex-col items-center justify-center leading-tight ${
+                        outOfStock
+                          ? 'border-neutral-200 text-neutral-300 line-through cursor-not-allowed bg-neutral-50'
+                          : isChosen
+                            ? 'bg-neutral-900 text-white border-neutral-900'
+                            : 'border-neutral-300 text-neutral-800 hover:border-black'
                       }`}
                     >
-                      {s}
+                      <span>{s}</span>
+                      {hasVariantPricing && sizeVar?.price && !outOfStock && (
+                        <span className={`text-[9px] font-normal ${isChosen ? 'text-neutral-200' : 'text-neutral-500'}`}>
+                          {formatInrDisplayString(sizeVar.price, selectedCountry, fx)}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

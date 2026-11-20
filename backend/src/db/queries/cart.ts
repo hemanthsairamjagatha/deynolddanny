@@ -100,7 +100,7 @@ export async function getCartWithItems(
          pv.stock,
          pv.reserved_stock,
          p.title,
-         p.price_paise,
+         COALESCE(pv.price_paise, p.price_paise) AS price_paise,
          p.default_img,
          p.slug
        FROM cart_items ci

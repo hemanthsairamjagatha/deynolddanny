@@ -22,11 +22,13 @@ const SizeGuidesPage = lazy(() => import('./modules/catalog/SizeGuidesPage'));
 const InventoryPage = lazy(() => import('./modules/inventory/InventoryPage'));
 const OrdersListPage = lazy(() => import('./modules/orders/OrdersListPage'));
 const OrderDetailPage = lazy(() => import('./modules/orders/OrderDetailPage'));
+const PaymentsPage = lazy(() => import('./modules/payments/PaymentsPage'));
 const CustomersListPage = lazy(() => import('./modules/customers/CustomersListPage'));
 const CustomerDetailPage = lazy(() => import('./modules/customers/CustomerDetailPage'));
 const ReturnsPage = lazy(() => import('./modules/returns/ReturnsPage'));
 const DisputesPage = lazy(() => import('./modules/disputes/DisputesPage'));
 const CouponsPage = lazy(() => import('./modules/promotions/CouponsPage'));
+const NewsletterPage = lazy(() => import('./modules/marketing/NewsletterPage'));
 const ReviewsPage = lazy(() => import('./modules/reviews/ReviewsPage'));
 const InquiriesPage = lazy(() => import('./modules/concierge/InquiriesPage'));
 const AnalyticsPage = lazy(() => import('./modules/analytics/AnalyticsPage'));
@@ -34,6 +36,7 @@ const TemplatesPage = lazy(() => import('./modules/messaging/TemplatesPage'));
 const SeoPage = lazy(() => import('./modules/seo/SeoPage'));
 const SettingsPage = lazy(() => import('./modules/settings/SettingsPage'));
 const SecurityPage = lazy(() => import('./modules/security/SecurityPage'));
+const SystemHealthPage = lazy(() => import('./modules/system/SystemHealthPage'));
 
 function PageLoading() {
   return (
@@ -68,11 +71,13 @@ function ProtectedApp() {
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="orders" element={<OrdersListPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
+          <Route path="payments" element={<PaymentsPage />} />
           <Route path="customers" element={<CustomersListPage />} />
           <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="returns" element={<ReturnsPage />} />
           <Route path="disputes" element={<DisputesPage />} />
           <Route path="promotions/coupons" element={<CouponsPage />} />
+          <Route path="marketing/newsletter" element={<NewsletterPage />} />
           <Route path="reviews" element={<ReviewsPage />} />
           <Route path="concierge" element={<InquiriesPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
@@ -80,6 +85,7 @@ function ProtectedApp() {
           <Route path="seo" element={<SeoPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="security" element={<SecurityPage />} />
+          <Route path="system/health" element={<SystemHealthPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Suspense>

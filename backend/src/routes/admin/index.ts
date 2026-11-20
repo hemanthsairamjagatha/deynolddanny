@@ -33,6 +33,8 @@ import settings from './settings.js';
 import seo from './seo.js';
 import security from './security.js';
 import analyticsAdmin from './analyticsAdmin.js';
+import newsletterAdmin from './newsletterAdmin.js';
+import systemAdmin from './systemAdmin.js';
 
 const admin = new Hono<{ Bindings: Env }>();
 
@@ -66,6 +68,8 @@ admin.route('/settings', settings);
 admin.route('/seo', seo);
 admin.route('/security', security);
 admin.route('/analytics', analyticsAdmin);
+admin.route('/newsletter', newsletterAdmin);
+admin.route('/system', systemAdmin);
 
 admin.get('/ping', (c) =>
   c.json({ success: true, data: { pong: true, role: c.get('userRole') } }),

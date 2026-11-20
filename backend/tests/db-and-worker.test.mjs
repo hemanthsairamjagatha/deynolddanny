@@ -386,3 +386,126 @@ test('DPDP export & erasure controls: block active order deletion, anonymize com
     await worker.dispose();
   }
 });
+
+test('Size-wise variant pricing propagates to availability, cart & checkout + audited admin payment manipulation', async () => {
+  const worker = await createTestWorker({
+    ENVIRONMENT: 'development',
+    ENABLE_TEST_CHECKOUT_FALLBACK: 'true',
+    ADMIN_EMAILS: 'admin-ops@deynolddanny.test',
+  });
+  try {
+    const admin = await authenticateUser(worker, 'admin-ops@deynolddanny.test', {
+      fullName: 'Atelier Director',
+    });
+    const customer = await authenticateUser(worker, 'vip-client@deynolddanny.test', {
+      fullName: 'Aarav Mehta',
+    });
+
+    // Pick a seeded product and its first active variant
+    const prod = await worker.db
+      .prepare('SELECT id, slug, price_paise FROM products WHERE is_active = 1 LIMIT 1')
+      .first();
+    assert.ok(prod);
+    const variant = await worker.db
+      .prepare('SELECT id, size FROM product_variants WHERE product_id = ?1 AND is_active = 1 LIMIT 1')
+      .bind(prod.id)
+      .first();
+    assert.ok(variant);
+
+    const customSizePricePaise = prod.price_paise + 500000; // +₹5,000 for this size
+
+    // 1. Admin sets size-wise custom price via bulk-price endpoint
+    const bulkRes = await worker.request(`/api/admin/products/${prod.id}/variants/bulk-price`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${admin.accessToken}`,
+      },
+      body: JSON.stringify({
+        updates: [{ variantId: variant.id, price_paise: customSizePricePaise }],
+      }),
+    });
+    assert.equal(bulkRes.status, 200);
+
+    // 2. Storefront /availability returns the size-specific price
+    const availRes = await worker.request(`/api/products/${prod.slug}/availability`);
+    assert.equal(availRes.status, 200);
+    const matchedVar = availRes.json.data.variants.find((v) => v.id === variant.id);
+    assert.equal(matchedVar.pricePaise, customSizePricePaise);
+    assert.equal(matchedVar.hasCustomPrice, true);
+
+    // 3. Checkout authoritatively charges the size-wise price from D1
+    const coRes = await worker.request('/api/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${customer.accessToken}`,
+      },
+      body: JSON.stringify({
+        shippingName: 'Aarav Mehta',
+        shippingPhone: '9876543210',
+        shippingLine1: '18 Altamount Road',
+        shippingCity: 'Mumbai',
+        shippingState: 'Maharashtra',
+        shippingPincode: '400026',
+        items: [{ variantId: variant.id, quantity: 1 }],
+      }),
+    });
+    assert.equal(coRes.status, 201);
+    const orderId = coRes.json.data.orderId;
+    const initialTotalPaise = coRes.json.data.totalPaise;
+    const orderRow = await worker.db
+      .prepare('SELECT subtotal_paise, shipping_paise, total_paise FROM orders WHERE id = ?1')
+      .bind(orderId)
+      .first();
+    assert.equal(orderRow.subtotal_paise, customSizePricePaise);
+    assert.equal(initialTotalPaise, customSizePricePaise + orderRow.shipping_paise);
+
+    // 4. Admin Payment Check-Up health endpoint responds with diagnostic checks
+    const healthRes = await worker.request('/api/admin/payments/health', {
+      headers: { Authorization: `Bearer ${admin.accessToken}` },
+    });
+    assert.equal(healthRes.status, 200);
+    assert.ok(Array.isArray(healthRes.json.data.checks));
+    assert.ok(healthRes.json.data.checks.length >= 5);
+
+    // 5. Admin applies VIP courtesy discount (-₹2,000) to unpaid order
+    const adjRes = await worker.request(`/api/admin/payments/orders/${orderId}/adjust-amount`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${admin.accessToken}`,
+      },
+      body: JSON.stringify({
+        adjustmentPaise: -200000,
+        reason: 'VIP private client courtesy discount',
+      }),
+    });
+    assert.equal(adjRes.status, 200);
+    assert.equal(adjRes.json.data.newTotalPaise, initialTotalPaise - 200000);
+
+    // 6. Admin marks order manually paid (UPI UTR) & audit ledger records both actions
+    const markPaidRes = await worker.request(`/api/admin/payments/orders/${orderId}/mark-paid`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${admin.accessToken}`,
+      },
+      body: JSON.stringify({
+        paymentMethod: 'upi_manual',
+        referenceNumber: 'UTR998877665544',
+        reason: 'Verified direct UPI receipt in HDFC current account',
+      }),
+    });
+    assert.equal(markPaidRes.status, 200);
+    assert.equal(markPaidRes.json.data.paymentStatus, 'paid');
+
+    const auditRes = await worker.request('/api/admin/payments/adjustments', {
+      headers: { Authorization: `Bearer ${admin.accessToken}` },
+    });
+    assert.equal(auditRes.status, 200);
+    assert.ok(auditRes.json.data.items.length >= 2);
+  } finally {
+    await worker.dispose();
+  }
+});

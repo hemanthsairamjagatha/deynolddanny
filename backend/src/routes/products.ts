@@ -32,9 +32,16 @@ const products = new Hono<{ Bindings: Env }>();
 function mapProductCard(p: DbProduct, variants: DbProductVariant[]): ApiProductCard {
   const uniqueSizes = [...new Set(variants.map((v) => v.size))];
   const colorMap = new Map<string, string>();
+  const variantPrices: number[] = [];
   for (const v of variants) {
     colorMap.set(v.color_name, v.color_hex);
+    variantPrices.push(v.price_paise ?? p.price_paise);
   }
+
+  const minPricePaise = variantPrices.length > 0 ? Math.min(...variantPrices) : p.price_paise;
+  const maxPricePaise = variantPrices.length > 0 ? Math.max(...variantPrices) : p.price_paise;
+  const hasVariantPricing = variantPrices.length > 0 && minPricePaise !== maxPricePaise;
+  const displayPricePaise = hasVariantPricing ? minPricePaise : (variantPrices[0] ?? p.price_paise);
 
   return {
     id: p.id,
@@ -46,9 +53,12 @@ function mapProductCard(p: DbProduct, variants: DbProductVariant[]): ApiProductC
     sizes: uniqueSizes,
     colors: Array.from(colorMap.entries()).map(([name, hex]) => ({ name, hex })),
     link: `/products/${p.slug}`,
-    price: formatPaiseToDisplay(p.price_paise),
-    priceNum: paiseToRupees(p.price_paise),
-    pricePaise: p.price_paise,
+    price: formatPaiseToDisplay(displayPricePaise),
+    priceNum: paiseToRupees(displayPricePaise),
+    pricePaise: displayPricePaise,
+    minPricePaise,
+    maxPricePaise,
+    hasVariantPricing,
   };
 }
 
@@ -175,6 +185,30 @@ products.get('/:slug/availability', async (c) => {
   }
 
   const variants = await getProductVariants(c.env.DB, product.id);
+  const mappedVariants = variants.map((v) => {
+    const available = Math.max(0, v.stock - v.reserved_stock);
+    const effectivePaise = v.price_paise ?? product.price_paise;
+    const effectiveComparePaise = v.compare_paise ?? product.compare_paise ?? null;
+    return {
+      id: v.id,
+      sku: v.sku,
+      size: v.size,
+      colorName: v.color_name,
+      colorHex: v.color_hex,
+      inStock: available > 0,
+      availableStock: available,
+      pricePaise: effectivePaise,
+      price: formatPaiseToDisplay(effectivePaise),
+      priceNum: paiseToRupees(effectivePaise),
+      comparePaise: effectiveComparePaise,
+      comparePrice: effectiveComparePaise ? formatPaiseToDisplay(effectiveComparePaise) : null,
+      hasCustomPrice: v.price_paise !== null && v.price_paise !== undefined,
+    };
+  });
+  const prices = mappedVariants.map((v) => v.pricePaise);
+  const minPricePaise = prices.length > 0 ? Math.min(...prices) : product.price_paise;
+  const maxPricePaise = prices.length > 0 ? Math.max(...prices) : product.price_paise;
+
   return c.json(
     {
       success: true,
@@ -183,17 +217,10 @@ products.get('/:slug/availability', async (c) => {
         slug: product.slug,
         pricePaise: product.price_paise,
         price: formatPaiseToDisplay(product.price_paise),
-        variants: variants.map((v) => {
-          const available = Math.max(0, v.stock - v.reserved_stock);
-          return {
-            id: v.id,
-            size: v.size,
-            colorName: v.color_name,
-            colorHex: v.color_hex,
-            inStock: available > 0,
-            availableStock: available,
-          };
-        }),
+        minPricePaise,
+        maxPricePaise,
+        hasVariantPricing: prices.length > 0 && minPricePaise !== maxPricePaise,
+        variants: mappedVariants,
       },
     },
     200,
@@ -263,13 +290,22 @@ products.get('/:slug', authOptional, async (c) => {
 
   const apiVariants: ApiVariant[] = variants.map((v) => {
     const available = Math.max(0, v.stock - v.reserved_stock);
+    const effectivePaise = v.price_paise ?? product.price_paise;
+    const effectiveComparePaise = v.compare_paise ?? product.compare_paise ?? null;
     return {
       id: v.id,
+      sku: v.sku,
       size: v.size,
       colorName: v.color_name,
       colorHex: v.color_hex,
       inStock: available > 0,
       availableStock: available,
+      pricePaise: effectivePaise,
+      price: formatPaiseToDisplay(effectivePaise),
+      priceNum: paiseToRupees(effectivePaise),
+      comparePaise: effectiveComparePaise,
+      comparePrice: effectiveComparePaise ? formatPaiseToDisplay(effectiveComparePaise) : null,
+      hasCustomPrice: v.price_paise !== null && v.price_paise !== undefined,
     };
   });
 
