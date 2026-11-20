@@ -1,124 +1,507 @@
 ---
 // src/features/home/components/HeroBanner.astro
+// Interactive 3D-Depth Menswear Runway Showcase + Native Looping Runway Video Support
+import { HeroRunwayExperience } from './HeroRunwayExperience';
 ---
 
-<section class="hero-section" id="hero">
-  <!-- Hero Visual Banner: 2560 x 1080px (21:9) -->
-  <div class="hero-banner-container">
-    <img
-      src="/hero-banner.jpg"
-      alt="DEYNOLD DANNY - Modern Lifestyle Campaign 2026"
-      class="hero-banner-img"
-      width="2560"
-      height="1429"
-      loading="eager"
-      decoding="sync"
-      fetchpriority="high"
-    />
-
-    <!-- Direct Editorial Typography Overlay -->
-    <div class="hero-overlay-content">
-      <h1 class="hero-headline">
-        <span class="hero-headline-sub">Modern Sartorial</span>
-        <span class="hero-headline-main">DEYNOLD DANNY</span>
-      </h1>
-      <p class="hero-tagline">Autumn / Winter 2026 Architectural Tailoring</p>
-    </div>
+<section class="hero-section dd-runway-hero-section" id="hero">
+  <div class="dd-runway-container">
+    <HeroRunwayExperience client:load />
   </div>
 </section>
 
-<style>
-  /* Base Hero Section Layout */
-  .hero-section {
+<style is:global>
+  .dd-runway-hero-section {
     position: relative;
     width: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #ffffff;
+    background-color: #080808;
   }
 
-  /* Hero Visual Image Banner: 2560 x 1429px (16:9 widescreen) */
-  .hero-banner-container {
+  .dd-runway-container {
     position: relative;
     width: 100%;
     max-width: 2560px;
     margin: 0 auto;
-    aspect-ratio: 2560 / 1429;
+    background-color: #080808;
   }
 
-  .hero-banner-img {
+  /* 3D Perspective Runway Stage */
+  .dd-runway-stage {
+    position: relative;
+    width: 100%;
+    height: clamp(560px, 84vh, 920px);
+    overflow: hidden;
+    background: #080808;
+    user-select: none;
+  }
+
+  .dd-runway-3d-plane {
+    position: absolute;
+    inset: -2.5%;
+    width: 105%;
+    height: 105%;
+    transform-style: preserve-3d;
+    transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+
+  .dd-runway-media {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center;
     display: block;
   }
 
-  /* Editorial Overlay Content */
-  .hero-overlay-content {
+  /* Runway Look Depth Planes — Models Advance Forward One-by-One */
+  .dd-runway-slide {
     position: absolute;
-    bottom: clamp(2.5rem, 6vw, 5rem);
-    left: clamp(1.5rem, 5vw, 4.5rem);
+    inset: 0;
+    opacity: 0;
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .dd-runway-slide.is-active {
+    opacity: 1;
+    z-index: 2;
+  }
+
+  .dd-runway-slide.is-exiting {
+    opacity: 0;
+    z-index: 1;
+  }
+
+  .dd-runway-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scale(var(--runway-s0, 1));
+    will-change: transform;
+  }
+
+  .dd-runway-slide.is-active .dd-runway-img {
+    animation: ddRunwayAdvance var(--runway-duration, 6500ms) cubic-bezier(0.2, 0.05, 0.25, 1) forwards;
+  }
+
+  .dd-runway-slide.is-exiting .dd-runway-img {
+    transform: scale(calc(var(--runway-s1, 1.08) + 0.035));
+    transition: transform 1.2s ease-out;
+  }
+
+  .dd-runway-slide.is-paused .dd-runway-img {
+    animation-play-state: paused;
+  }
+
+  @keyframes ddRunwayAdvance {
+    0% {
+      transform: scale(var(--runway-s0, 1)) translate3d(1.2%, 0, 0);
+    }
+    100% {
+      transform: scale(var(--runway-s1, 1.08)) translate3d(-0.6%, -0.4%, 0);
+    }
+  }
+
+  /* Volumetric Golden Sunbeam Shimmer */
+  .dd-runway-light-sweep {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      transparent 28%,
+      rgba(229, 193, 128, 0.09) 46%,
+      rgba(255, 232, 184, 0.14) 52%,
+      transparent 68%
+    );
+    mix-blend-mode: screen;
+    animation: ddGoldenSweep 9s ease-in-out infinite alternate;
+  }
+
+  @keyframes ddGoldenSweep {
+    0% {
+      opacity: 0.45;
+      transform: translateX(-3%);
+    }
+    100% {
+      opacity: 0.9;
+      transform: translateX(3%);
+    }
+  }
+
+  /* Deep Left-Weighted Architectural Scrim */
+  .dd-runway-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      rgba(6, 6, 6, 0.84) 0%,
+      rgba(6, 6, 6, 0.52) 34%,
+      rgba(6, 6, 6, 0.12) 60%,
+      rgba(6, 6, 6, 0.22) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(6, 6, 6, 0.28) 0%,
+      transparent 26%,
+      transparent 68%,
+      rgba(6, 6, 6, 0.65) 100%
+    );
+  }
+
+  /* Left Front-Row Editorial Overlay */
+  .dd-runway-overlay {
+    position: absolute;
+    left: clamp(1.5rem, 5.5vw, 5.5rem);
+    bottom: clamp(2.4rem, 7vh, 5.5rem);
     z-index: 10;
-    max-width: 600px;
+    max-width: 560px;
+    color: #ffffff;
+  }
+
+  .dd-runway-eyebrow-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .dd-runway-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #d9b26f;
+    box-shadow: 0 0 12px rgba(217, 178, 111, 0.9);
   }
 
   .hero-headline {
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
   }
 
   .hero-headline-sub {
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: clamp(0.65rem, 1.2vw, 0.8rem);
+    font-size: clamp(0.62rem, 1vw, 0.75rem);
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.3em;
-    color: #ffffff;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.32em;
+    color: rgba(255, 255, 255, 0.88);
   }
 
   .hero-headline-main {
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-size: clamp(2.35rem, 5.2vw, 4.5rem);
     font-weight: 400;
-    letter-spacing: 0.05em;
-    line-height: 1.05;
+    letter-spacing: 0.08em;
+    line-height: 1.02;
     color: #ffffff;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 6px 28px rgba(0, 0, 0, 0.55);
   }
 
   .hero-tagline {
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: clamp(0.75rem, 1.2vw, 0.9rem);
+    font-size: clamp(0.74rem, 1.15vw, 0.88rem);
     font-weight: 300;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.9);
-    margin-top: 0.75rem;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 0.82);
+    margin: 12px 0 0;
   }
 
-  @media (max-width: 640px) {
-    .hero-banner-container {
-      aspect-ratio: 2560 / 1429;
-      min-height: 0;
+  /* Active Look Metadata Block */
+  .dd-runway-look-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 22px;
+    padding: 11px 16px;
+    background: rgba(14, 14, 14, 0.55);
+    border: 1px solid rgba(217, 178, 111, 0.32);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    animation: ddLookFadeIn 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes ddLookFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dd-runway-look-code {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    color: #e4c07e;
+    white-space: nowrap;
+  }
+
+  .dd-runway-look-divider {
+    width: 1px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.22);
+    flex-shrink: 0;
+  }
+
+  .dd-runway-look-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ffffff;
+  }
+
+  .dd-runway-look-sub {
+    margin: 2px 0 0;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  /* Luxury Hairline CTAs */
+  .dd-runway-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .dd-runway-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 26px;
+    background: #ffffff;
+    color: #0d0d0d;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: transform 0.25s ease, background-color 0.25s ease, color 0.25s ease;
+  }
+
+  .dd-runway-cta-primary:hover {
+    background: #e4c07e;
+    color: #0b0b0b;
+    transform: translateY(-1px);
+  }
+
+  .dd-runway-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 24px;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    color: #ffffff;
+    background: rgba(10, 10, 10, 0.35);
+    backdrop-filter: blur(6px);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: border-color 0.25s ease, background-color 0.25s ease;
+  }
+
+  .dd-runway-cta-secondary:hover {
+    border-color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Bottom-Right Runway Show Controls */
+  .dd-runway-controls {
+    position: absolute;
+    right: clamp(1.25rem, 4vw, 4rem);
+    bottom: clamp(2rem, 6vh, 4.5rem);
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .dd-runway-steps {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .dd-runway-step-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.55);
+    transition: color 0.25s ease;
+  }
+
+  .dd-runway-step-btn.is-active,
+  .dd-runway-step-btn:hover {
+    color: #ffffff;
+  }
+
+  .dd-runway-step-num {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-align: left;
+  }
+
+  .dd-runway-step-track {
+    position: relative;
+    width: 48px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.22);
+    overflow: hidden;
+  }
+
+  .dd-runway-step-fill {
+    position: absolute;
+    inset: 0;
+    background: #e4c07e;
+    transform-origin: left center;
+    transform: scaleX(0);
+  }
+
+  .dd-runway-step-fill.is-animating {
+    animation-name: ddProgressFill;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
+  .dd-runway-step-fill.is-static-full {
+    transform: scaleX(1);
+  }
+
+  @keyframes ddProgressFill {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .dd-runway-action-btns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dd-runway-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(10, 10, 10, 0.45);
+    backdrop-filter: blur(6px);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .dd-runway-icon-btn:hover {
+    border-color: #e4c07e;
+    background: rgba(20, 20, 20, 0.8);
+  }
+
+  /* Bottom-Center Scroll Cue */
+  .dd-runway-scroll-cue {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .dd-runway-scroll-cue:hover {
+    color: #ffffff;
+  }
+
+  .dd-runway-scroll-line {
+    width: 1px;
+    height: 22px;
+    background: linear-gradient(180deg, rgba(228, 192, 126, 0.9), transparent);
+  }
+
+  /* Responsive Mobile Framing */
+  @media (max-width: 768px) {
+    .dd-runway-stage {
+      height: clamp(540px, 78vh, 680px);
     }
 
-    .hero-overlay-content {
-      bottom: 0.9rem;
-      left: 1rem;
+    .dd-runway-overlay {
+      left: 1.25rem;
+      right: 1.25rem;
+      bottom: 4.5rem;
     }
 
-    .hero-headline-main {
-      font-size: clamp(1.35rem, 5vw, 2.2rem);
+    .dd-runway-look-meta {
+      margin-top: 14px;
+      padding: 9px 12px;
+      gap: 10px;
     }
 
-    .hero-tagline {
-      margin-top: 0.35rem;
-      font-size: 0.65rem;
+    .dd-runway-cta-row {
+      margin-top: 16px;
+    }
+
+    .dd-runway-cta-primary,
+    .dd-runway-cta-secondary {
+      padding: 11px 18px;
+      font-size: 10px;
+    }
+
+    .dd-runway-controls {
+      left: 1.25rem;
+      right: 1.25rem;
+      bottom: 1.25rem;
+      justify-content: space-between;
+    }
+
+    .dd-runway-step-track {
+      width: 34px;
+    }
+
+    .dd-runway-scroll-cue {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dd-runway-slide.is-active .dd-runway-img,
+    .dd-runway-light-sweep,
+    .dd-runway-step-fill.is-animating {
+      animation: none !important;
     }
   }
 </style>

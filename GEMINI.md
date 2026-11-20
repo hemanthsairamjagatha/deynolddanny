@@ -201,7 +201,7 @@ implementation record accurate, not to rewrite standing rules.
 ### Current repository structure / implementation snapshot
 
 - **Verification date:** 2026-11-20
-- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix backend run type-check`, `npm --prefix backend test` [10/10], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build`, live Cloudflare D1 migrations `0001`..`0009` & unified Cloudflare Worker deploy)
+- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix backend run type-check`, `npm --prefix backend test` [10/10], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build`, live Cloudflare D1 migrations `0001`..`0010` & unified Cloudflare Worker deploy)
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Storefront `src/`) · React 18.3.1 + Vite 5.4 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + `@dnd-kit` (Commerce OS Admin SPA `admin/`) · Hono + Cloudflare Workers + Workers Static Assets + D1 + KV + R2 + Cron (Backend `backend/`)
 - **Active Routes (`src/pages/` + `/admin/*` SPA):**
   - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, `ProductCarousel`, `StyleLayering`, `Organization`/`WebSite` JSON-LD, live CMS & Brand hydration bridge via `src/lib/storefront/live-cms.ts`)
@@ -2367,6 +2367,36 @@ task.
     - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0009_variant_pricing_and_payment_controls.sql` applied in 10.98ms).
     - `npx wrangler deploy`: PASS (90 updated static assets uploaded; Worker live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `59740c1e-6b6d-4290-a0a6-35c704e44034`).
     - Live Smoke Tests: PASS (`/health` 200, `/api/products/cady-trousers/availability` 200 [6 variants with `pricePaise`], `/admin/payments` 200 + `X-Robots-Tag: noindex, nofollow`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-20 — 100% Menswear 3D-Depth Interactive Runway Hero + Native Runway Video Support & Admin Studio Controls**:
+  - **Status:** COMPLETE
+  - **Summary:** Replaced the static studio hero with a cinema-grade **100% Menswear 3D-Depth Interactive Runway Hero** (`src/features/home/components/HeroRunwayExperience.tsx` mounted in `src/features/home/components/HeroBanner.astro`) plus full native looping `.mp4`/`.webm` video support:
+    1. **100% Menswear Architectural Runway Assets:** Generated and installed two pixel-matched monumental dark-basalt & travertine reflecting-pool menswear runway photographs (`public/hero-banner.jpg`, `public/images/hero-runway-1.jpg`, `public/images/hero-runway-2.jpg`) configured as a 3-act advancing runway sequence (Look 01 Monolith Ensemble -> Look 02 Brushed Camel Cashmere Walk -> Look 03 Architectural Bespoke Tailoring).
+    2. **3D-Depth Runway Stage & Video Mode:** Built `HeroRunwayExperience.tsx` with 3D perspective depth-push advancement, subtle mouse tilt parallax, volumetric golden ambient light sweep, live per-look "Shop This Look" CTA + Secondary CTA, animated `01 / 02 / 03` runway progress controls, Play/Pause + `prefers-reduced-motion` accessibility, and automatic full-bleed looping `<video>` playback whenever a `videoUrl` is configured in Admin.
+    3. **Admin Visual Studio & Video Upload Support:** Upgraded `HeroBannerEditor` in `admin/src/modules/studio/PageEditor.tsx` with a live Runway Video URL field + visual 3D Runway Looks sequence editor (add/remove/reorder looks, image picker, per-look title/subtitle/CTA). Updated `src/lib/storefront/live-cms.ts` to hydrate Hero CMS props cleanly via `dd:hero-cms-update`. Extended `backend/src/services/r2Storage.ts` and `backend/src/routes/admin/media.ts` with magic-byte validated `.mp4`/`.webm` video upload support (up to 15 MB). Synced D1 homepage hero defaults via `backend/migrations/0010_menswear_runway_hero.sql`.
+  - **Files Added:**
+    - `src/features/home/components/HeroRunwayExperience.tsx`
+    - `public/images/hero-runway-1.jpg`
+    - `public/images/hero-runway-2.jpg`
+    - `backend/migrations/0010_menswear_runway_hero.sql`
+  - **Files Modified:**
+    - `public/hero-banner.jpg`, `src/features/home/components/HeroBanner.astro`, `src/lib/storefront/live-cms.ts`
+    - `admin/src/modules/studio/PageEditor.tsx`
+    - `backend/src/services/r2Storage.ts`, `backend/src/routes/admin/media.ts`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added `src/features/home/components/HeroRunwayExperience.tsx`, `public/images/hero-runway-{1,2}.jpg`, and `backend/migrations/0010_menswear_runway_hero.sql`.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`10 / 10`).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `npx astro check`: PASS (105 files, 0 errors, 0 warnings, 0 hints).
+    - `npm run build`: PASS (59 Astro pages + Admin SPA).
+    - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0010_menswear_runway_hero.sql` applied).
+    - `npx wrangler deploy`: PASS (96 assets uploaded; Worker live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `1438367e-7cb5-4e2d-a7b8-d7e7b2f6591c`).
+    - Live Smoke Tests: PASS (`/api/storefront/published` returns 3 `runwayLooks`; `/images/hero-runway-1.jpg` 200; `/images/hero-runway-2.jpg` 200).
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.

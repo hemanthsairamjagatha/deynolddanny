@@ -6,7 +6,7 @@ import { auditAdminAction, requirePermission } from '../../middleware/adminAuth.
 import {
   buildR2Key,
   deleteR2Object,
-  detectImageMimeFromBytes,
+  detectMediaMimeFromBytes,
   sanitizeUploadFolder,
   uploadObject,
 } from '../../services/r2Storage.js';
@@ -16,8 +16,17 @@ import { safeJsonParse } from '../../services/storefrontCache.js';
 
 const adminMedia = new Hono<{ Bindings: Env }>();
 
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif']);
-const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_MIME = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'video/mp4',
+  'video/webm',
+]);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
 
 function encodeBytesToBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -145,22 +154,33 @@ adminMedia.post('/upload', requirePermission('media.write'), async (c) => {
   }
   if (!ALLOWED_MIME.has(file.type)) {
     return c.json(
-      { success: false, error: { code: 'UNSUPPORTED_MEDIA_TYPE', message: 'Allowed types: JPEG, PNG, WebP, AVIF.', status: 415 } },
+      { success: false, error: { code: 'UNSUPPORTED_MEDIA_TYPE', message: 'Allowed types: JPEG, PNG, WebP, AVIF, MP4, WebM.', status: 415 } },
       415,
     );
   }
-  if (file.size === 0 || file.size > MAX_SIZE_BYTES) {
+  const isVideo = file.type.startsWith('video/');
+  const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  if (file.size === 0 || file.size > maxBytes) {
     return c.json(
-      { success: false, error: { code: 'PAYLOAD_TOO_LARGE', message: 'Image must be between 1 byte and 5 MB.', status: 413 } },
+      {
+        success: false,
+        error: {
+          code: 'PAYLOAD_TOO_LARGE',
+          message: isVideo
+            ? 'Runway video must be between 1 byte and 15 MB.'
+            : 'Image must be between 1 byte and 5 MB.',
+          status: 413,
+        },
+      },
       413,
     );
   }
 
   const arrayBuffer = await file.arrayBuffer();
-  const realMime = detectImageMimeFromBytes(arrayBuffer);
+  const realMime = detectMediaMimeFromBytes(arrayBuffer);
   if (!realMime) {
     return c.json(
-      { success: false, error: { code: 'INVALID_IMAGE_CONTENT', message: 'File header does not match an authentic raster image.', status: 400 } },
+      { success: false, error: { code: 'INVALID_MEDIA_CONTENT', message: 'File header does not match an authentic image or MP4/WebM video.', status: 400 } },
       400,
     );
   }

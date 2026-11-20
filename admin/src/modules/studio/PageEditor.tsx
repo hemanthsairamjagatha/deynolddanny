@@ -139,26 +139,45 @@ function LegalDocumentEditor({ config, onChange }: { config: Record<string, unkn
   );
 }
 
-// ─── 2. VISUAL HERO BANNER EDITOR (WITH LIVE MINI-PREVIEW & MEDIA PICKER) ─────
+// ─── 2. VISUAL HERO BANNER EDITOR (3D RUNWAY LOOKS + NATIVE VIDEO + PREVIEW) ─
+interface RunwayLookDraft {
+  code?: string;
+  title?: string;
+  subtitle?: string;
+  image?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  focalX?: number;
+  focalY?: number;
+}
+
 function HeroBannerEditor({ config, onChange }: { config: Record<string, unknown>; onChange: (n: Record<string, unknown>) => void }) {
   const set = (k: string, v: unknown) => onChange({ ...config, [k]: v });
-  const fx = Number(config.focalX ?? 50);
-  const fy = Number(config.focalY ?? 35);
-  const overlayOpacity = Number(config.overlayOpacity ?? 28);
+  const fx = Number(config.focalX ?? 64);
+  const fy = Number(config.focalY ?? 26);
+  const overlayOpacity = Number(config.overlayOpacity ?? 18);
   const overlayColor = String(config.overlayColor ?? '#000000');
-  const previewImg = String(config.desktopImage ?? '/hero-banner.jpg');
+  const videoUrl = String(config.videoUrl ?? '');
+  const looks: RunwayLookDraft[] = Array.isArray(config.runwayLooks) ? (config.runwayLooks as RunwayLookDraft[]) : [];
+  const previewImg = String(looks[0]?.image || config.desktopImage || '/hero-banner.jpg');
+
+  const updateLooks = (next: RunwayLookDraft[]) => set('runwayLooks', next);
 
   return (
     <div className="col-span-2 space-y-5">
       {/* Live Hero Visual Preview */}
-      <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border border-ink-200 bg-ink-900">
-        {previewImg && (
-          <img
-            src={previewImg}
-            alt="Hero preview"
-            className="w-full h-full object-cover"
-            style={{ objectPosition: `${fx}% ${fy}%` }}
-          />
+      <div className="relative w-full aspect-[16/9] max-h-72 rounded-xl overflow-hidden border border-ink-200 bg-ink-900">
+        {videoUrl ? (
+          <video src={videoUrl} poster={previewImg} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+        ) : (
+          previewImg && (
+            <img
+              src={previewImg}
+              alt="Hero preview"
+              className="w-full h-full object-cover"
+              style={{ objectPosition: `${fx}% ${fy}%` }}
+            />
+          )
         )}
         <div
           className="absolute inset-0"
@@ -184,30 +203,35 @@ function HeroBannerEditor({ config, onChange }: { config: Record<string, unknown
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input label="Eyebrow Text" value={String(config.eyebrow ?? '')} onChange={(e) => set('eyebrow', e.target.value)} placeholder="Modern Sartorial" />
+        <Input label="Eyebrow Text" value={String(config.eyebrow ?? '')} onChange={(e) => set('eyebrow', e.target.value)} placeholder="AUTUMN / WINTER 2026 · MENSWEAR RUNWAY" />
         <Input label="Main Hero Headline" value={String(config.headline ?? '')} onChange={(e) => set('headline', e.target.value)} placeholder="DEYNOLD DANNY" />
         <div className="sm:col-span-2">
           <Input
             label="Subheadline / Tagline"
             value={String(config.description ?? config.tagline ?? '')}
             onChange={(e) => onChange({ ...config, description: e.target.value, tagline: e.target.value })}
-            placeholder="Autumn / Winter 2026 Architectural Tailoring"
+            placeholder="Architectural Bespoke Tailoring & Cashmere"
           />
+        </div>
+
+        <div className="sm:col-span-2 p-4 rounded-xl border border-gold-300 bg-gold-50/40 space-y-2">
+          <Input
+            label="Optional Looping Runway Video URL (.mp4 / .webm)"
+            value={videoUrl}
+            onChange={(e) => set('videoUrl', e.target.value)}
+            placeholder="https://.../menswear-runway-loop.mp4 (leave blank to run 3D Multi-Look Runway)"
+          />
+          <p className="text-[11px] text-ink-500">
+            When a video URL is added, the homepage plays a silent looping runway film automatically (with your Desktop Image as instant poster). Leave blank to display the interactive 3D-Depth Runway Looks below.
+          </p>
         </div>
 
         <div className="sm:col-span-2">
           <ImageUrlField
-            label="Desktop Hero Image (2560×1429 recommended)"
+            label="Primary Hero / Video Poster Image (16:9 recommended)"
             value={String(config.desktopImage ?? '')}
             onChange={(url) => set('desktopImage', url)}
             onPickMeta={(a) => onChange({ ...config, desktopImage: a.url, focalX: a.defaultFocalX, focalY: a.defaultFocalY })}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <ImageUrlField
-            label="Mobile Hero Image (Optional — defaults to Desktop)"
-            value={String(config.mobileImage ?? '')}
-            onChange={(url) => set('mobileImage', url)}
           />
         </div>
 
@@ -230,10 +254,70 @@ function HeroBannerEditor({ config, onChange }: { config: Record<string, unknown
 
         <div />
 
-        <Input label="Primary CTA Button Label" value={String(config.ctaLabel ?? '')} onChange={(e) => set('ctaLabel', e.target.value)} placeholder="Discover Collection" />
-        <Input label="Primary CTA Destination URL" value={String(config.ctaUrl ?? '')} onChange={(e) => set('ctaUrl', e.target.value)} placeholder="/categories" />
-        <Input label="Secondary CTA Label (Optional)" value={String(config.secondaryCtaLabel ?? '')} onChange={(e) => set('secondaryCtaLabel', e.target.value)} placeholder="Shop Tailoring" />
-        <Input label="Secondary CTA URL (Optional)" value={String(config.secondaryCtaUrl ?? '')} onChange={(e) => set('secondaryCtaUrl', e.target.value)} placeholder="/categories/suits" />
+        <Input label="Default Primary CTA Label" value={String(config.ctaLabel ?? '')} onChange={(e) => set('ctaLabel', e.target.value)} placeholder="Shop This Look" />
+        <Input label="Default Primary CTA URL" value={String(config.ctaUrl ?? '')} onChange={(e) => set('ctaUrl', e.target.value)} placeholder="/categories/overcoats" />
+        <Input label="Secondary CTA Label" value={String(config.secondaryCtaLabel ?? '')} onChange={(e) => set('secondaryCtaLabel', e.target.value)} placeholder="Explore Collection" />
+        <Input label="Secondary CTA URL" value={String(config.secondaryCtaUrl ?? '')} onChange={(e) => set('secondaryCtaUrl', e.target.value)} placeholder="/categories" />
+      </div>
+
+      {/* 3D Runway Looks Sequence Editor */}
+      <div className="pt-4 border-t border-ink-200 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-ink-900">3D Runway Looks Sequence ({looks.length})</h3>
+            <p className="text-xs text-ink-500">Models advance one-by-one in 3D depth with per-look &quot;Shop This Look&quot; links.</p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              updateLooks([
+                ...looks,
+                {
+                  code: `LOOK 0${looks.length + 1}`,
+                  title: 'New Menswear Runway Look',
+                  subtitle: 'Italian Virgin Wool · Artisanal Tailoring',
+                  image: '/images/hero-runway-1.jpg',
+                  ctaLabel: 'Shop This Look',
+                  ctaUrl: '/categories/tailoring',
+                  focalX: 64,
+                  focalY: 26,
+                },
+              ])
+            }
+          >
+            + Add Runway Look
+          </Button>
+        </div>
+
+        {looks.map((look, idx) => (
+          <div key={idx} className="p-4 rounded-xl border border-ink-200 bg-ink-50/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold text-ink-600">{look.code || `LOOK 0${idx + 1}`}</span>
+              <div className="flex gap-1">
+                <Button size="sm" variant="ghost" disabled={idx === 0} onClick={() => updateLooks(moveArr(looks, idx, -1))}>↑</Button>
+                <Button size="sm" variant="ghost" disabled={idx === looks.length - 1} onClick={() => updateLooks(moveArr(looks, idx, 1))}>↓</Button>
+                <Button size="sm" variant="ghost" className="text-red-600" onClick={() => updateLooks(looks.filter((_, i) => i !== idx))}>Remove</Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input label="Look Code" value={look.code ?? ''} onChange={(e) => updateLooks(looks.map((l, i) => (i === idx ? { ...l, code: e.target.value } : l)))} placeholder="LOOK 01" />
+              <Input label="Look Title" value={look.title ?? ''} onChange={(e) => updateLooks(looks.map((l, i) => (i === idx ? { ...l, title: e.target.value } : l)))} />
+              <div className="sm:col-span-2">
+                <Input label="Fabric / Garment Subtitle" value={look.subtitle ?? ''} onChange={(e) => updateLooks(looks.map((l, i) => (i === idx ? { ...l, subtitle: e.target.value } : l)))} />
+              </div>
+              <Input label="Shop CTA Label" value={look.ctaLabel ?? ''} onChange={(e) => updateLooks(looks.map((l, i) => (i === idx ? { ...l, ctaLabel: e.target.value } : l)))} placeholder="Shop This Look" />
+              <Input label="Shop Destination URL" value={look.ctaUrl ?? ''} onChange={(e) => updateLooks(looks.map((l, i) => (i === idx ? { ...l, ctaUrl: e.target.value } : l)))} placeholder="/categories/overcoats" />
+              <div className="sm:col-span-2">
+                <ImageUrlField
+                  label="Runway Look Image"
+                  value={look.image ?? ''}
+                  onChange={(url) => updateLooks(looks.map((l, i) => (i === idx ? { ...l, image: url } : l)))}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

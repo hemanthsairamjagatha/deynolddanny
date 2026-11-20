@@ -430,90 +430,32 @@ function applyFooterNavigation(navigation: Record<string, unknown> | undefined) 
 function applyHomepageSections(sections: CmsSectionPayload[] | undefined) {
   if (!Array.isArray(sections) || window.location.pathname !== '/') return;
 
-  // A. Primary Hero Banner
+  // A. Primary Hero Banner (3D Runway Showcase + Native Looping Video Support)
   const hero = sections.find((s) => (s.sectionType ?? s.section_type) === 'hero_banner');
   if (hero) {
     const props = hero.props ?? hero.config_json ?? {};
-    const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    const imgUrl = safeUrl(
-      isMobile
-        ? props.mobileImage || props.desktopImage || props.imageUrl
-        : props.desktopImage || props.imageUrl,
-    );
-    const heroContainer = document.querySelector<HTMLElement>('#hero .hero-banner-container');
-    const imgEl = document.querySelector<HTMLImageElement>('#hero .hero-banner-img');
+    const sanitizedHero: Record<string, unknown> = {
+      ...props,
+      desktopImage: safeUrl(props.desktopImage) ?? undefined,
+      mobileImage: safeUrl(props.mobileImage) ?? undefined,
+      imageUrl: safeUrl(props.imageUrl) ?? undefined,
+      videoUrl: safeUrl(props.videoUrl) ?? undefined,
+      ctaUrl: safeUrl(props.ctaUrl) ?? undefined,
+      secondaryCtaUrl: safeUrl(props.secondaryCtaUrl) ?? undefined,
+      runwayLooks: Array.isArray(props.runwayLooks)
+        ? (props.runwayLooks as Array<Record<string, unknown>>)
+            .map((l) => ({
+              ...l,
+              image: safeUrl(l.image) ?? '',
+              ctaUrl: safeUrl(l.ctaUrl) ?? '/categories',
+            }))
+            .filter((l) => Boolean(l.image))
+        : undefined,
+    };
 
-    if (imgEl) {
-      if (imgUrl) imgEl.src = imgUrl;
-      const fx = Number(props.focalX ?? props.focal_x);
-      const fy = Number(props.focalY ?? props.focal_y);
-      if (!Number.isNaN(fx) && !Number.isNaN(fy) && (props.focalX !== undefined || props.focal_x !== undefined)) {
-        imgEl.style.objectPosition = `${Math.max(0, Math.min(100, fx))}% ${Math.max(0, Math.min(100, fy))}%`;
-      }
-    }
-
-    // Apply subtle editorial overlay tint if configured
-    if (heroContainer && props.overlayOpacity !== undefined) {
-      const op = Math.max(0, Math.min(80, Number(props.overlayOpacity) || 0)) / 100;
-      const col = typeof props.overlayColor === 'string' && props.overlayColor ? props.overlayColor : '#000000';
-      let scrim = heroContainer.querySelector<HTMLElement>('.dd-hero-scrim');
-      if (!scrim) {
-        scrim = document.createElement('div');
-        scrim.className = 'dd-hero-scrim';
-        scrim.style.cssText = 'position: absolute; inset: 0; pointer-events: none; z-index: 2;';
-        heroContainer.appendChild(scrim);
-      }
-      scrim.style.backgroundColor = col;
-      scrim.style.opacity = String(op);
-    }
-
-    if (typeof props.eyebrow === 'string' && props.eyebrow.trim()) {
-      const sub = document.querySelector<HTMLElement>('#hero .hero-headline-sub');
-      if (sub) sub.textContent = props.eyebrow.trim();
-    }
-    if (typeof props.headline === 'string' && props.headline.trim()) {
-      const main = document.querySelector<HTMLElement>('#hero .hero-headline-main');
-      if (main) main.textContent = props.headline.trim();
-    }
-    const desc = props.description ?? props.tagline;
-    if (typeof desc === 'string' && desc.trim()) {
-      const tag = document.querySelector<HTMLElement>('#hero .hero-tagline');
-      if (tag) tag.textContent = desc.trim();
-    }
-
-    // Dynamic Primary & Secondary CTA Buttons
-    const overlayContent = document.querySelector<HTMLElement>('#hero .hero-overlay-content');
-    if (overlayContent) {
-      overlayContent.querySelector('.dd-hero-ctas')?.remove();
-      const ctaLabel = typeof props.ctaLabel === 'string' ? props.ctaLabel.trim() : '';
-      const ctaUrl = safeUrl(props.ctaUrl);
-      const secLabel = typeof props.secondaryCtaLabel === 'string' ? props.secondaryCtaLabel.trim() : '';
-      const secUrl = safeUrl(props.secondaryCtaUrl);
-
-      if ((ctaLabel && ctaUrl) || (secLabel && secUrl)) {
-        const ctaWrap = document.createElement('div');
-        ctaWrap.className = 'dd-hero-ctas';
-        ctaWrap.style.cssText = 'display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px;';
-
-        if (ctaLabel && ctaUrl) {
-          const a = document.createElement('a');
-          a.href = ctaUrl;
-          a.textContent = ctaLabel;
-          a.style.cssText =
-            'display: inline-block; padding: 11px 24px; background: #ffffff; color: #111111; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; font-weight: 500; transition: opacity 0.2s;';
-          ctaWrap.appendChild(a);
-        }
-        if (secLabel && secUrl) {
-          const a = document.createElement('a');
-          a.href = secUrl;
-          a.textContent = secLabel;
-          a.style.cssText =
-            'display: inline-block; padding: 10px 24px; border: 1px solid rgba(255,255,255,0.85); color: #ffffff; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none; font-weight: 500; backdrop-filter: blur(4px);';
-          ctaWrap.appendChild(a);
-        }
-        overlayContent.appendChild(ctaWrap);
-      }
-    }
+    // Hydrate React HeroRunwayExperience cleanly via window cache + CustomEvent
+    (window as unknown as { __ddHeroCms?: Record<string, unknown> }).__ddHeroCms = sanitizedHero;
+    window.dispatchEvent(new CustomEvent('dd:hero-cms-update', { detail: sanitizedHero }));
   }
 
   // B. Product Carousels headings & View All links

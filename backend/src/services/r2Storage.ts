@@ -7,7 +7,28 @@ const ALLOWED_EXT_MAP: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/avif': 'avif',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
 };
+
+/**
+ * Inspects file header magic bytes to confirm actual binary image or video type.
+ */
+export function detectMediaMimeFromBytes(buffer: ArrayBuffer): string | null {
+  const img = detectImageMimeFromBytes(buffer);
+  if (img) return img;
+  const bytes = new Uint8Array(buffer.slice(0, 16));
+  if (bytes.length < 12) return null;
+  // MP4: ....ftyp (bytes 4..7 = 'ftyp')
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    return 'video/mp4';
+  }
+  // WebM / EBML: 1A 45 DF A3
+  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
+    return 'video/webm';
+  }
+  return null;
+}
 
 /**
  * Inspects file header magic bytes to confirm actual binary image type.
