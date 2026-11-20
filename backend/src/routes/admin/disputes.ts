@@ -28,7 +28,7 @@ adminDisputes.get('/', requirePermission('disputes.manage', 'orders.read'), asyn
   return c.json({
     success: true,
     data: {
-      items: rows.results ?? [],
+      items: (rows.results ?? []).map((r) => ({ ...r, order_display_id: r.order_number })),
       total: rows.results?.length ?? 0,
     },
   });
@@ -36,8 +36,10 @@ adminDisputes.get('/', requirePermission('disputes.manage', 'orders.read'), asyn
 
 // ─── PATCH /api/admin/disputes/:id ───────────────────────────────────────────
 const resolveDisputeSchema = z.object({
-  status: z.enum(['under_review', 'won', 'lost', 'closed']),
+  status: z.enum(['under_review', 'won', 'lost', 'closed', 'resolved']).optional(),
   evidenceNotes: z.string().max(1000).optional(),
+  resolution: z.string().max(1000).optional(),
+  refundPaise: z.number().int().min(0).optional(),
 });
 
 adminDisputes.patch(
@@ -46,7 +48,10 @@ adminDisputes.patch(
   zValidator('json', resolveDisputeSchema),
   async (c) => {
     const disputeId = c.req.param('id');
-    const { status, evidenceNotes } = c.req.valid('json');
+    const body = c.req.valid('json');
+    const rawStatus = body.status ?? 'closed';
+    const status = rawStatus === 'resolved' ? 'closed' : rawStatus;
+    const evidenceNotes = body.evidenceNotes ?? body.resolution;
     const now = nowIso();
 
     const disp = await c.env.DB

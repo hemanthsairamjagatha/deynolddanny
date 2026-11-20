@@ -25,7 +25,8 @@ adminCustomers.get('/', async (c) => {
     c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM users ${where}`).bind(...bindings),
     c.env.DB
       .prepare(
-        `SELECT id, email, full_name, phone, is_active, last_login_at, created_at
+        `SELECT id, email, full_name, phone, is_active, last_login_at, created_at,
+                (SELECT COUNT(*) FROM orders o WHERE o.user_id = users.id) AS orders_count
          FROM users ${where}
          ORDER BY created_at DESC LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`,
       )
@@ -37,21 +38,27 @@ adminCustomers.get('/', async (c) => {
 
   return c.json({
     success: true,
-    data: { items, total, page, limit, totalPages: Math.ceil(total / limit) },
+    data: { items, customers: items, total, page, limit, totalPages: Math.ceil(total / limit) },
   });
 });
 
 adminCustomers.get('/:id', async (c) => {
   const id = c.req.param('id');
 
-  const [user, orders] = await c.env.DB.batch([
+  const [user, orders, addresses] = await c.env.DB.batch([
     c.env.DB
       .prepare(`SELECT id, email, full_name, phone, role, is_active, last_login_at, created_at FROM users WHERE id = ?1`)
       .bind(id),
     c.env.DB
       .prepare(
-        `SELECT id, order_number, status, payment_status, total_paise, created_at
-         FROM orders WHERE user_id = ?1 ORDER BY created_at DESC LIMIT 10`,
+        `SELECT id, order_number, order_number AS display_id, status, payment_status, total_paise, created_at
+         FROM orders WHERE user_id = ?1 ORDER BY created_at DESC LIMIT 20`,
+      )
+      .bind(id),
+    c.env.DB
+      .prepare(
+        `SELECT id, full_name AS name, phone, line1, line2, city, state, pincode, is_default
+         FROM addresses WHERE user_id = ?1 ORDER BY is_default DESC, created_at DESC`,
       )
       .bind(id),
   ]);
@@ -68,6 +75,8 @@ adminCustomers.get('/:id', async (c) => {
     data: {
       customer: user.results[0],
       recentOrders: orders.results ?? [],
+      orders: orders.results ?? [],
+      addresses: addresses.results ?? [],
     },
   });
 });

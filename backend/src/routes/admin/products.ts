@@ -136,8 +136,8 @@ const createProductSchema = z.object({
   badge: z.string().max(50).nullable().optional(),
   section_group: z.enum(['mastery', 'style_space', 'news']).default('mastery'),
   category_id: z.string().nullable().optional(),
-  default_img: z.string().min(1),
-  hover_img: z.string().min(1),
+  default_img: z.string().max(500).default(''),
+  hover_img: z.string().max(500).default(''),
   hsn_code: z.string().max(20).nullable().optional(),
   gst_rate_bps: z.number().int().min(0).max(2800).nullable().optional(),
   is_active: z.union([z.literal(0), z.literal(1)]).default(1),
@@ -736,6 +736,7 @@ adminProducts.patch(
 
     const product = await c.env.DB.prepare(`SELECT slug FROM products WHERE id = ?1`).bind(productId).first<{ slug: string }>();
     await bumpCatalogCacheVersion(c.env.CATALOG_KV, product?.slug);
+    await invalidateStorefrontCache(c.env);
     await auditAdminAction(c, 'UPDATE_VARIANT', 'product_variant', variantId, body);
 
     return c.json({ success: true, data: { updated: true } });
@@ -760,6 +761,9 @@ adminProducts.delete('/:id/variants/:variantId', requirePermission('catalog.dele
   }
 
   await c.env.DB.prepare(`DELETE FROM product_variants WHERE id = ?1 AND product_id = ?2`).bind(variantId, productId).run();
+  const prod = await c.env.DB.prepare(`SELECT slug FROM products WHERE id = ?1`).bind(productId).first<{ slug: string }>();
+  await bumpCatalogCacheVersion(c.env.CATALOG_KV, prod?.slug);
+  await invalidateStorefrontCache(c.env);
   await auditAdminAction(c, 'DELETE_VARIANT', 'product_variant', variantId);
   return c.json({ success: true, data: { deleted: true } });
 });
@@ -767,13 +771,18 @@ adminProducts.delete('/:id/variants/:variantId', requirePermission('catalog.dele
 // ─── PUT /api/admin/products/:id/images ──────────────────────────────────────
 const imageArraySchema = z.object({
   images: z.array(
-    z.object({
-      id: z.string().optional(),
-      image_url: z.string().min(1),
-      alt_text: z.string().max(200).optional(),
-      color_name: z.string().nullable().optional(),
-      sort_order: z.number().int().default(0),
-    }),
+    z
+      .object({
+        id: z.string().optional(),
+        image_url: z.string().min(1).optional(),
+        url: z.string().min(1).optional(),
+        alt_text: z.string().max(200).optional(),
+        color_name: z.string().nullable().optional(),
+        sort_order: z.number().int().default(0),
+      })
+      .refine((x) => Boolean(x.image_url || x.url), {
+        message: 'Each image requires image_url or url.',
+      }),
   ),
 });
 
@@ -791,19 +800,21 @@ adminProducts.put(
 
     images.forEach((img, idx) => {
       const imgId = img.id || generateId('pimg_');
+      const imgUrl = (img.image_url || img.url || '').trim();
       stmts.push(
         c.env.DB
           .prepare(
             `INSERT INTO product_images (id, product_id, image_url, alt_text, color_name, sort_order)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
           )
-          .bind(imgId, productId, img.image_url, img.alt_text ?? '', img.color_name ?? null, img.sort_order ?? idx + 1),
+          .bind(imgId, productId, imgUrl, img.alt_text ?? '', img.color_name ?? null, img.sort_order ?? idx + 1),
       );
     });
 
     await c.env.DB.batch(stmts);
     const product = await c.env.DB.prepare(`SELECT slug FROM products WHERE id = ?1`).bind(productId).first<{ slug: string }>();
     await bumpCatalogCacheVersion(c.env.CATALOG_KV, product?.slug);
+    await invalidateStorefrontCache(c.env);
     await auditAdminAction(c, 'UPDATE_PRODUCT_IMAGES', 'product', productId, { count: images.length });
 
     return c.json({ success: true, data: { count: images.length } });
@@ -847,6 +858,7 @@ adminProducts.put(
     await c.env.DB.batch(stmts);
     const product = await c.env.DB.prepare(`SELECT slug FROM products WHERE id = ?1`).bind(productId).first<{ slug: string }>();
     await bumpCatalogCacheVersion(c.env.CATALOG_KV, product?.slug);
+    await invalidateStorefrontCache(c.env);
     await auditAdminAction(c, 'UPDATE_PRODUCT_CROSS_SELLS', 'product', productId, { count: items.length });
 
     return c.json({ success: true, data: { count: items.length } });

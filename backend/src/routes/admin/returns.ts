@@ -30,76 +30,79 @@ adminReturns.get('/', requirePermission('returns.manage', 'orders.read'), async 
   return c.json({
     success: true,
     data: {
-      items: rows.results ?? [],
+      items: (rows.results ?? []).map((r) => ({ ...r, order_display_id: r.order_number })),
       total: rows.results?.length ?? 0,
     },
   });
 });
 
-// ─── PATCH /api/admin/returns/:id/review ─────────────────────────────────────
+// ─── PATCH /api/admin/returns/:id/review (and /:id alias) ───────────────────
 const reviewSchema = z.object({
-  status: z.enum(['approved', 'rejected', 'completed']),
+  status: z.enum(['approved', 'rejected', 'completed']).optional(),
+  action: z.enum(['approve', 'reject', 'complete']).optional(),
   adminNotes: z.string().max(500).optional(),
+  note: z.string().max(500).optional(),
   restock: z.boolean().default(false),
 });
 
-adminReturns.patch(
-  '/:id/review',
-  requirePermission('returns.manage'),
-  zValidator('json', reviewSchema),
-  async (c) => {
-    const returnId = c.req.param('id');
-    const adminId = c.get('userId');
-    const { status, adminNotes, restock } = c.req.valid('json');
+const handleReturnReview = async (c: any) => {
+  const returnId = c.req.param('id');
+  const adminId = c.get('userId');
+  const body = c.req.valid('json') as z.infer<typeof reviewSchema>;
+  const actionMap = { approve: 'approved', reject: 'rejected', complete: 'completed' } as const;
+  const status = body.status ?? (body.action ? actionMap[body.action] : 'approved');
+  const adminNotes = body.adminNotes ?? body.note;
+  const restock = Boolean(body.restock);
 
-    const ret = await c.env.DB
-      .prepare(`SELECT * FROM return_requests WHERE id = ?1 LIMIT 1`)
-      .bind(returnId)
-      .first<Record<string, any>>();
+  const ret = await c.env.DB
+    .prepare(`SELECT * FROM return_requests WHERE id = ?1 LIMIT 1`)
+    .bind(returnId)
+    .first<Record<string, any>>();
 
-    if (!ret) {
-      return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Return request not found.', status: 404 } }, 404);
+  if (!ret) {
+    return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Return request not found.', status: 404 } }, 404);
+  }
+
+  const now = nowIso();
+  await c.env.DB
+    .prepare(
+      `UPDATE return_requests
+       SET status = ?1, admin_notes = COALESCE(?2, admin_notes), reviewed_by = ?3, reviewed_at = ?4, updated_at = ?4
+       WHERE id = ?5`,
+    )
+    .bind(status, adminNotes ?? null, adminId, now, returnId)
+    .run();
+
+  if (status === 'completed' && restock) {
+    const item = await c.env.DB
+      .prepare(`SELECT variant_id, quantity FROM order_items WHERE id = ?1 LIMIT 1`)
+      .bind(ret.order_item_id)
+      .first<{ variant_id: string; quantity: number }>();
+
+    if (item && item.variant_id) {
+      await c.env.DB
+        .prepare(`UPDATE product_variants SET stock = stock + ?1, updated_at = ?2 WHERE id = ?3`)
+        .bind(ret.quantity || item.quantity, now, item.variant_id)
+        .run();
+
+      await recordInventoryMovements(c.env.DB, [
+        {
+          variantId: item.variant_id,
+          movementType: 'return_restock',
+          qtyDelta: ret.quantity || item.quantity,
+          actorId: adminId,
+          notes: `Restocked from return request ${returnId}`,
+        },
+      ]);
     }
+  }
 
-    const now = nowIso();
-    await c.env.DB
-      .prepare(
-        `UPDATE return_requests
-         SET status = ?1, admin_notes = COALESCE(?2, admin_notes), reviewed_by = ?3, reviewed_at = ?4, updated_at = ?4
-         WHERE id = ?5`,
-      )
-      .bind(status, adminNotes ?? null, adminId, now, returnId)
-      .run();
+  await auditAdminAction(c, 'REVIEW_RETURN_REQUEST', 'return_request', returnId, { status, restock });
 
-    // If completed and restock requested, increment variant stock and record inventory movement
-    if (status === 'completed' && restock) {
-      const item = await c.env.DB
-        .prepare(`SELECT variant_id, quantity FROM order_items WHERE id = ?1 LIMIT 1`)
-        .bind(ret.order_item_id)
-        .first<{ variant_id: string; quantity: number }>();
+  return c.json({ success: true, data: { status, reviewedAt: now } });
+};
 
-      if (item && item.variant_id) {
-        await c.env.DB
-          .prepare(`UPDATE product_variants SET stock = stock + ?1, updated_at = ?2 WHERE id = ?3`)
-          .bind(ret.quantity || item.quantity, now, item.variant_id)
-          .run();
-
-        await recordInventoryMovements(c.env.DB, [
-          {
-            variantId: item.variant_id,
-            movementType: 'return_restock',
-            qtyDelta: ret.quantity || item.quantity,
-            actorId: adminId,
-            notes: `Restocked from return request ${returnId}`,
-          },
-        ]);
-      }
-    }
-
-    await auditAdminAction(c, 'REVIEW_RETURN_REQUEST', 'return_request', returnId, { status, restock });
-
-    return c.json({ success: true, data: { status, reviewedAt: now } });
-  },
-);
+adminReturns.patch('/:id/review', requirePermission('returns.manage'), zValidator('json', reviewSchema), handleReturnReview);
+adminReturns.patch('/:id', requirePermission('returns.manage'), zValidator('json', reviewSchema), handleReturnReview);
 
 export default adminReturns;

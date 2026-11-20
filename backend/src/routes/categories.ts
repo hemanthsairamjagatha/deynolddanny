@@ -22,7 +22,7 @@ categories.get('/', async (c) => {
   const cached = await getCatalogCache<DbCategory[]>(c.env.CATALOG_KV, cacheKey);
   if (cached) {
     return c.json({ success: true, data: { items: cached } }, 200, {
-      'Cache-Control': 'public, s-maxage=300',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     });
   }
 
@@ -39,7 +39,7 @@ categories.get('/', async (c) => {
   );
 
   return c.json({ success: true, data: { items } }, 200, {
-    'Cache-Control': 'public, s-maxage=300',
+    'Cache-Control': 'public, max-age=0, must-revalidate',
   });
 });
 
@@ -53,7 +53,7 @@ categories.get('/:slug', async (c) => {
   const cached = await getCatalogCache<DbCategory>(c.env.CATALOG_KV, cacheKey);
   if (cached) {
     return c.json({ success: true, data: cached }, 200, {
-      'Cache-Control': 'public, s-maxage=300',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     });
   }
 
@@ -74,7 +74,7 @@ categories.get('/:slug', async (c) => {
   );
 
   return c.json({ success: true, data: category }, 200, {
-    'Cache-Control': 'public, s-maxage=300',
+    'Cache-Control': 'public, max-age=0, must-revalidate',
   });
 });
 

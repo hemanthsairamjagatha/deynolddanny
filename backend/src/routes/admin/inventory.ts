@@ -170,9 +170,15 @@ adminInventory.post(
 );
 
 // ─── PATCH /api/admin/inventory/:variantId ───────────────────────────────────
-const adjustSchema = z.object({
-  stock: z.number().int().min(0, 'Stock cannot be negative'),
-});
+const adjustSchema = z
+  .object({
+    stock: z.number().int().min(0, 'Stock cannot be negative').optional(),
+    delta: z.number().int().optional(),
+    reason: z.string().max(120).optional(),
+  })
+  .refine((d) => d.stock !== undefined || d.delta !== undefined, {
+    message: 'Either stock or delta is required.',
+  });
 
 adminInventory.patch(
   '/:variantId',
@@ -181,8 +187,30 @@ adminInventory.patch(
   async (c) => {
     const variantId = c.req.param('variantId');
     const adminId = c.get('userId');
-    const { stock } = c.req.valid('json');
+    const body = c.req.valid('json');
 
+    let targetStock = body.stock;
+    if (targetStock === undefined && body.delta !== undefined) {
+      const current = await c.env.DB
+        .prepare(`SELECT stock, reserved_stock FROM product_variants WHERE id = ?1 LIMIT 1`)
+        .bind(variantId)
+        .first<{ stock: number; reserved_stock: number }>();
+      if (!current) {
+        return c.json(
+          { success: false, error: { code: 'NOT_FOUND', message: 'Variant not found.', status: 404 } },
+          404,
+        );
+      }
+      targetStock = current.stock + body.delta;
+      if (targetStock < 0) {
+        return c.json(
+          { success: false, error: { code: 'BAD_REQUEST', message: 'Resulting stock cannot be negative.', status: 400 } },
+          400,
+        );
+      }
+    }
+
+    const stock = targetStock ?? 0;
     const result = await adjustStock(c.env.DB, variantId, stock, adminId);
     if (!result.updated) {
       if (result.reservedStock !== undefined) {
@@ -205,7 +233,7 @@ adminInventory.patch(
     }
 
     await bumpCatalogVersion(c.env.CATALOG_KV);
-    await auditAdminAction(c, 'ADJUST_STOCK', 'product_variant', variantId, { stock });
+    await auditAdminAction(c, 'ADJUST_STOCK', 'product_variant', variantId, { stock, reason: body.reason });
 
     return c.json({ success: true, data: { variantId, stock } });
   },

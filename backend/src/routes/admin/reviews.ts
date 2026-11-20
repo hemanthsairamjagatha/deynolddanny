@@ -34,7 +34,12 @@ adminReviews.get('/', requirePermission('reviews.moderate'), async (c) => {
   return c.json({
     success: true,
     data: {
-      items: rows.results ?? [],
+      items: (rows.results ?? []).map((r) => ({
+        ...r,
+        product_name: r.product_title,
+        reviewer_name: r.author_name,
+        customer_email: r.author_email,
+      })),
       total: rows.results?.length ?? 0,
     },
   });
@@ -44,7 +49,9 @@ adminReviews.get('/', requirePermission('reviews.moderate'), async (c) => {
 const moderateSchema = z.object({
   status: z.enum(['pending', 'approved', 'rejected']).optional(),
   isFeatured: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
   adminReply: z.string().max(800).nullable().optional(),
+  admin_reply: z.string().max(800).nullable().optional(),
 });
 
 adminReviews.patch(
@@ -67,8 +74,10 @@ adminReviews.patch(
       add('status', body.status);
       add('moderated_by', adminId);
     }
-    if (body.isFeatured !== undefined) add('is_featured', body.isFeatured ? 1 : 0);
-    if (body.adminReply !== undefined) add('admin_reply', body.adminReply);
+    const feat = body.isFeatured !== undefined ? body.isFeatured : body.is_featured;
+    if (feat !== undefined) add('is_featured', feat ? 1 : 0);
+    const reply = body.adminReply !== undefined ? body.adminReply : body.admin_reply;
+    if (reply !== undefined) add('admin_reply', reply);
 
     vals.push(reviewId);
     await c.env.DB

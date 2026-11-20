@@ -201,7 +201,7 @@ implementation record accurate, not to rewrite standing rules.
 ### Current repository structure / implementation snapshot
 
 - **Verification date:** 2026-11-20
-- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix backend run type-check`, `npm --prefix backend test` [10/10], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build`, live Cloudflare D1 migrations `0001`..`0010` & unified Cloudflare Worker deploy)
+- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix backend run type-check`, `npm --prefix backend test` [10/10], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build`, live Cloudflare D1 migrations `0001`..`0011` & unified Cloudflare Worker deploy)
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Storefront `src/`) · React 18.3.1 + Vite 5.4 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + `@dnd-kit` (Commerce OS Admin SPA `admin/`) · Hono + Cloudflare Workers + Workers Static Assets + D1 + KV + R2 + Cron (Backend `backend/`)
 - **Active Routes (`src/pages/` + `/admin/*` SPA):**
   - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, `ProductCarousel`, `StyleLayering`, `Organization`/`WebSite` JSON-LD, live CMS & Brand hydration bridge via `src/lib/storefront/live-cms.ts`)
@@ -2397,6 +2397,29 @@ task.
     - `npx wrangler d1 migrations apply deynold-danny-db --remote`: PASS (`0010_menswear_runway_hero.sql` applied).
     - `npx wrangler deploy`: PASS (96 assets uploaded; Worker live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `1438367e-7cb5-4e2d-a7b8-d7e7b2f6591c`).
     - Live Smoke Tests: PASS (`/api/storefront/published` returns 3 `runwayLooks`; `/images/hero-runway-1.jpg` 200; `/images/hero-runway-2.jpg` 200).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-20 — Live 1080p Veo 3.1 Menswear Walking Runway Film Deployed to Homepage Hero**:
+  - **Status:** COMPLETE
+  - **Summary:** Generated a cinema-grade 8-second **1080p Veo 3.1 - Quality** real-life menswear walking runway film (`public/hero-runway.mp4`, `4.32 MB`) via Google Flow Frames-to-Video depicting three tailored male models striding sequentially along the floating travertine reflecting-pool runway (Obsidian Double-Breasted Overcoat -> Brushed Camel Cashmere Overcoat -> Ivory Bespoke Suiting). Upgraded `HeroRunwayExperience.tsx` to play `/hero-runway.mp4` automatically on load (`autoPlay muted loop playsInline preload="auto"`, instant poster fallback, edge-to-edge `scale(1.06)` framing) with **real-time video-synced Look `01 / 02 / 03` progress indicators & dynamic "Shop This Look" CTAs** (clicking `01`/`02`/`03` seeks the video directly to each model's runway entrance), added Cloudflare edge caching for `/hero-runway.mp4` in `public/_headers`, synced D1 CMS via `backend/migrations/0011_menswear_runway_video.sql`, flushed KV cache, and deployed live.
+  - **Files Added:**
+    - `public/hero-runway.mp4`
+    - `backend/migrations/0011_menswear_runway_video.sql`
+  - **Files Modified:**
+    - `src/features/home/components/HeroRunwayExperience.tsx`
+    - `src/features/home/components/HeroBanner.astro`
+    - `public/_headers`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added `public/hero-runway.mp4` and `backend/migrations/0011_menswear_runway_video.sql`.
+  - **Validation:**
+    - `npx astro check`: PASS (105 files, 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `astro build` + Admin SPA bundle: PASS (59 Astro pages + `dist/admin` + `dist/hero-runway.mp4`).
+    - Remote D1 `0011_menswear_runway_video.sql` & KV flush: PASS (`sec_home_hero` `videoUrl = /hero-runway.mp4`).
+    - `npx wrangler deploy`: PASS (Version `9a3887f1-9c3d-455e-9af6-b9ca05f19baf`).
+    - Live Smoke Tests: PASS (`HEAD /hero-runway.mp4` -> `200 OK`, `Content-Type: video/mp4`; `/api/storefront/published` -> `videoUrl: "/hero-runway.mp4"`).
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.

@@ -29,7 +29,12 @@ import {
 
 const products = new Hono<{ Bindings: Env }>();
 
-function mapProductCard(p: DbProduct, variants: DbProductVariant[]): ApiProductCard {
+function mapProductCard(
+  p: DbProduct,
+  variants: DbProductVariant[],
+  categorySlug?: string,
+  galleryUrls?: string[],
+): ApiProductCard {
   const uniqueSizes = [...new Set(variants.map((v) => v.size))];
   const colorMap = new Map<string, string>();
   const variantPrices: number[] = [];
@@ -43,19 +48,33 @@ function mapProductCard(p: DbProduct, variants: DbProductVariant[]): ApiProductC
   const hasVariantPricing = variantPrices.length > 0 && minPricePaise !== maxPricePaise;
   const displayPricePaise = hasVariantPricing ? minPricePaise : (variantPrices[0] ?? p.price_paise);
 
+  const flatImages =
+    galleryUrls && galleryUrls.length > 0
+      ? galleryUrls
+      : [p.default_img, p.hover_img].filter((u): u is string => Boolean(u && u.trim()));
+
   return {
     id: p.id,
     slug: p.slug,
+    sku: p.sku_prefix,
     title: p.title,
     badge: p.badge ?? null,
+    sectionGroup: p.section_group,
+    categoryId: p.category_id ?? null,
+    category: categorySlug ?? undefined,
+    gender: p.gender ?? null,
+    tag: p.tag ?? null,
     defaultImg: p.default_img,
     hoverImg: p.hover_img,
+    images: flatImages,
     sizes: uniqueSizes,
     colors: Array.from(colorMap.entries()).map(([name, hex]) => ({ name, hex })),
     link: `/products/${p.slug}`,
     price: formatPaiseToDisplay(displayPricePaise),
     priceNum: paiseToRupees(displayPricePaise),
     pricePaise: displayPricePaise,
+    comparePaise: p.compare_paise ?? null,
+    comparePrice: p.compare_paise ? formatPaiseToDisplay(p.compare_paise) : null,
     minPricePaise,
     maxPricePaise,
     hasVariantPricing,
@@ -85,6 +104,7 @@ async function getCatalogCacheVersion(kv: KVNamespace): Promise<string> {
 const listQuerySchema = z.object({
   section: z.string().optional(),
   categoryId: z.string().optional(),
+  category: z.string().optional(),
   sort: z.enum(['newest', 'price_asc', 'price_desc', 'featured']).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(48).optional().default(DEFAULT_PAGE_SIZE),
@@ -99,13 +119,29 @@ products.get('/', zValidator('query', listQuerySchema), async (c) => {
   const cached = await getCatalogCache<unknown>(c.env.CATALOG_KV, cacheKey);
   if (cached) {
     return c.json({ success: true, data: cached }, 200, {
-      'Cache-Control': 'public, s-maxage=300',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     });
+  }
+
+  // Load categories map for slug resolution & enrichment
+  const catRows = await c.env.DB
+    .prepare(`SELECT id, slug FROM categories`)
+    .all<{ id: string; slug: string }>();
+  const catSlugById = new Map<string, string>();
+  const catIdBySlug = new Map<string, string>();
+  for (const r of catRows.results ?? []) {
+    catSlugById.set(r.id, r.slug);
+    catIdBySlug.set(r.slug.toLowerCase(), r.id);
+  }
+
+  let resolvedCategoryId = query.categoryId;
+  if (!resolvedCategoryId && query.category) {
+    resolvedCategoryId = catIdBySlug.get(query.category.toLowerCase()) ?? query.category;
   }
 
   const result = await getProducts(c.env.DB, {
     section: query.section,
-    categoryId: query.categoryId,
+    categoryId: resolvedCategoryId,
     sort: query.sort,
     page: query.page,
     limit: query.limit,
@@ -127,7 +163,8 @@ products.get('/', zValidator('query', listQuerySchema), async (c) => {
 
   const productCards: ApiProductCard[] = result.products.map((p, i) => {
     const variants = (variantBatch[i]?.results ?? []) as DbProductVariant[];
-    return mapProductCard(p, variants);
+    const catSlug = p.category_id ? catSlugById.get(p.category_id) : undefined;
+    return mapProductCard(p, variants, catSlug);
   });
 
   const responseData = {
@@ -143,7 +180,7 @@ products.get('/', zValidator('query', listQuerySchema), async (c) => {
   );
 
   return c.json({ success: true, data: responseData }, 200, {
-    'Cache-Control': 'public, s-maxage=300',
+    'Cache-Control': 'public, max-age=0, must-revalidate',
   });
 });
 
@@ -270,7 +307,7 @@ products.get('/:slug', authOptional, async (c) => {
   const cached = await getCatalogCache<ApiProductDetail>(c.env.CATALOG_KV, cacheKey);
   if (cached) {
     return c.json({ success: true, data: cached }, 200, {
-      'Cache-Control': 'public, s-maxage=60',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
     });
   }
 
@@ -282,10 +319,13 @@ products.get('/:slug', authOptional, async (c) => {
     );
   }
 
-  const [variants, images, crossSells] = await Promise.all([
+  const [variants, images, crossSells, catRow] = await Promise.all([
     getProductVariants(c.env.DB, product.id),
     getProductImages(c.env.DB, product.id),
     getProductCrossSells(c.env.DB, product.id),
+    product.category_id
+      ? c.env.DB.prepare(`SELECT slug FROM categories WHERE id = ?1 LIMIT 1`).bind(product.category_id).first<{ slug: string }>()
+      : Promise.resolve(null),
   ]);
 
   const apiVariants: ApiVariant[] = variants.map((v) => {
@@ -310,9 +350,12 @@ products.get('/:slug', authOptional, async (c) => {
   });
 
   const galleryMap = new Map<string, string[]>();
+  const flatGalleryUrls: string[] = [];
   for (const img of images) {
-    if (!galleryMap.has(img.color_name)) galleryMap.set(img.color_name, []);
-    galleryMap.get(img.color_name)!.push(img.image_url);
+    const groupName = img.color_name || 'Default';
+    if (!galleryMap.has(groupName)) galleryMap.set(groupName, []);
+    galleryMap.get(groupName)!.push(img.image_url);
+    flatGalleryUrls.push(img.image_url);
   }
   const gallery: ApiGalleryGroup[] = Array.from(galleryMap.entries()).map(([colorName, imgs]) => ({
     colorName,
@@ -336,7 +379,14 @@ products.get('/:slug', authOptional, async (c) => {
     .filter((cs) => cs.relation_type === 'related')
     .map(mapCrossSell);
 
-  const card = mapProductCard(product, variants);
+  const combinedImages = Array.from(
+    new Set([
+      ...(product.default_img ? [product.default_img] : []),
+      ...(product.hover_img ? [product.hover_img] : []),
+      ...flatGalleryUrls,
+    ]),
+  );
+  const card = mapProductCard(product, variants, catRow?.slug, combinedImages);
 
   const detail: ApiProductDetail = {
     ...card,
@@ -358,7 +408,7 @@ products.get('/:slug', authOptional, async (c) => {
   );
 
   return c.json({ success: true, data: detail }, 200, {
-    'Cache-Control': 'public, s-maxage=60',
+    'Cache-Control': 'public, max-age=0, must-revalidate',
   });
 });
 

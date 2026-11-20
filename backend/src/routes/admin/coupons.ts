@@ -50,7 +50,8 @@ adminCoupons.get('/', async (c) => {
   const result = await c.env.DB
     .prepare(`SELECT * FROM coupons ORDER BY created_at DESC`)
     .all<DbCoupon>();
-  return c.json({ success: true, data: { items: result.results ?? [] } });
+  const items = result.results ?? [];
+  return c.json({ success: true, data: { items, coupons: items } });
 });
 
 adminCoupons.post('/', zValidator('json', createCouponSchema), async (c) => {

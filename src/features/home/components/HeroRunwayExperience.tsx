@@ -11,6 +11,8 @@ export interface RunwayLook {
   focalY?: number;
   startScale?: number;
   endScale?: number;
+  /** Video start time in seconds when synced to the live runway film */
+  videoStartSec?: number;
 }
 
 export interface HeroCmsPayload {
@@ -39,11 +41,13 @@ declare global {
   }
 }
 
+const DEFAULT_VIDEO_URL = '/hero-runway.mp4';
+
 const DEFAULT_RUNWAY_LOOKS: RunwayLook[] = [
   {
     code: 'LOOK 01',
-    title: 'The Monolith Overcoat Ensemble',
-    subtitle: 'Obsidian Virgin Wool · Ivory Silk · Camel Cashmere',
+    title: 'The Monolith Obsidian Overcoat',
+    subtitle: 'Double-Breasted Virgin Wool · Open-Collar Ivory Silk',
     image: '/images/hero-runway-1.jpg',
     ctaLabel: 'Shop Outerwear',
     ctaUrl: '/categories/overcoats',
@@ -51,6 +55,7 @@ const DEFAULT_RUNWAY_LOOKS: RunwayLook[] = [
     focalY: 28,
     startScale: 1.0,
     endScale: 1.075,
+    videoStartSec: 0,
   },
   {
     code: 'LOOK 02',
@@ -63,11 +68,12 @@ const DEFAULT_RUNWAY_LOOKS: RunwayLook[] = [
     focalY: 24,
     startScale: 1.0,
     endScale: 1.08,
+    videoStartSec: 3.4,
   },
   {
     code: 'LOOK 03',
-    title: 'Architectural Bespoke Tailoring',
-    subtitle: 'Sculpted Obsidian Wool & Ivory Double-Breasted Suiting',
+    title: 'Architectural Ivory Bespoke Suit',
+    subtitle: 'Hand-Finished Double-Breasted Suiting · Tailored Silhouette',
     image: '/images/hero-runway-1.jpg',
     ctaLabel: 'Explore Tailoring',
     ctaUrl: '/categories/tailoring',
@@ -75,18 +81,20 @@ const DEFAULT_RUNWAY_LOOKS: RunwayLook[] = [
     focalY: 20,
     startScale: 1.12,
     endScale: 1.2,
+    videoStartSec: 6.1,
   },
 ];
 
 const LOOK_DURATION_MS = 6500;
 
 export const HeroRunwayExperience: React.FC = () => {
-  const [cms, setCms] = useState<HeroCmsPayload>({});
+  const [cms, setCms] = useState<HeroCmsPayload>({ videoUrl: DEFAULT_VIDEO_URL });
   const [activeIdx, setActiveIdx] = useState(0);
   const [prevIdx, setPrevIdx] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
   const [tilt, setTilt] = useState({ rx: 0, ry: 0, tx: 0, ty: 0 });
   const [cycleKey, setCycleKey] = useState(0);
 
@@ -106,15 +114,26 @@ export const HeroRunwayExperience: React.FC = () => {
   // Hydrate live CMS hero config from live-cms.ts (supports videoUrl, runwayLooks, copy & CTAs)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.__ddHeroCms) {
-      setCms(window.__ddHeroCms);
+    const applyPayload = (detail: HeroCmsPayload) => {
+      setCms({
+        ...detail,
+        videoUrl:
+          typeof detail.videoUrl === 'string' && detail.videoUrl.trim()
+            ? detail.videoUrl.trim()
+            : detail.videoUrl === ''
+              ? ''
+              : DEFAULT_VIDEO_URL,
+      });
       setVideoFailed(false);
+    };
+
+    if (window.__ddHeroCms) {
+      applyPayload(window.__ddHeroCms);
     }
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<HeroCmsPayload>).detail;
       if (detail && typeof detail === 'object') {
-        setCms(detail);
-        setVideoFailed(false);
+        applyPayload(detail);
       }
     };
     window.addEventListener('dd:hero-cms-update', handler);
@@ -125,26 +144,12 @@ export const HeroRunwayExperience: React.FC = () => {
   const looks: RunwayLook[] = React.useMemo(() => {
     if (Array.isArray(cms.runwayLooks) && cms.runwayLooks.length > 0) {
       const valid = cms.runwayLooks.filter((l) => l && typeof l.image === 'string' && l.image.trim());
-      if (valid.length > 0) return valid;
-    }
-    // If Admin explicitly set a custom single hero image other than default, make it Look 01
-    const customHero = (cms.desktopImage || cms.imageUrl || '').trim();
-    if (customHero && customHero !== '/hero-banner.jpg' && customHero !== '/images/hero-runway-1.jpg') {
-      return [
-        {
-          code: 'LOOK 01',
-          title: cms.tagline || cms.description || 'Signature Tailoring',
-          subtitle: cms.eyebrow || 'DEYNOLD DANNY Menswear Atelier',
-          image: customHero,
-          ctaLabel: cms.ctaLabel || 'Discover Collection',
-          ctaUrl: cms.ctaUrl || '/categories',
-          focalX: typeof cms.focalX === 'number' ? cms.focalX : 60,
-          focalY: typeof cms.focalY === 'number' ? cms.focalY : 28,
-          startScale: 1.0,
-          endScale: 1.07,
-        },
-        ...DEFAULT_RUNWAY_LOOKS.slice(1),
-      ];
+      if (valid.length > 0) {
+        return valid.map((l, i) => ({
+          ...l,
+          videoStartSec: l.videoStartSec ?? DEFAULT_RUNWAY_LOOKS[i]?.videoStartSec ?? i * 3,
+        }));
+      }
     }
     return DEFAULT_RUNWAY_LOOKS;
   }, [cms]);
@@ -152,7 +157,7 @@ export const HeroRunwayExperience: React.FC = () => {
   const safeIdx = activeIdx % Math.max(1, looks.length);
   const currentLook = looks[safeIdx] ?? DEFAULT_RUNWAY_LOOKS[0];
 
-  const videoUrl = typeof cms.videoUrl === 'string' && cms.videoUrl.trim() ? cms.videoUrl.trim() : '';
+  const videoUrl = typeof cms.videoUrl === 'string' ? cms.videoUrl.trim() : DEFAULT_VIDEO_URL;
   const showVideo = Boolean(videoUrl) && !videoFailed && !reducedMotion;
 
   const goToLook = useCallback(
@@ -161,11 +166,40 @@ export const HeroRunwayExperience: React.FC = () => {
       setPrevIdx(safeIdx);
       setActiveIdx(normalized);
       setCycleKey((k) => k + 1);
+
+      // When live runway video is playing, seek smoothly to that look's runway entrance
+      const v = videoRef.current;
+      if (v && showVideo && Number.isFinite(v.duration) && v.duration > 0) {
+        const targetSec =
+          looks[normalized]?.videoStartSec ?? (normalized / looks.length) * v.duration;
+        v.currentTime = Math.min(Math.max(0, targetSec), Math.max(0, v.duration - 0.25));
+      }
     },
-    [looks.length, safeIdx],
+    [looks, safeIdx, showVideo],
   );
 
-  // Auto-advance runway choreography
+  // Sync active look card & progress bar to live runway video playback time
+  const handleVideoTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v || !Number.isFinite(v.duration) || v.duration <= 0) return;
+    const t = v.currentTime;
+    const pct = Math.min(1, Math.max(0, t / v.duration));
+    setVideoProgress(pct);
+
+    let matched = 0;
+    for (let i = looks.length - 1; i >= 0; i--) {
+      const start = looks[i].videoStartSec ?? (i / looks.length) * v.duration;
+      if (t >= start) {
+        matched = i;
+        break;
+      }
+    }
+    if (matched !== activeIdx) {
+      setActiveIdx(matched);
+    }
+  };
+
+  // Auto-advance still runway choreography when video mode is off / unavailable
   useEffect(() => {
     if (isPaused || reducedMotion || showVideo || looks.length <= 1) return;
     const timer = window.setInterval(() => {
@@ -185,28 +219,29 @@ export const HeroRunwayExperience: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [prevIdx, activeIdx]);
 
-  // Sync video play/pause
+  // Sync video play/pause & guarantee autoplay start on muted video
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !showVideo) return;
+    v.muted = true;
     if (isPaused) {
       v.pause();
     } else {
       v.play().catch(() => {});
     }
-  }, [isPaused, showVideo]);
+  }, [isPaused, showVideo, videoUrl]);
 
   // Subtle 3D mouse depth parallax on desktop pointers
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (reducedMotion || !stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
-    const nx = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+    const nx = (e.clientX - rect.left) / rect.width - 0.5;
     const ny = (e.clientY - rect.top) / rect.height - 0.5;
     setTilt({
-      rx: Number((-ny * 1.8).toFixed(2)),
-      ry: Number((nx * 2.4).toFixed(2)),
-      tx: Number((-nx * 14).toFixed(1)),
-      ty: Number((-ny * 8).toFixed(1)),
+      rx: Number((-ny * 1.4).toFixed(2)),
+      ry: Number((nx * 1.8).toFixed(2)),
+      tx: Number((-nx * 10).toFixed(1)),
+      ty: Number((-ny * 6).toFixed(1)),
     });
   };
 
@@ -222,7 +257,7 @@ export const HeroRunwayExperience: React.FC = () => {
   const secondaryCtaLabel = cms.secondaryCtaLabel?.trim() || 'Explore Collection';
   const secondaryCtaUrl = cms.secondaryCtaUrl?.trim() || '/categories';
   const overlayOpacity =
-    typeof cms.overlayOpacity === 'number' ? Math.max(0, Math.min(75, cms.overlayOpacity)) / 100 : 0.16;
+    typeof cms.overlayOpacity === 'number' ? Math.max(0, Math.min(75, cms.overlayOpacity)) / 100 : 0.14;
   const overlayColor = cms.overlayColor || '#000000';
 
   return (
@@ -250,13 +285,15 @@ export const HeroRunwayExperience: React.FC = () => {
           <video
             ref={videoRef}
             src={videoUrl}
-            poster={currentLook.image || '/hero-banner.jpg'}
+            poster={cms.desktopImage || '/images/hero-runway-1.jpg'}
             autoPlay
             muted
             loop
             playsInline
+            preload="auto"
+            onTimeUpdate={handleVideoTimeUpdate}
             onError={() => setVideoFailed(true)}
-            className="dd-runway-media"
+            className="dd-runway-media dd-runway-video-crop"
           />
         ) : (
           looks.map((look, idx) => {
@@ -316,7 +353,7 @@ export const HeroRunwayExperience: React.FC = () => {
         />
       </div>
 
-      {/* Left-Side Front-Row Editorial Typography & Dynamic Look HUD */}
+      {/* Left-Side Front-Row Editorial Typography & Live-Synced Runway Look HUD */}
       <div className="dd-runway-overlay">
         <div className="dd-runway-eyebrow-row">
           <span className="dd-runway-live-dot" aria-hidden="true" />
@@ -329,17 +366,15 @@ export const HeroRunwayExperience: React.FC = () => {
 
         <p className="hero-tagline">{tagline}</p>
 
-        {/* Active Runway Look Callout Card */}
-        {!showVideo && (
-          <div className="dd-runway-look-meta" key={`meta-${safeIdx}`}>
-            <span className="dd-runway-look-code">{currentLook.code}</span>
-            <span className="dd-runway-look-divider" aria-hidden="true" />
-            <div>
-              <p className="dd-runway-look-title">{currentLook.title}</p>
-              <p className="dd-runway-look-sub">{currentLook.subtitle}</p>
-            </div>
+        {/* Live-Synced Active Runway Look Callout */}
+        <div className="dd-runway-look-meta" key={`meta-${safeIdx}`}>
+          <span className="dd-runway-look-code">{currentLook.code}</span>
+          <span className="dd-runway-look-divider" aria-hidden="true" />
+          <div>
+            <p className="dd-runway-look-title">{currentLook.title}</p>
+            <p className="dd-runway-look-sub">{currentLook.subtitle}</p>
           </div>
-        )}
+        </div>
 
         {/* Primary & Secondary Luxury CTAs */}
         <div className="dd-runway-cta-row">
@@ -357,10 +392,15 @@ export const HeroRunwayExperience: React.FC = () => {
 
       {/* Bottom-Right Interactive Runway Show Controls */}
       <div className="dd-runway-controls">
-        {!showVideo && looks.length > 1 && (
+        {looks.length > 1 && (
           <div className="dd-runway-steps" role="tablist" aria-label="Select runway look">
             {looks.map((look, idx) => {
               const active = idx === safeIdx;
+              const segStart = idx / looks.length;
+              const segSize = 1 / looks.length;
+              const segFill = showVideo
+                ? Math.min(1, Math.max(0, (videoProgress - segStart) / segSize))
+                : 0;
               return (
                 <button
                   key={`${look.code}-${idx}`}
@@ -372,13 +412,20 @@ export const HeroRunwayExperience: React.FC = () => {
                 >
                   <span className="dd-runway-step-num">{String(idx + 1).padStart(2, '0')}</span>
                   <span className="dd-runway-step-track">
-                    <span
-                      key={active ? `prog-${idx}-${cycleKey}` : `prog-idle-${idx}`}
-                      className={`dd-runway-step-fill ${active && !isPaused && !reducedMotion ? 'is-animating' : ''} ${
-                        active && (isPaused || reducedMotion) ? 'is-static-full' : ''
-                      }`}
-                      style={{ animationDuration: `${LOOK_DURATION_MS}ms` }}
-                    />
+                    {showVideo ? (
+                      <span
+                        className="dd-runway-step-fill"
+                        style={{ transform: `scaleX(${segFill})`, transition: 'transform 0.15s linear' }}
+                      />
+                    ) : (
+                      <span
+                        key={active ? `prog-${idx}-${cycleKey}` : `prog-idle-${idx}`}
+                        className={`dd-runway-step-fill ${active && !isPaused && !reducedMotion ? 'is-animating' : ''} ${
+                          active && (isPaused || reducedMotion) ? 'is-static-full' : ''
+                        }`}
+                        style={{ animationDuration: `${LOOK_DURATION_MS}ms` }}
+                      />
+                    )}
                   </span>
                 </button>
               );
@@ -387,7 +434,7 @@ export const HeroRunwayExperience: React.FC = () => {
         )}
 
         <div className="dd-runway-action-btns">
-          {!showVideo && looks.length > 1 && (
+          {looks.length > 1 && (
             <>
               <button
                 type="button"
@@ -414,7 +461,7 @@ export const HeroRunwayExperience: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsPaused((p) => !p)}
-            aria-label={isPaused ? 'Play runway showcase' : 'Pause runway showcase'}
+            aria-label={isPaused ? 'Play runway film' : 'Pause runway film'}
             aria-pressed={isPaused}
             className="dd-runway-icon-btn"
           >

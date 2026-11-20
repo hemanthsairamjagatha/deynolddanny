@@ -110,23 +110,54 @@ app.get('/health/deep', adminAuth, async (c) => {
   );
 });
 
-app.get('/api/config/storefront', (c) => {
+app.get('/api/config/storefront', async (c) => {
   const policy = resolveStorePolicy(c.env);
-  return c.json({
-    success: true,
-    data: {
-      currency: 'INR',
-      freeShippingThresholdPaise: policy.freeShippingThresholdPaise,
-      standardShippingPaise: policy.standardShippingPaise,
-      taxInclusive: policy.taxInclusive,
-      returnWindowDays: policy.returnWindowDays,
-      upiMaxPaise: policy.upiMaxPaise,
-      panVerificationThresholdPaise: policy.panVerificationThresholdPaise,
-      courierCheckEnabled: Boolean(
-        policy.shiprocketPickupPincode && c.env.SHIPROCKET_EMAIL && c.env.SHIPROCKET_PASSWORD,
-      ),
+  let dbSettings: Record<string, unknown> = {};
+  try {
+    const row = await c.env.DB
+      .prepare(`SELECT settings_json FROM store_settings WHERE id = 'default' LIMIT 1`)
+      .first<{ settings_json: string }>();
+    if (row?.settings_json) {
+      dbSettings = JSON.parse(row.settings_json) as Record<string, unknown>;
+    }
+  } catch {
+    // Fallback to env policy
+  }
+
+  const pickupPin = String(dbSettings.shiprocketPickupPincode || policy.shiprocketPickupPincode || '').trim();
+
+  return c.json(
+    {
+      success: true,
+      data: {
+        currency: 'INR',
+        freeShippingThresholdPaise: Number(
+          dbSettings.freeShippingThresholdPaise ?? policy.freeShippingThresholdPaise,
+        ),
+        standardShippingPaise: Number(
+          dbSettings.standardShippingPaise ?? policy.standardShippingPaise,
+        ),
+        taxInclusive:
+          dbSettings.taxInclusive !== undefined ? Boolean(dbSettings.taxInclusive) : policy.taxInclusive,
+        returnWindowDays: Number(dbSettings.returnWindowDays ?? policy.returnWindowDays),
+        upiMaxPaise:
+          dbSettings.upiMaxPaise !== undefined ? Number(dbSettings.upiMaxPaise) : policy.upiMaxPaise,
+        panVerificationThresholdPaise:
+          dbSettings.panVerificationThresholdPaise !== undefined
+            ? Number(dbSettings.panVerificationThresholdPaise)
+            : policy.panVerificationThresholdPaise,
+        enableFitFinder:
+          dbSettings.enableFitFinder !== undefined ? Boolean(dbSettings.enableFitFinder) : true,
+        enableReviewsOnPdp:
+          dbSettings.enableReviewsOnPdp !== undefined ? Boolean(dbSettings.enableReviewsOnPdp) : true,
+        courierCheckEnabled: Boolean(
+          pickupPin && c.env.SHIPROCKET_EMAIL && c.env.SHIPROCKET_PASSWORD,
+        ),
+      },
     },
-  });
+    200,
+    { 'Cache-Control': 'public, max-age=0, must-revalidate' },
+  );
 });
 
 // ─── Public API Routes ──────────────────────────────────────────────────────
@@ -148,6 +179,8 @@ app.route('/api/shipping', shipping);
 app.route('/api/webhooks', webhooks);
 app.route('/api/storefront', storefront);
 app.route('/media', publicMedia);
+app.route('/api/media/file', publicMedia);
+app.route('/api/media', publicMedia);
 app.route('/api/reviews', publicReviews);
 app.route('/api/analytics', publicAnalytics);
 
@@ -194,13 +227,75 @@ app.get('*', async (c, next) => {
     return assetRes;
   }
 
+  // Dynamic live-shell routing for products, categories, collections, and custom CMS pages created in Admin OS
+  const cleanPath = path.replace(/\/+$/, '') || '/';
+  try {
+    const productMatch = /^\/products\/([a-z0-9-]+)$/i.exec(cleanPath);
+    if (productMatch) {
+      const liveProd = await c.env.DB
+        .prepare(`SELECT id FROM products WHERE slug = ?1 AND is_active = 1 LIMIT 1`)
+        .bind(productMatch[1])
+        .first<{ id: string }>();
+      if (liveProd) {
+        const shellRes = await c.env.ASSETS.fetch(new Request(new URL('/products/live/index.html', c.req.url)));
+        if (shellRes.status === 200) {
+          return new Response(shellRes.body, { status: 200, headers: shellRes.headers });
+        }
+      }
+    }
+
+    const categoryMatch = /^\/categories\/([a-z0-9-]+)$/i.exec(cleanPath);
+    if (categoryMatch) {
+      const liveCat = await c.env.DB
+        .prepare(`SELECT id FROM categories WHERE slug = ?1 AND is_active = 1 LIMIT 1`)
+        .bind(categoryMatch[1])
+        .first<{ id: string }>();
+      if (liveCat) {
+        const shellRes = await c.env.ASSETS.fetch(new Request(new URL('/categories/live/index.html', c.req.url)));
+        if (shellRes.status === 200) {
+          return new Response(shellRes.body, { status: 200, headers: shellRes.headers });
+        }
+      }
+    }
+
+    const collectionMatch = /^\/collections\/([a-z0-9-]+)$/i.exec(cleanPath);
+    if (collectionMatch) {
+      const liveCol = await c.env.DB
+        .prepare(`SELECT id FROM collections WHERE slug = ?1 AND is_active = 1 LIMIT 1`)
+        .bind(collectionMatch[1])
+        .first<{ id: string }>();
+      if (liveCol) {
+        const shellRes = await c.env.ASSETS.fetch(new Request(new URL('/collections/live/index.html', c.req.url)));
+        if (shellRes.status === 200) {
+          return new Response(shellRes.body, { status: 200, headers: shellRes.headers });
+        }
+      }
+    }
+
+    const cmsPageMatch = /^\/pages\/([a-z0-9-]+)$/i.exec(cleanPath);
+    if (cmsPageMatch) {
+      const livePage = await c.env.DB
+        .prepare(`SELECT id FROM cms_pages WHERE slug = ?1 AND status IN ('published', 'scheduled') LIMIT 1`)
+        .bind(cmsPageMatch[1])
+        .first<{ id: string }>();
+      if (livePage) {
+        const shellRes = await c.env.ASSETS.fetch(new Request(new URL('/pages/live/index.html', c.req.url)));
+        if (shellRes.status === 200) {
+          return new Response(shellRes.body, { status: 200, headers: shellRes.headers });
+        }
+      }
+    }
+  } catch {
+    // Non-fatal fallback to redirect/404 resolution
+  }
+
   // Resolve active D1 SEO redirects before falling back to branded 404 page
   try {
     const redirect = await c.env.DB
       .prepare(
         `SELECT id, target_path, status_code FROM cms_redirects WHERE source_path = ?1 AND is_active = 1 LIMIT 1`,
       )
-      .bind(path)
+      .bind(cleanPath)
       .first<{ id: string; target_path: string; status_code: number }>();
 
     if (redirect) {

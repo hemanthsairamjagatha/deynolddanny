@@ -5,37 +5,19 @@ import type { Env } from '../../types/bindings.js';
 import { auditAdminAction, requirePermission } from '../../middleware/adminAuth.js';
 import {
   buildR2Key,
-  deleteR2Object,
+  deleteMediaBinary,
   detectMediaMimeFromBytes,
   sanitizeUploadFolder,
-  uploadObject,
+  storeMediaBinary,
 } from '../../services/r2Storage.js';
 import { generateId } from '../../services/crypto.js';
 import { nowIso } from '../../db/client.js';
-import { safeJsonParse } from '../../services/storefrontCache.js';
+import { invalidateStorefrontCache, safeJsonParse } from '../../services/storefrontCache.js';
 
 const adminMedia = new Hono<{ Bindings: Env }>();
 
-const ALLOWED_MIME = new Set([
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-  'image/avif',
-  'video/mp4',
-  'video/webm',
-]);
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
-
-function encodeBytesToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-}
 
 // ─── GET /api/admin/media ────────────────────────────────────────────────────
 adminMedia.get('/', requirePermission('media.read', 'cms.read', 'catalog.read'), async (c) => {
@@ -126,6 +108,18 @@ adminMedia.post(
   },
 );
 
+// ─── DELETE /api/admin/media/folders/:folderId ──────────────────────────────
+adminMedia.delete('/folders/:folderId', requirePermission('media.delete'), async (c) => {
+  const folderId = c.req.param('folderId');
+  await c.env.DB
+    .prepare(`UPDATE media_assets SET folder_id = NULL WHERE folder_id = ?1`)
+    .bind(folderId)
+    .run();
+  await c.env.DB.prepare(`DELETE FROM media_folders WHERE id = ?1`).bind(folderId).run();
+  await auditAdminAction(c, 'DELETE_MEDIA_FOLDER', 'media_folder', folderId);
+  return c.json({ success: true, data: { deleted: true } });
+});
+
 // ─── POST /api/admin/media/upload ────────────────────────────────────────────
 adminMedia.post('/upload', requirePermission('media.write'), async (c) => {
   const adminId = c.get('userId');
@@ -152,36 +146,46 @@ adminMedia.post('/upload', requirePermission('media.write'), async (c) => {
   if (!file) {
     return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'File is required.', status: 400 } }, 400);
   }
-  if (!ALLOWED_MIME.has(file.type)) {
+
+  const arrayBuffer = await file.arrayBuffer();
+  if (arrayBuffer.byteLength === 0) {
     return c.json(
-      { success: false, error: { code: 'UNSUPPORTED_MEDIA_TYPE', message: 'Allowed types: JPEG, PNG, WebP, AVIF, MP4, WebM.', status: 415 } },
+      { success: false, error: { code: 'BAD_REQUEST', message: 'Uploaded file is empty.', status: 400 } },
+      400,
+    );
+  }
+
+  // Inspect actual binary signature first so Windows/macOS files with blank or alternate MIME types work reliably
+  const realMime = detectMediaMimeFromBytes(arrayBuffer);
+  if (!realMime) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'UNSUPPORTED_MEDIA_TYPE',
+          message: 'Unsupported or invalid file format. Allowed: JPEG, PNG, WebP, AVIF, GIF, MP4, WebM.',
+          status: 415,
+        },
+      },
       415,
     );
   }
-  const isVideo = file.type.startsWith('video/');
+
+  const isVideo = realMime.startsWith('video/');
   const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
-  if (file.size === 0 || file.size > maxBytes) {
+  if (arrayBuffer.byteLength > maxBytes) {
     return c.json(
       {
         success: false,
         error: {
           code: 'PAYLOAD_TOO_LARGE',
           message: isVideo
-            ? 'Runway video must be between 1 byte and 15 MB.'
-            : 'Image must be between 1 byte and 5 MB.',
+            ? 'Runway video must be 15 MB or smaller.'
+            : 'Image must be 10 MB or smaller.',
           status: 413,
         },
       },
       413,
-    );
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const realMime = detectMediaMimeFromBytes(arrayBuffer);
-  if (!realMime) {
-    return c.json(
-      { success: false, error: { code: 'INVALID_MEDIA_CONTENT', message: 'File header does not match an authentic image or MP4/WebM video.', status: 400 } },
-      400,
     );
   }
 
@@ -193,18 +197,7 @@ adminMedia.post('/upload', requirePermission('media.write'), async (c) => {
 
   const key = buildR2Key(folderSlug, realMime);
   const now = nowIso();
-  let sourceType: 'r2' | 'db_blob' = 'db_blob';
-
-  if (c.env.MEDIA_BUCKET) {
-    await uploadObject(c.env.MEDIA_BUCKET, key, arrayBuffer, realMime);
-    sourceType = 'r2';
-  } else {
-    const base64 = encodeBytesToBase64(new Uint8Array(arrayBuffer));
-    await c.env.DB
-      .prepare(`INSERT INTO media_blobs (asset_key, mime_type, data_base64, created_at) VALUES (?1, ?2, ?3, ?4)`)
-      .bind(key, realMime, base64, now)
-      .run();
-  }
+  const sourceType = await storeMediaBinary(c.env, key, arrayBuffer, realMime, now);
 
   const url = `/api/media/file/${key}`;
   const assetId = generateId('med_');
@@ -222,7 +215,7 @@ adminMedia.post('/upload', requirePermission('media.write'), async (c) => {
       url,
       file.name.slice(0, 140) || 'image',
       realMime,
-      file.size,
+      arrayBuffer.byteLength,
       altText,
       focalX,
       focalY,
@@ -232,7 +225,12 @@ adminMedia.post('/upload', requirePermission('media.write'), async (c) => {
     )
     .run();
 
-  await auditAdminAction(c, 'UPLOAD_MEDIA_ASSET', 'media_asset', assetId, { key, sourceType, size: file.size });
+  await auditAdminAction(c, 'UPLOAD_MEDIA_ASSET', 'media_asset', assetId, {
+    key,
+    sourceType,
+    size: arrayBuffer.byteLength,
+    mimeType: realMime,
+  });
   return c.json(
     {
       success: true,
@@ -242,10 +240,11 @@ adminMedia.post('/upload', requirePermission('media.write'), async (c) => {
         url,
         filename: file.name,
         mimeType: realMime,
-        sizeBytes: file.size,
+        sizeBytes: arrayBuffer.byteLength,
         altText,
         defaultFocalX: focalX,
         defaultFocalY: focalY,
+        sourceType,
       },
     },
     201,
@@ -313,13 +312,12 @@ adminMedia.delete('/assets/:assetId', requirePermission('media.delete'), async (
     );
   }
 
-  if (asset.source_type === 'r2' && c.env.MEDIA_BUCKET) {
-    await deleteR2Object(c.env.MEDIA_BUCKET, asset.key).catch(() => {});
-  } else if (asset.source_type === 'db_blob') {
-    await c.env.DB.prepare(`DELETE FROM media_blobs WHERE asset_key = ?1`).bind(asset.key).run();
+  if (asset.source_type === 'r2' || asset.source_type === 'db_blob') {
+    await deleteMediaBinary(c.env, asset.key);
   }
 
   await c.env.DB.prepare(`DELETE FROM media_assets WHERE id = ?1`).bind(assetId).run();
+  await invalidateStorefrontCache(c.env);
   await auditAdminAction(c, 'DELETE_MEDIA_ASSET', 'media_asset', assetId, { key: asset.key });
   return c.json({ success: true, data: { deleted: true } });
 });

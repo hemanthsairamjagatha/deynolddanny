@@ -177,6 +177,10 @@ export async function compilePublishedStorefrontBundle(
     codEnabled: Boolean(storeSettings.codEnabled ?? false),
     codMaxPaise: Number(storeSettings.codMaxPaise ?? 5000000),
     allowReviewsWithoutPurchase: Boolean(storeSettings.allowReviewsWithoutPurchase ?? true),
+    enableFitFinder:
+      storeSettings.enableFitFinder !== undefined ? Boolean(storeSettings.enableFitFinder) : true,
+    enableReviewsOnPdp:
+      storeSettings.enableReviewsOnPdp !== undefined ? Boolean(storeSettings.enableReviewsOnPdp) : true,
   };
 
   const navigation: Record<string, unknown> = {};

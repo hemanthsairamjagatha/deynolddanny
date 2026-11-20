@@ -50,7 +50,7 @@ storefront.get('/exchange-rates', async (c) => {
 storefront.get('/published', async (c) => {
   const bundle = await getPublishedStorefrontBundle(c.env);
   return c.json({ success: true, data: bundle }, 200, {
-    'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+    'Cache-Control': 'public, max-age=0, must-revalidate',
   });
 });
 
@@ -89,7 +89,7 @@ storefront.get('/pages', async (c) => {
     }));
 
   return c.json({ success: true, data: { items } }, 200, {
-    'Cache-Control': 'public, s-maxage=120',
+    'Cache-Control': 'public, max-age=0, must-revalidate',
   });
 });
 
@@ -171,7 +171,7 @@ storefront.get('/pages/:slug', async (c) => {
       },
     },
     200,
-    { 'Cache-Control': 'public, s-maxage=120' },
+    { 'Cache-Control': 'public, max-age=0, must-revalidate' },
   );
 });
 

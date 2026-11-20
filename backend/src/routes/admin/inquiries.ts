@@ -10,7 +10,8 @@ const adminInquiries = new Hono<{ Bindings: Env }>();
 
 // ─── GET /api/admin/inquiries ────────────────────────────────────────────────
 adminInquiries.get('/', requirePermission('inquiries.manage'), async (c) => {
-  const status = c.req.query('status')?.trim();
+  const rawStatus = c.req.query('status')?.trim();
+  const status = rawStatus === 'open' ? 'new' : rawStatus;
   let sql = `SELECT * FROM contact_inquiries WHERE 1=1`;
   const bindings: any[] = [];
 
@@ -26,6 +27,7 @@ adminInquiries.get('/', requirePermission('inquiries.manage'), async (c) => {
     success: true,
     data: {
       items: rows.results ?? [],
+      inquiries: rows.results ?? [],
       total: rows.results?.length ?? 0,
     },
   });
@@ -33,9 +35,10 @@ adminInquiries.get('/', requirePermission('inquiries.manage'), async (c) => {
 
 // ─── PATCH /api/admin/inquiries/:id ──────────────────────────────────────────
 const updateInquirySchema = z.object({
-  status: z.enum(['new', 'in_progress', 'resolved', 'archived']).optional(),
+  status: z.enum(['new', 'open', 'in_progress', 'resolved', 'archived']).optional(),
   assignedTo: z.string().nullable().optional(),
   internalNotes: z.string().max(2000).nullable().optional(),
+  internal_note: z.string().max(2000).nullable().optional(),
 });
 
 adminInquiries.patch(
@@ -53,9 +56,10 @@ adminInquiries.patch(
       vals.push(val);
     };
 
-    if (body.status !== undefined) add('status', body.status);
+    if (body.status !== undefined) add('status', body.status === 'open' ? 'new' : body.status);
     if (body.assignedTo !== undefined) add('assigned_to', body.assignedTo);
-    if (body.internalNotes !== undefined) add('internal_notes', body.internalNotes);
+    const notes = body.internalNotes !== undefined ? body.internalNotes : body.internal_note;
+    if (notes !== undefined) add('internal_notes', notes);
 
     vals.push(inquiryId);
     await c.env.DB
@@ -70,10 +74,15 @@ adminInquiries.patch(
 );
 
 // ─── POST /api/admin/inquiries/:id/reply ─────────────────────────────────────
-const replySchema = z.object({
-  replySubject: z.string().min(2).max(180),
-  replyMessage: z.string().min(10).max(4000),
-});
+const replySchema = z
+  .object({
+    replySubject: z.string().min(2).max(180).optional(),
+    replyMessage: z.string().min(2).max(4000).optional(),
+    body: z.string().min(2).max(4000).optional(),
+  })
+  .refine((d) => Boolean((d.replyMessage || d.body || '').trim()), {
+    message: 'Reply message is required.',
+  });
 
 adminInquiries.post(
   '/:id/reply',
@@ -81,16 +90,19 @@ adminInquiries.post(
   zValidator('json', replySchema),
   async (c) => {
     const inquiryId = c.req.param('id');
-    const { replySubject, replyMessage } = c.req.valid('json');
+    const payload = c.req.valid('json');
+    const replyMessage = (payload.replyMessage || payload.body || '').trim();
 
     const inq = await c.env.DB
-      .prepare(`SELECT email, name FROM contact_inquiries WHERE id = ?1 LIMIT 1`)
+      .prepare(`SELECT email, name, subject FROM contact_inquiries WHERE id = ?1 LIMIT 1`)
       .bind(inquiryId)
-      .first<{ email: string; name: string }>();
+      .first<{ email: string; name: string; subject: string | null }>();
 
     if (!inq) {
       return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Inquiry not found.', status: 404 } }, 404);
     }
+
+    const replySubject = payload.replySubject?.trim() || `Re: ${inq.subject || 'DEYNOLD DANNY Client Concierge'}`;
 
     if (c.env.RESEND_API_KEY) {
       const html = `

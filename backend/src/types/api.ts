@@ -77,13 +77,22 @@ export interface ApiCrossSellItem {
 export interface ApiProductCard extends MoneyFields {
   id: string;
   slug: string;
+  sku?: string;
   title: string;
   badge: string | null;
+  sectionGroup?: string;
+  categoryId?: string | null;
+  category?: string;
+  gender?: string | null;
+  tag?: string | null;
   defaultImg: string;
   hoverImg: string;
+  images?: string[];
   sizes: string[];
   colors: { name: string; hex: string }[];
   link: string;
+  comparePaise?: number | null;
+  comparePrice?: string | null;
   minPricePaise?: number;
   maxPricePaise?: number;
   hasVariantPricing?: boolean;
