@@ -41,7 +41,8 @@ declare global {
   }
 }
 
-const DEFAULT_VIDEO_URL = '/hero-runway.mp4';
+const DEFAULT_VIDEO_URL = '/hero-runway.mp4?v=2';
+const CROSSFADE_LEAD_SEC = 0.45; // Crisp 450ms dual-deck overlap on matched Start==End loop eliminates browser <video loop> blink
 
 const DEFAULT_RUNWAY_LOOKS: RunwayLook[] = [
   {
@@ -59,21 +60,21 @@ const DEFAULT_RUNWAY_LOOKS: RunwayLook[] = [
   },
   {
     code: 'LOOK 02',
-    title: 'Brushed Camel Cashmere Walk',
-    subtitle: 'Single-Breasted Cashmere Overcoat · Espresso Ribbed Knit',
+    title: 'Bordeaux Velvet Atelier Jacket',
+    subtitle: 'Deep Burgundy Evening Tailoring · Black Ribbed Cashmere',
     image: '/images/hero-runway-2.jpg',
-    ctaLabel: 'Shop Cashmere & Knit',
+    ctaLabel: 'Shop Evening & Knit',
     ctaUrl: '/categories/knitwear',
     focalX: 64,
     focalY: 24,
     startScale: 1.0,
     endScale: 1.08,
-    videoStartSec: 3.4,
+    videoStartSec: 2.7,
   },
   {
     code: 'LOOK 03',
     title: 'Architectural Ivory Bespoke Suit',
-    subtitle: 'Hand-Finished Double-Breasted Suiting · Tailored Silhouette',
+    subtitle: 'Sculpted Double-Breasted Suiting · Cognac Calfskin',
     image: '/images/hero-runway-1.jpg',
     ctaLabel: 'Explore Tailoring',
     ctaUrl: '/categories/tailoring',
@@ -81,7 +82,7 @@ const DEFAULT_RUNWAY_LOOKS: RunwayLook[] = [
     focalY: 20,
     startScale: 1.12,
     endScale: 1.2,
-    videoStartSec: 6.1,
+    videoStartSec: 5.4,
   },
 ];
 
@@ -95,11 +96,20 @@ export const HeroRunwayExperience: React.FC = () => {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
+  const [activeDeck, setActiveDeck] = useState<0 | 1>(0);
   const [tilt, setTilt] = useState({ rx: 0, ry: 0, tx: 0, ty: 0 });
   const [cycleKey, setCycleKey] = useState(0);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Dual-video seamless crossfade decks (zero end-of-loop blink)
+  const videoARef = useRef<HTMLVideoElement | null>(null);
+  const videoBRef = useRef<HTMLVideoElement | null>(null);
+  const activeDeckRef = useRef<0 | 1>(0);
+  const switchingRef = useRef(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    activeDeckRef.current = activeDeck;
+  }, [activeDeck]);
 
   // Respect prefers-reduced-motion
   useEffect(() => {
@@ -147,7 +157,7 @@ export const HeroRunwayExperience: React.FC = () => {
       if (valid.length > 0) {
         return valid.map((l, i) => ({
           ...l,
-          videoStartSec: l.videoStartSec ?? DEFAULT_RUNWAY_LOOKS[i]?.videoStartSec ?? i * 3,
+          videoStartSec: l.videoStartSec ?? DEFAULT_RUNWAY_LOOKS[i]?.videoStartSec ?? i * 2.7,
         }));
       }
     }
@@ -160,6 +170,8 @@ export const HeroRunwayExperience: React.FC = () => {
   const videoUrl = typeof cms.videoUrl === 'string' ? cms.videoUrl.trim() : DEFAULT_VIDEO_URL;
   const showVideo = Boolean(videoUrl) && !videoFailed && !reducedMotion;
 
+  const getDeck = (idx: 0 | 1) => (idx === 0 ? videoARef.current : videoBRef.current);
+
   const goToLook = useCallback(
     (nextIndex: number) => {
       const normalized = ((nextIndex % looks.length) + looks.length) % looks.length;
@@ -167,37 +179,73 @@ export const HeroRunwayExperience: React.FC = () => {
       setActiveIdx(normalized);
       setCycleKey((k) => k + 1);
 
-      // When live runway video is playing, seek smoothly to that look's runway entrance
-      const v = videoRef.current;
+      // Seek active video deck smoothly to that look's runway entrance
+      const v = getDeck(activeDeckRef.current);
       if (v && showVideo && Number.isFinite(v.duration) && v.duration > 0) {
         const targetSec =
           looks[normalized]?.videoStartSec ?? (normalized / looks.length) * v.duration;
-        v.currentTime = Math.min(Math.max(0, targetSec), Math.max(0, v.duration - 0.25));
+        v.currentTime = Math.min(Math.max(0, targetSec), Math.max(0, v.duration - 0.35));
       }
     },
     [looks, safeIdx, showVideo],
   );
 
-  // Sync active look card & progress bar to live runway video playback time
-  const handleVideoTimeUpdate = () => {
-    const v = videoRef.current;
-    if (!v || !Number.isFinite(v.duration) || v.duration <= 0) return;
-    const t = v.currentTime;
-    const pct = Math.min(1, Math.max(0, t / v.duration));
-    setVideoProgress(pct);
+  // Dual-deck zero-blink seamless crossfade loop + real-time Look HUD sync
+  useEffect(() => {
+    if (!showVideo || isPaused) return;
+    let rafId = 0;
 
-    let matched = 0;
-    for (let i = looks.length - 1; i >= 0; i--) {
-      const start = looks[i].videoStartSec ?? (i / looks.length) * v.duration;
-      if (t >= start) {
-        matched = i;
-        break;
+    const tick = () => {
+      const currIdx = activeDeckRef.current;
+      const nextIdx: 0 | 1 = currIdx === 0 ? 1 : 0;
+      const currVid = getDeck(currIdx);
+      const nextVid = getDeck(nextIdx);
+
+      if (currVid && Number.isFinite(currVid.duration) && currVid.duration > 0) {
+        const t = currVid.currentTime;
+        const dur = currVid.duration;
+        const effectiveDur = Math.max(1, dur - CROSSFADE_LEAD_SEC);
+        const pct = Math.min(1, Math.max(0, t / effectiveDur));
+        setVideoProgress(pct);
+
+        let matched = 0;
+        for (let i = looks.length - 1; i >= 0; i--) {
+          const start = looks[i].videoStartSec ?? (i / looks.length) * effectiveDur;
+          if (t >= start) {
+            matched = i;
+            break;
+          }
+        }
+        setActiveIdx((prev) => (prev === matched ? prev : matched));
+
+        // Pre-roll standby deck and crossfade smoothly BEFORE end-of-file so browser NEVER blinks
+        if (!switchingRef.current && nextVid && dur > CROSSFADE_LEAD_SEC + 1 && dur - t <= CROSSFADE_LEAD_SEC) {
+          switchingRef.current = true;
+          nextVid.muted = true;
+          nextVid.currentTime = 0;
+          nextVid
+            .play()
+            .then(() => {
+              activeDeckRef.current = nextIdx;
+              setActiveDeck(nextIdx);
+              window.setTimeout(() => {
+                currVid.pause();
+                currVid.currentTime = 0;
+                switchingRef.current = false;
+              }, Math.round(CROSSFADE_LEAD_SEC * 1000) + 120);
+            })
+            .catch(() => {
+              switchingRef.current = false;
+            });
+        }
       }
-    }
-    if (matched !== activeIdx) {
-      setActiveIdx(matched);
-    }
-  };
+
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [showVideo, isPaused, looks]);
 
   // Auto-advance still runway choreography when video mode is off / unavailable
   useEffect(() => {
@@ -219,15 +267,21 @@ export const HeroRunwayExperience: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [prevIdx, activeIdx]);
 
-  // Sync video play/pause & guarantee autoplay start on muted video
+  // Sync play/pause across both decks cleanly
   useEffect(() => {
-    const v = videoRef.current;
-    if (!v || !showVideo) return;
-    v.muted = true;
-    if (isPaused) {
-      v.pause();
-    } else {
-      v.play().catch(() => {});
+    if (!showVideo) return;
+    const currVid = getDeck(activeDeckRef.current);
+    const otherVid = getDeck(activeDeckRef.current === 0 ? 1 : 0);
+    if (currVid) {
+      currVid.muted = true;
+      if (isPaused) {
+        currVid.pause();
+      } else {
+        currVid.play().catch(() => { });
+      }
+    }
+    if (otherVid && isPaused) {
+      otherVid.pause();
     }
   }, [isPaused, showVideo, videoUrl]);
 
@@ -277,24 +331,33 @@ export const HeroRunwayExperience: React.FC = () => {
           reducedMotion
             ? undefined
             : {
-                transform: `perspective(1400px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translate3d(${tilt.tx}px, ${tilt.ty}px, 0)`,
-              }
+              transform: `perspective(1400px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) translate3d(${tilt.tx}px, ${tilt.ty}px, 0)`,
+            }
         }
       >
         {showVideo ? (
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            poster={cms.desktopImage || '/images/hero-runway-1.jpg'}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            onTimeUpdate={handleVideoTimeUpdate}
-            onError={() => setVideoFailed(true)}
-            className="dd-runway-media dd-runway-video-crop"
-          />
+          <>
+            <video
+              ref={videoARef}
+              src={videoUrl}
+              poster={cms.desktopImage || '/images/hero-runway-1.jpg'}
+              autoPlay
+              muted
+              playsInline
+              preload="auto"
+              onError={() => setVideoFailed(true)}
+              className={`dd-runway-media dd-runway-video-crop dd-runway-video-deck ${activeDeck === 0 ? 'is-deck-active' : ''}`}
+            />
+            <video
+              ref={videoBRef}
+              src={videoUrl}
+              muted
+              playsInline
+              preload="auto"
+              aria-hidden="true"
+              className={`dd-runway-media dd-runway-video-crop dd-runway-video-deck ${activeDeck === 1 ? 'is-deck-active' : ''}`}
+            />
+          </>
         ) : (
           looks.map((look, idx) => {
             const isActive = idx === safeIdx;
@@ -308,9 +371,8 @@ export const HeroRunwayExperience: React.FC = () => {
               <div
                 key={`${look.code}-${idx}`}
                 aria-hidden={!isActive}
-                className={`dd-runway-slide ${isActive ? 'is-active' : ''} ${isExiting ? 'is-exiting' : ''} ${
-                  isPaused ? 'is-paused' : ''
-                }`}
+                className={`dd-runway-slide ${isActive ? 'is-active' : ''} ${isExiting ? 'is-exiting' : ''} ${isPaused ? 'is-paused' : ''
+                  }`}
                 style={
                   {
                     '--runway-s0': String(s0),
@@ -415,14 +477,13 @@ export const HeroRunwayExperience: React.FC = () => {
                     {showVideo ? (
                       <span
                         className="dd-runway-step-fill"
-                        style={{ transform: `scaleX(${segFill})`, transition: 'transform 0.15s linear' }}
+                        style={{ transform: `scaleX(${segFill})`, transition: 'transform 0.1s linear' }}
                       />
                     ) : (
                       <span
                         key={active ? `prog-${idx}-${cycleKey}` : `prog-idle-${idx}`}
-                        className={`dd-runway-step-fill ${active && !isPaused && !reducedMotion ? 'is-animating' : ''} ${
-                          active && (isPaused || reducedMotion) ? 'is-static-full' : ''
-                        }`}
+                        className={`dd-runway-step-fill ${active && !isPaused && !reducedMotion ? 'is-animating' : ''} ${active && (isPaused || reducedMotion) ? 'is-static-full' : ''
+                          }`}
                         style={{ animationDuration: `${LOOK_DURATION_MS}ms` }}
                       />
                     )}

@@ -61,6 +61,21 @@ import { HeroRunwayExperience } from './HeroRunwayExperience';
     transform-origin: center top;
   }
 
+  /* Dual-deck overlapping video crossfade — eliminates browser <video loop> blink */
+  .dd-runway-video-deck {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    z-index: 0;
+    transition: opacity 0.45s ease-in-out;
+    will-change: opacity;
+  }
+
+  .dd-runway-video-deck.is-deck-active {
+    opacity: 1;
+    z-index: 2;
+  }
+
   /* Runway Look Depth Planes — Models Advance Forward One-by-One */
   .dd-runway-slide {
     position: absolute;

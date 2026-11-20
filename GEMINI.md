@@ -201,19 +201,21 @@ implementation record accurate, not to rewrite standing rules.
 ### Current repository structure / implementation snapshot
 
 - **Verification date:** 2026-11-20
-- **Verification status:** Verified against active working repository (`npx astro check`, `npm --prefix backend run type-check`, `npm --prefix backend test` [10/10], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build`, live Cloudflare D1 migrations `0001`..`0011` & unified Cloudflare Worker deploy)
+- **Verification status:** Verified against active working repository (`npx astro check` [114 files, 0 errors], `npm --prefix admin run build`, `npm --prefix backend run type-check`, `npm --prefix backend test` [11/11], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build` [64 Astro pages + Admin SPA])
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Storefront `src/`) · React 18.3.1 + Vite 5.4 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + `@dnd-kit` (Commerce OS Admin SPA `admin/`) · Hono + Cloudflare Workers + Workers Static Assets + D1 + KV + R2 + Cron (Backend `backend/`)
 - **Active Routes (`src/pages/` + `/admin/*` SPA):**
-  - `/` -> `src/pages/index.astro` (Homepage with hero, category grid, `ProductCarousel`, `StyleLayering`, `Organization`/`WebSite` JSON-LD, live CMS & Brand hydration bridge via `src/lib/storefront/live-cms.ts`)
-  - `/categories` -> `src/pages/categories/index.astro` (Storefront category directory)
-  - `/categories/[slug]` -> `src/pages/categories/[slug].astro` (Strictly isolated category product listing)
-  - `/products/[slug]` -> `src/pages/products/[slug].astro` (Product Detail Page with live `/availability` stock & size-wise pricing, `Product` JSON-LD, Fit Finder, Size Guide)
+  - `/` -> `src/pages/index.astro` (Homepage with 3D/video runway hero, category grid, live D1 `ProductCarousel`, live CMS `StyleLayering`, `Organization`/`WebSite` JSON-LD, live CMS & Brand hydration bridge via `src/lib/storefront/live-cms.ts`)
+  - `/categories` -> `src/pages/categories/index.astro` (Live-hydrated storefront category directory via `LiveCategoriesDirectory`)
+  - `/categories/[slug]` & `/categories/live` -> `src/pages/categories/[slug].astro`, `src/pages/categories/live.astro` (Live-hydrated category product listing + dynamic fallback shell for newly created D1 categories)
+  - `/collections` & `/collections/live` -> `src/pages/collections/index.astro`, `src/pages/collections/live.astro` (Live-hydrated seasonal capsules directory & dynamic detail shell for curated D1 collections)
+  - `/pages/live` -> `src/pages/pages/live.astro` (Dynamic fallback shell for custom Visual Content Studio CMS pages & draft preview)
+  - `/products/[slug]` & `/products/live` -> `src/pages/products/[slug].astro`, `src/pages/products/live.astro` (Product Detail Page with full live D1 product & gallery hydration, `/availability` stock & size-wise pricing, live client reviews, `Product` JSON-LD, Fit Finder, live DB Size Guide, and dynamic fallback shell for newly created products)
   - `/search` -> `src/pages/search.astro` (`noindex`, hydrated client `?q=` lookup via `SearchPageExperience`)
   - `/cart` -> `src/pages/cart.astro` (`noindex`, server-backed coupon & bag totals)
   - `/checkout` -> `src/pages/checkout.astro` (`noindex`, fail-closed multi-step checkout with `Idempotency-Key`, live gateway routing & `/api/shipping/*` proxy)
   - `/checkout/payment-failed` -> `src/pages/checkout/payment-failed.astro` (`noindex`, payment failure recovery view)
   - `/wishlist` -> `src/pages/wishlist.astro` (`noindex`, DPDP/server-synced wishlist)
-  - `/contact` -> `src/pages/contact.astro` (Concierge form wired to `POST /api/contact`)
+  - `/contact` -> `src/pages/contact.astro` (Concierge form wired to `POST /api/contact`, live-hydrated Brand & CMS copy)
   - `/account` & `/account/index` -> `src/pages/account.astro`, `src/pages/account/index.astro` (`noindex`, profile, D1 address book, self-cancel/return, GST invoice, DPDP export/erasure)
   - `/account/sign-in` (alias `/login`), `/account/sign-up` (alias `/signup`), `/account/forgot-password` -> `src/pages/account/*.astro` (`noindex`, pure Email OTP authentication)
   - `/about` -> `src/pages/about.astro` (The House of Deynold Danny editorial page, live-editable via Commerce OS CMS `page_about`)
@@ -230,7 +232,7 @@ deynold-danny-ecommerce/
 │   │   ├── components/{MediaPickerModal.tsx, ui/index.tsx}
 │   │   ├── contexts/AuthContext.tsx     # Memory-only JWT + HttpOnly refresh cookie + OTP/TOTP MFA + RBAC permission guard
 │   │   ├── layouts/AdminLayout.tsx      # 7-group operational navigation shell + mobile drawer
-│   │   ├── lib/{api.ts, types.ts}       # Complete typed admin API client & domain contracts
+│   │   ├── lib/{api.ts, mediaUpload.ts, types.ts} # Typed admin API client, local media optimizer/uploader & domain contracts
 │   │   ├── modules/
 │   │   │   ├── analytics/AnalyticsPage.tsx
 │   │   │   ├── auth/SignInPage.tsx
@@ -268,7 +270,9 @@ deynold-danny-ecommerce/
 │   │   ├── 0006_commerce_os.sql
 │   │   ├── 0007_about_and_legal_pages.sql
 │   │   ├── 0008_sync_navigation_defaults.sql
-│   │   └── 0009_variant_pricing_and_payment_controls.sql
+│   │   ├── 0009_variant_pricing_and_payment_controls.sql
+│   │   ├── 0010_menswear_runway_hero.sql
+│   │   └── 0011_menswear_runway_video.sql
 │   ├── src/
 │   │   ├── config/{constants.ts, env.ts, policy.ts}
 │   │   ├── db/{client.ts, queries/{analytics.ts, cart.ts, inventory.ts, orders.ts, otps.ts, products.ts, users.ts}}
@@ -278,7 +282,7 @@ deynold-danny-ecommerce/
 │   │   ├── routes/
 │   │   │   ├── admin/{analyticsAdmin.ts, brand.ts, categories.ts, cms.ts, collections.ts, coupons.ts, customers.ts, dashboard.ts, disputes.ts, index.ts, inquiries.ts, inventory.ts, logs.ts, media.ts, navigation.ts, newsletterAdmin.ts, orders.ts, payments.ts, products.ts, returns.ts, reviews.ts, security.ts, seo.ts, settings.ts, sizeGuides.ts, systemAdmin.ts, templates.ts, uploads.ts}
 │   │   │   └── {analytics.ts, auth.ts, cart.ts, categories.ts, checkout.ts, contact.ts, coupons.ts, media.ts, newsletter.ts, orders.ts, payments.ts, products.ts, reviews.ts, search.ts, shipping.ts, storefront.ts, users.ts, webhooks.ts, wishlist.ts}
-│   │   ├── services/{cache.ts, cashfree.ts, crypto.ts, jwt.ts, mfa.ts, money.ts, orderLifecycle.ts, r2Storage.ts, razorpay.ts, resend.ts, shiprocket.ts, stockEngine.cron.ts, stockEngine.ts, storefrontCache.ts}
+│   │   ├── services/{cache.ts, cashfree.ts, crypto.ts, fxRates.ts, jwt.ts, mfa.ts, money.ts, orderLifecycle.ts, r2Storage.ts, razorpay.ts, resend.ts, shiprocket.ts, stockEngine.cron.ts, stockEngine.ts, storefrontCache.ts}
 │   │   └── types/{api.ts, bindings.d.ts, models.ts}
 │   ├── tests/
 │   │   ├── helpers/miniflare-harness.mjs
@@ -286,15 +290,17 @@ deynold-danny-ecommerce/
 │   │   └── payment-security.test.mjs
 │   └── {.dev.vars.example, package.json, package-lock.json, SETUP.md, tsconfig.json, wrangler.toml}
 ├── public/
+│   ├── _headers
 │   ├── hero-banner.jpg
 │   ├── hero-banner.png
+│   ├── hero-runway.mp4
 │   ├── logo.png
 │   └── images/...
 ├── scripts/
 │   └── build-admin.mjs
 ├── src/
 │   ├── components/
-│   │   └── layout/{AccountTrigger.tsx, Footer.astro, Header.astro}
+│   │   └── layout/{AccountTrigger.tsx, CurrencySelector.tsx, Footer.astro, Header.astro}
 │   ├── config/{ecommerce.config.ts, navigation.config.ts, routes.ts, site.config.ts}
 │   ├── data/products.ts
 │   ├── features/
@@ -303,7 +309,7 @@ deynold-danny-ecommerce/
 │   │   ├── cart/{api/cart.api.ts, components/{CartDrawer.tsx, CartPageExperience.tsx, CartTrigger.tsx}, store/cart.store.ts, types/cart.types.ts}
 │   │   ├── catalog/
 │   │   │   ├── api/catalog.api.ts
-│   │   │   ├── components/{ProductCard.tsx, ProductCarousel.tsx, ProductColorSelector.tsx, ProductDetailExperience.tsx, ProductGallery.tsx, ProductLightbox.tsx, ProductPurchasePanel.tsx, ProductSizeSelector.tsx, ProductSizingActions.tsx, RelatedProducts.astro, StyleItWith.astro}
+│   │   │   ├── components/{LiveCategoriesDirectory.tsx, LiveCategoryListing.tsx, LiveCollectionExperience.tsx, ProductCard.tsx, ProductCarousel.tsx, ProductColorSelector.tsx, ProductDetailExperience.tsx, ProductGallery.tsx, ProductLightbox.tsx, ProductPurchasePanel.tsx, ProductSizeSelector.tsx, ProductSizingActions.tsx, RelatedProducts.astro, StyleItWith.astro}
 │   │   │   ├── data/products.ts
 │   │   │   ├── fit-finder/FitFinderDialog.tsx
 │   │   │   ├── size-guide/SizeGuideDialog.tsx
@@ -312,20 +318,22 @@ deynold-danny-ecommerce/
 │   │   ├── checkout/{api/checkout.api.ts, components/CheckoutExperience.tsx}
 │   │   ├── consent/components/CookieConsentBanner.tsx
 │   │   ├── contact/components/ContactForm.tsx
-│   │   ├── home/{components/{CategoryGrid.astro, EditorialDuo.astro, HeroBanner.astro, StyleLayering.tsx}, data/home-content.ts}
+│   │   ├── home/{components/{CategoryGrid.astro, EditorialDuo.astro, HeroBanner.astro, HeroRunwayExperience.tsx, LiveCmsPageExperience.tsx, StyleLayering.tsx}, data/home-content.ts}
 │   │   ├── orders/{api/orders.api.ts, components/OrderTrackingExperience.tsx}
 │   │   ├── search/{components/{SearchDialog.tsx, SearchPageExperience.tsx, SearchTrigger.tsx}, store/search.store.ts}
 │   │   └── wishlist/{api/wishlist.api.ts, components/{WishlistButton.tsx, WishlistExperience.tsx}, store/wishlist.store.ts, types/wishlist.types.ts}
 │   ├── layouts/{AuthLayout.astro, BaseLayout.astro, Layout.astro, StorefrontLayout.astro}
-│   ├── lib/{api/client.ts, consent/consent.store.ts, storefront/live-cms.ts}
+│   ├── lib/{api/client.ts, consent/consent.store.ts, currency/currency.store.ts, storefront/live-cms.ts}
 │   ├── pages/
 │   │   ├── account/{forgot-password.astro, index.astro, sign-in.astro, sign-up.astro}
-│   │   ├── categories/{[slug].astro, index.astro}
+│   │   ├── categories/{[slug].astro, index.astro, live.astro}
 │   │   ├── checkout/payment-failed.astro
-│   │   ├── legal/{privacy-policy.astro, shipping-returns.astro, terms.astro}
+│   │   ├── collections/{index.astro, live.astro}
+│   │   ├── legal/{cookie-policy.astro, privacy-policy.astro, shipping-returns.astro, terms.astro}
 │   │   ├── orders/track.astro
-│   │   ├── products/[slug].astro
-│   │   └── {404.astro, 500.astro, account.astro, cart.astro, checkout.astro, contact.astro, index.astro, login.astro, robots.txt.ts, search.astro, signup.astro, sitemap.xml.ts, track.astro, wishlist.astro}
+│   │   ├── pages/live.astro
+│   │   ├── products/{[slug].astro, live.astro}
+│   │   └── {404.astro, 500.astro, about.astro, account.astro, cart.astro, checkout.astro, contact.astro, index.astro, login.astro, robots.txt.ts, search.astro, signup.astro, sitemap.xml.ts, track.astro, wishlist.astro}
 │   ├── stores/cartStore.ts
 │   ├── styles/{global.css, luxury-custom.css, typography.css, variables.css}
 │   ├── types/ecommerce.ts
@@ -2420,6 +2428,66 @@ task.
     - Remote D1 `0011_menswear_runway_video.sql` & KV flush: PASS (`sec_home_hero` `videoUrl = /hero-runway.mp4`).
     - `npx wrangler deploy`: PASS (Version `9a3887f1-9c3d-455e-9af6-b9ca05f19baf`).
     - Live Smoke Tests: PASS (`HEAD /hero-runway.mp4` -> `200 OK`, `Content-Type: video/mp4`; `/api/storefront/published` -> `videoUrl: "/hero-runway.mp4"`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-20 — End-to-End Admin Local Media Upload/Removal, Full Admin API Repair & Live Storefront Synchronization**:
+  - **Status:** COMPLETE
+  - **Summary:** Fixed local image/video upload and removal across the entire Commerce OS Admin Panel, repaired API/field mismatches across all admin modules, and wired complete live storefront hydration (including dynamic shells so newly created D1 products, categories, collections, and custom CMS pages work immediately without 404s):
+    1. **Local Device Media Upload & Removal (Works with or without R2):** Mounted `/api/media/file/*` and `/api/media/*` in `backend/src/index.ts`; upgraded `backend/src/services/r2Storage.ts` and `backend/src/routes/media.ts` with R2 → `CATALOG_KV` → chunked D1 `media_blobs` (`::part::0000..N` for files >450 KB) storage/serving and full multi-layer deletion; added magic-byte MIME detection first (fixing Windows uploads with missing/alternate MIME types) and folder delete (`DELETE /api/admin/media/folders/:folderId`). Created `admin/src/lib/mediaUpload.ts` (client-side smart image optimization + upload), upgraded `ImageUrlField` and `MediaPickerModal` with 1-click direct local **Upload**, drag-and-drop, and **Remove/Delete**, upgraded `MediaLibraryPage` with multi-file upload + in-app Delete Confirmation Modal, upgraded `ProductEditor` with direct multi-photo device upload, remove/reorder controls, and fixed `PUT /api/admin/products/:id/images` (`url`/`image_url` alias + `color_name ?? ''` to satisfy `NOT NULL` constraint).
+    2. **All Admin Panel Modules Repaired End-to-End:** Aligned request/response contracts across `Dashboard`, `Inventory` (`{ delta, reason }` + `{ stock }`), `Coupons` (`items`/`coupons` + camelCase fields), `Reviews` (`isFeatured`/`adminReply`), `Returns` (`PATCH /:id/review` + `/:id`), `Disputes`, `Customers`, `Inquiries`, `Categories` (allowing image clear), and `PageEditor` (`allowVideo` upload/remove on Hero). Hardened `admin/src/lib/api.ts` against non-JSON error responses.
+    3. **Live Storefront Reflection Everywhere:** Switched public storefront/catalog cache headers to `max-age=0, must-revalidate` (KV-busted immediately on admin mutations); merged D1 `store_settings` into `/api/config/storefront`; upgraded `ProductCarousel`, `ProductDetailExperience` (full live D1 product/gallery/config hydration + live client reviews submission/display), `StyleLayering`, `CookieConsentBanner`, `SizeGuideDialog`, `Footer.astro`, `contact.astro`, and `src/lib/storefront/live-cms.ts` (colors, Google Fonts typography, contact/atelier info, social links, cookie banner, newsletter success copy). Added live islands (`LiveCategoriesDirectory`, `LiveCategoryListing`, `LiveCollectionExperience`, `LiveCmsPageExperience`) and dynamic Astro shells (`/products/live`, `/categories/live`, `/collections/index`, `/collections/live`, `/pages/live`) paired with Worker fallback routing in `backend/src/index.ts`.
+  - **Files Added:**
+    - `admin/src/lib/mediaUpload.ts`
+    - `src/features/catalog/components/{LiveCategoriesDirectory.tsx, LiveCategoryListing.tsx, LiveCollectionExperience.tsx}`
+    - `src/features/home/components/LiveCmsPageExperience.tsx`
+    - `src/pages/products/live.astro`
+    - `src/pages/categories/live.astro`
+    - `src/pages/collections/{index.astro, live.astro}`
+    - `src/pages/pages/live.astro`
+  - **Files Modified:**
+    - `backend/src/{index.ts, types/api.ts, services/r2Storage.ts, services/storefrontCache.ts}`
+    - `backend/src/routes/{media.ts, products.ts, categories.ts, storefront.ts}`
+    - `backend/src/routes/admin/{media.ts, uploads.ts, products.ts, dashboard.ts, inventory.ts, customers.ts, inquiries.ts, reviews.ts, disputes.ts, returns.ts, coupons.ts}`
+    - `backend/tests/db-and-worker.test.mjs`
+    - `admin/src/{lib/api.ts, components/MediaPickerModal.tsx}`
+    - `admin/src/modules/{media/MediaLibraryPage.tsx, catalog/ProductEditor.tsx, catalog/CategoriesPage.tsx, studio/PageEditor.tsx, inventory/InventoryPage.tsx, promotions/CouponsPage.tsx, reviews/ReviewsPage.tsx, returns/ReturnsPage.tsx, disputes/DisputesPage.tsx, customers/CustomersListPage.tsx, concierge/InquiriesPage.tsx}`
+    - `src/features/catalog/{types/product.types.ts, api/catalog.api.ts, components/ProductCarousel.tsx, components/ProductDetailExperience.tsx, components/ProductPurchasePanel.tsx, size-guide/SizeGuideDialog.tsx}`
+    - `src/features/{checkout/api/checkout.api.ts, consent/components/CookieConsentBanner.tsx, home/components/StyleLayering.tsx}`
+    - `src/{components/layout/Footer.astro, lib/storefront/live-cms.ts, pages/index.astro, pages/contact.astro, pages/categories/index.astro, pages/categories/[slug].astro}`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added `admin/src/lib/mediaUpload.ts`, four live storefront hydration islands (`LiveCategoriesDirectory`, `LiveCategoryListing`, `LiveCollectionExperience`, `LiveCmsPageExperience`), and dynamic Astro shells (`/products/live`, `/categories/live`, `/collections`, `/collections/live`, `/pages/live`) matched by Cloudflare Worker fallback routes in `backend/src/index.ts`.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`11 / 11` Miniflare D1/Worker tests passing, including new chunked >500 KB local PNG upload, `/api/media/file/*` serving, KV-evicted D1 chunk reassembly, gallery sync, inventory delta, and media deletion 404 test).
+    - `npm --prefix admin run build`: PASS (`tsc && vite build`, 75 modules transformed, 0 errors).
+    - `npx astro check`: PASS (114 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` passing).
+    - `npm run build`: PASS (`64` Astro pages built + Admin SPA copied to `dist/admin`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None (ready for `npx wrangler deploy` when user requests live deployment).
+
+- **2026-11-20 — v2 Seamless Infinite-Loop 1080p Menswear Runway Film (3 Distinct Models) + Dual-Deck Zero-Blink Crossfade Video Engine**:
+  - **Status:** COMPLETE
+  - **Summary:** Resolved duplicate model similarity and browser end-of-loop blink on the homepage hero runway film:
+    1. **3 Unmistakably Distinct Male Models & Contrasting Menswear Outfits (`public/hero-runway.mp4`, `5.21 MB` / `5,462,845` bytes, 1080p Veo 3.1 - Quality):** Generated a fresh 16:9 keyframe and 8-second seamless loop in Google Flow using the exact same verified keyframe as both Start Frame and End Frame (`00s == 08s`), showcasing Look 01 (clean-shaven model in sculpted jet-black double-breasted wool overcoat + open-collar crisp white silk shirt), Look 02 (bearded model in deep burgundy/bordeaux tailored velvet evening jacket + black cashmere turtleneck), and Look 03 (lean Black male model in bright sculpted ivory-cream bespoke double-breasted suit + cognac loafers).
+    2. **Dual-Deck Overlapping Crossfade Video Engine (`HeroRunwayExperience.tsx` + `HeroBanner.astro`):** Replaced single `<video loop>` playback with two overlapping `<video>` decks (`videoARef` ↔ `videoBRef`) using `CROSSFADE_LEAD_SEC = 0.45` and CSS opacity crossfade (`0.45s ease-in-out`) triggered right before `duration - 0.45s`, completely eliminating browser loop decode blink/stutter while maintaining real-time `requestAnimationFrame` progress bar sync and click-to-seek on `01 / 02 / 03`.
+    3. **Cache-Busted Live Rollout:** Updated `DEFAULT_VIDEO_URL` and remote D1 `cms_sections` (`sec_home_hero`) to `/hero-runway.mp4?v=2` and Look 02 title to `Bordeaux Velvet Atelier Jacket`, flushed Cloudflare KV (`storefront:published:v1`), and deployed the unified Cloudflare Worker (`Version 937d6ca4-b7ad-47d2-b4cd-b24e1fd6fa4f`).
+  - **Files Modified:**
+    - `public/hero-runway.mp4`
+    - `src/features/home/components/HeroRunwayExperience.tsx`
+    - `src/features/home/components/HeroBanner.astro`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task
+  - **Validation:**
+    - `.\node_modules\.bin\astro.cmd check`: PASS (114 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `.\node_modules\.bin\astro.cmd build` + Admin SPA bundle (`dist/admin`): PASS.
+    - Remote D1 `cms_sections` update (`videoUrl = '/hero-runway.mp4?v=2'`, Look 02 = `Bordeaux Velvet Atelier Jacket`) & KV `storefront:published:v1` flush: PASS.
+    - `npx wrangler deploy`: PASS (113 assets uploaded; Worker live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `937d6ca4-b7ad-47d2-b4cd-b24e1fd6fa4f`).
+    - Live Smoke Tests: PASS (`HEAD /hero-runway.mp4?v=2` -> `200 OK`, `Content-Type: video/mp4`; `/api/storefront/published` -> `videoUrl: "/hero-runway.mp4?v=2"`, Look 02 `Bordeaux Velvet Atelier Jacket`).
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
