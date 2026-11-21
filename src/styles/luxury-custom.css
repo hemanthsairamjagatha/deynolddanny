@@ -1271,7 +1271,7 @@ label:focus-visible {
   position: relative;
   width: 90vw;
   max-width: 660px;
-  height: 640px;
+  height: auto;
   flex-shrink: 0;
 }
 
@@ -1279,7 +1279,7 @@ label:focus-visible {
   position: relative;
   width: 100%;
   max-width: 660px;
-  height: 640px;
+  height: auto;
   flex-shrink: 0;
 }
 

@@ -2793,3 +2793,17 @@ task.
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-21 — Style Layering Section Calibrated for Mobile-Only Layout**:
+  - **Status:** COMPLETE
+  - **Summary:** Calibrated the Style Layering section (`StyleLayering.tsx` and `luxury-custom.css`) on mobile viewports (`< 640px`) to match the user's reference design (`media_1795251425035_80bbac2c.jpg`), while preserving the luxury 660x857px slide and center title overlay on desktop (`>= 640px`). On mobile, each slide renders the portrait editorial model photo on top (`h-[380px] xs:h-[410px]`) with the brand/look title overlaid in crisp white uppercase font at the bottom of the photo, and places the 3 shoppable products directly below the photo on a clean white background (`bg-white`) in a 3-column row with dark titles, bold prices, and wishlist heart icons. Realigned navigation arrows on mobile to center vertically over the model photo (`top-[190px]`).
+  - **Files Modified:** `src/features/home/components/StyleLayering.tsx`, `src/styles/luxury-custom.css`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (`115` files checked: `0` errors, `0` warnings, `0` hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `npm --prefix backend run deploy`: PASS (Uploaded 62 updated static assets; Cloudflare Worker deployed live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `f6dac645-a04b-4fa6-a8c0-6820fe63cf2d`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
