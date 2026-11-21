@@ -355,23 +355,23 @@ export const StyleLayering: React.FC = () => {
           const pieces: LayeredProduct[] =
             Array.isArray(t.pieces) && t.pieces.length > 0
               ? t.pieces.map((p, pi) => {
-                  const fbPiece = fallback.products[pi % fallback.products.length];
-                  const priceStr = (p.price || '').trim() || fbPiece.price;
-                  const origStr = (p.originalPrice || '').trim();
-                  const discStr = (p.discount || '').trim();
-                  return {
-                    id: `${t.key || idx}-p-${pi}`,
-                    slug: (p.href || '').replace(/^\/products\//, '') || fbPiece.slug,
-                    title: (p.title || '').trim() || fbPiece.title,
-                    subtitle: (p.subtitle || '').trim() || fbPiece.subtitle,
-                    image: (p.image || '').trim() || fbPiece.image,
-                    originalPrice: origStr && origStr !== priceStr ? origStr : undefined,
-                    discount: discStr || undefined,
-                    price: priceStr,
-                    priceNum: parseFloat(priceStr.replace(/[^0-9.]/g, '')) || fbPiece.priceNum,
-                    link: (p.href || '').trim() || fbPiece.link,
-                  };
-                })
+                const fbPiece = fallback.products[pi % fallback.products.length];
+                const priceStr = (p.price || '').trim() || fbPiece.price;
+                const origStr = (p.originalPrice || '').trim();
+                const discStr = (p.discount || '').trim();
+                return {
+                  id: `${t.key || idx}-p-${pi}`,
+                  slug: (p.href || '').replace(/^\/products\//, '') || fbPiece.slug,
+                  title: (p.title || '').trim() || fbPiece.title,
+                  subtitle: (p.subtitle || '').trim() || fbPiece.subtitle,
+                  image: (p.image || '').trim() || fbPiece.image,
+                  originalPrice: origStr && origStr !== priceStr ? origStr : undefined,
+                  discount: discStr || undefined,
+                  price: priceStr,
+                  priceNum: parseFloat(priceStr.replace(/[^0-9.]/g, '')) || fbPiece.priceNum,
+                  link: (p.href || '').trim() || fbPiece.link,
+                };
+              })
               : fallback.products;
           return {
             id: t.key || `cms-look-${idx}`,
@@ -539,11 +539,10 @@ export const StyleLayering: React.FC = () => {
               ref={(el) => (tabRefs.current[idx] = el)}
               type="button"
               onClick={() => handleTabClick(idx)}
-              className={`text-[13px] sm:text-[14px] uppercase tracking-[0.06em] font-montserrat whitespace-nowrap transition-colors duration-200 cursor-pointer pb-1 ${
-                activeBrandIndex === idx
-                  ? 'text-black font-bold border-b border-black'
-                  : 'text-[#8e8e93] hover:text-black font-medium'
-              }`}
+              className={`text-[13px] sm:text-[14px] uppercase tracking-[0.06em] font-montserrat whitespace-nowrap transition-colors duration-200 cursor-pointer pb-1 ${activeBrandIndex === idx
+                ? 'text-black font-bold border-b border-black'
+                : 'text-[#8e8e93] hover:text-black font-medium'
+                }`}
             >
               {look.title}
             </button>
@@ -552,7 +551,7 @@ export const StyleLayering: React.FC = () => {
 
         {/* Continuous Animated Swiper Track - 660x881 each slide, gap 14px */}
         <div
-          className="relative w-full overflow-hidden min-h-[550px] sm:min-h-[881px]"
+          className="relative w-full overflow-hidden min-h-[640px] sm:min-h-[881px]"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -576,100 +575,10 @@ export const StyleLayering: React.FC = () => {
                 <div
                   key={uniqueKey}
                   onClick={() => handleSlideClick(idx)}
-                  className={`swiper-slide relative w-[90vw] sm:w-[660px] max-w-[660px] h-auto sm:h-[881px] flex-shrink-0 flex flex-col items-center select-none transition-opacity duration-500 ${
-                    isActive ? 'swiper-slide-active cursor-default' : 'cursor-pointer opacity-50 hover:opacity-75'
-                  }`}
+                  className={`swiper-slide relative w-[90vw] sm:w-[660px] max-w-[660px] h-[640px] sm:h-[881px] flex-shrink-0 flex flex-col items-center select-none transition-opacity duration-500 ${isActive ? 'swiper-slide-active cursor-default' : 'cursor-pointer opacity-50 hover:opacity-75'
+                    }`}
                 >
-                  {/* 1. MOBILE ONLY: Top Model Photo + Bottom 3-Product Row (Matches User Reference Image) */}
-                  <div className="block sm:hidden w-full bg-white rounded-sm overflow-hidden shadow-md border border-neutral-200/60">
-                    {/* Top Model Photo */}
-                    <div className="relative w-full h-[380px] xs:h-[410px] overflow-hidden bg-neutral-900">
-                      <img
-                        src={look.modelImage}
-                        alt={look.title}
-                        style={{ objectPosition: `${look.focalX ?? 50}% ${look.focalY ?? 25}%` }}
-                        className="w-full h-full object-cover"
-                        loading={Math.abs(idx - slideIndex) <= 1 ? 'eager' : 'lazy'}
-                      />
-                      {/* Subtle bottom gradient for clear white text readability */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
-
-                      {/* Brand / Look Title Overlay at bottom of photo (matches "LETTER FROM MOON" in reference image) */}
-                      <div className="absolute bottom-3.5 left-0 right-0 text-center px-4 z-10 pointer-events-none">
-                        <h3 className="text-[17px] xs:text-[19px] font-semibold tracking-[0.14em] text-white uppercase font-montserrat drop-shadow-md leading-tight">
-                          {look.title}
-                        </h3>
-                        {look.subtitle && (
-                          <p className="mt-1 text-[10px] text-white/80 tracking-[0.1em] uppercase font-montserrat drop-shadow line-clamp-1">
-                            {look.subtitle}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Bottom 3-Product Row (Clean white background with dark text) */}
-                    <div className="w-full bg-white p-2.5">
-                      <div className="grid grid-cols-3 gap-2 w-full">
-                        {look.products.slice(0, 3).map((prod) => (
-                          <a
-                            key={prod.id}
-                            href={prod.link}
-                            className="style-layering-mobile-prod-card block text-left group"
-                          >
-                            {/* Product Thumbnail */}
-                            <div className="relative w-full aspect-[3/4] bg-[#f8f8f8] rounded-[2px] overflow-hidden mb-1.5 shadow-sm">
-                              <img
-                                src={prod.image}
-                                alt={prod.title}
-                                className="w-full h-full object-cover object-center"
-                                loading={isActive ? 'eager' : 'lazy'}
-                              />
-                              {/* Wishlist Button inside Image */}
-                              <div className="absolute top-1 right-1 z-10">
-                                <WishlistButton
-                                  item={{
-                                    id: prod.slug || prod.id,
-                                    slug: prod.slug,
-                                    title: prod.title,
-                                    price: prod.price,
-                                    priceNum: prod.priceNum,
-                                    image: prod.image,
-                                    link: prod.link,
-                                  }}
-                                  className="style-layering-wishlist-btn p-1 bg-transparent hover:bg-transparent text-neutral-400 hover:text-black shadow-none"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Product Title (Dark text, 2 lines max) */}
-                            <p className="text-[10.5px] xs:text-[11px] leading-[1.25] text-[#222222] font-normal line-clamp-2 font-montserrat mb-1">
-                              {prod.title}
-                            </p>
-
-                            {/* Product Price (Dark bold text) */}
-                            <div className="font-montserrat">
-                              {prod.originalPrice && (
-                                <p className="text-[9.5px] text-neutral-400 line-through leading-none mb-0.5">
-                                  {formatInrDisplayString(prod.originalPrice, selectedCountry, fx)}
-                                </p>
-                              )}
-                              <p className="text-[11.5px] xs:text-[12px] font-bold text-black leading-tight flex items-center gap-1">
-                                {prod.discount && (
-                                  <span className="text-[#ff4d4f] font-bold text-[10.5px]">
-                                    {prod.discount}
-                                  </span>
-                                )}
-                                <span>{formatInrDisplayString(prod.price, selectedCountry, fx)}</span>
-                              </p>
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 2. DESKTOP ONLY: Preserved Luxury 660x857 Slide (Only on sm and above) */}
-                  <div className="img-box hidden sm:block relative w-[660px] max-w-[660px] h-[857px] rounded-sm overflow-hidden shadow-2xl bg-neutral-900">
+                  <div className="img-box relative w-full sm:w-[660px] max-w-[660px] h-[640px] sm:h-[857px] rounded-sm overflow-hidden shadow-2xl bg-neutral-900">
                     {/* Background Model Image */}
                     <img
                       src={look.modelImage}
@@ -681,11 +590,10 @@ export const StyleLayering: React.FC = () => {
 
                     {/* Gradient Overlay for Crisp Text Contrast */}
                     <div
-                      className={`absolute inset-0 transition-opacity duration-500 ${
-                        isActive
-                          ? 'bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none'
-                          : 'bg-black/40 hover:bg-black/20 pointer-events-none'
-                      }`}
+                      className={`absolute inset-0 transition-opacity duration-500 ${isActive
+                        ? 'bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none'
+                        : 'bg-black/40 hover:bg-black/20 pointer-events-none'
+                        }`}
                     />
 
                     {/* Interactive Content (Visible on active slide) */}
@@ -773,7 +681,7 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handlePrev}
             aria-label="Previous Look"
-            className="style-layering-nav-btn absolute left-2 sm:left-4 xl:left-[calc(50%-667px+12px)] top-[190px] sm:top-1/2 -translate-y-1/2 z-30 w-[48px] h-[64px] bg-transparent hover:bg-transparent text-white/90 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer select-none p-0 border-0 outline-none shadow-none"
+            className="style-layering-nav-btn absolute left-2 sm:left-4 xl:left-[calc(50%-667px+12px)] top-1/2 -translate-y-1/2 z-30 w-[48px] h-[64px] bg-transparent hover:bg-transparent text-white/90 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer select-none p-0 border-0 outline-none shadow-none"
             style={{ background: 'transparent' }}
           >
             <svg
@@ -795,7 +703,7 @@ export const StyleLayering: React.FC = () => {
             type="button"
             onClick={handleNext}
             aria-label="Next Look"
-            className="style-layering-nav-btn absolute right-2 sm:right-4 xl:right-[calc(50%-667px+12px)] top-[190px] sm:top-1/2 -translate-y-1/2 z-30 w-[48px] h-[64px] bg-transparent hover:bg-transparent text-white/90 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer select-none p-0 border-0 outline-none shadow-none"
+            className="style-layering-nav-btn absolute right-2 sm:right-4 xl:right-[calc(50%-667px+12px)] top-1/2 -translate-y-1/2 z-30 w-[48px] h-[64px] bg-transparent hover:bg-transparent text-white/90 hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer select-none p-0 border-0 outline-none shadow-none"
             style={{ background: 'transparent' }}
           >
             <svg

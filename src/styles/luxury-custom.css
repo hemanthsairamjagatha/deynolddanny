@@ -1271,16 +1271,28 @@ label:focus-visible {
   position: relative;
   width: 90vw;
   max-width: 660px;
-  height: auto;
+  height: 580px;
   flex-shrink: 0;
+}
+
+@media (min-width: 480px) {
+  .style-layering-section .swiper-slide {
+    height: 640px;
+  }
 }
 
 .style-layering-section .img-box {
   position: relative;
   width: 100%;
   max-width: 660px;
-  height: auto;
+  height: 580px;
   flex-shrink: 0;
+}
+
+@media (min-width: 480px) {
+  .style-layering-section .img-box {
+    height: 640px;
+  }
 }
 
 .style-layering-section .img-box::after {

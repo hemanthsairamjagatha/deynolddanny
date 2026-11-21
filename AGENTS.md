@@ -3207,3 +3207,19 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-21 — Style Layering Mobile Full-Card Image & Overlaid Products Inside Card**:
+  - **Status:** COMPLETE
+  - **Summary:** Resolved mobile presentation for the Style Layering lookbook carousel section. Removed the disjointed mobile split layout that restricted the model image to 380px and placed product cards into an external white box below the image. Unified the luxury slide card (`img-box`) across both mobile and desktop with responsive height (`h-[580px] xs:h-[640px] sm:h-[857px]`), ensuring the full-bleed background model photo completely fills the card (`w-full h-full object-cover`). Positioned the 3 shoppable product cards (`style-layering-prod-card`) as a floating overlay directly INSIDE the image card at the bottom (`absolute bottom-3.5 sm:bottom-7 left-0 right-0 flex justify-center px-2.5 sm:px-6 z-10`) over a subtle contrast gradient, with responsive thumbnail scaling and drop-shadow typography. Centered navigation arrows vertically on the full card (`top-1/2 -translate-y-1/2`) across all viewports. In addition, resolved `focalX`/`focalY` typing on `CategoryCardData` in `product.types.ts` and guarded `sections` array handling in `live-cms.ts`.
+  - **Files Modified:** `src/features/home/components/StyleLayering.tsx`, `src/styles/luxury-custom.css`, `src/features/catalog/types/product.types.ts`, `src/lib/storefront/live-cms.ts`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (`117` files checked: `0` errors, `0` warnings, `0` hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`65` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `npm --prefix backend run type-check`: PASS (`0` errors).
+    - `npm --prefix backend test`: PASS (`15 / 15` tests).
+    - `npm --prefix backend run deploy`: PASS (Uploaded 72 updated static assets; Cloudflare Worker deployed live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `719148fd-8edc-4474-9d7e-2c50d6d6144b`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

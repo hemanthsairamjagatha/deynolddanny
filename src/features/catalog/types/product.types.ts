@@ -80,4 +80,6 @@ export interface CategoryCardData {
   tagline: string;
   image: string;
   link?: string;
+  focalX?: number;
+  focalY?: number;
 }

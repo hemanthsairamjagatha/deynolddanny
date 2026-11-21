@@ -568,9 +568,10 @@ function applyPdpConfig(pdpConfig: Record<string, unknown> | undefined) {
 function applyHomepageSections(
   sections: CmsSectionPayload[] | undefined,
   liveCategories?: Array<Record<string, unknown>>,
-  liveCollections?: Array<Record<string, unknown>>,
+  _liveCollections?: Array<Record<string, unknown>>,
 ) {
   if (window.location.pathname !== '/' && window.location.pathname !== '') return;
+  if (!sections || !Array.isArray(sections)) return;
 
   // A. Primary Hero Banner (3D Runway Showcase + Native Looping Video Support)
   const hero = Array.isArray(sections) ? sections.find((s) => (s.sectionType ?? s.section_type) === 'hero_banner') : null;
