@@ -2300,37 +2300,39 @@ a.product-item-meta__title:hover {
   }
 }
 /* ==========================================================================
-   9. EDITORIAL CATEGORIES SECTION (1520.8 x 720 Fluid Flex Banners)
+   9. EDITORIAL CATEGORIES SECTION (Full-Screen 100vw x 100vh Fluid Banners)
    ========================================================================== */
 .editorial-categories-section {
   width: 100%;
   background-color: var(--color-white);
   padding: 0;
+  margin: 0;
 }
 
 .editorial-categories-container {
   width: 100%;
-  max-width: 1520.8px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   padding: 0;
 }
 
 .editorial-categories-grid {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0;
   width: 100%;
-  max-width: 1520.8px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
 }
 
 .editorial-category-card {
   position: relative;
   display: flex;
   width: 100%;
-  max-width: 1520.8px;
-  aspect-ratio: 1520.8 / 720;
-  max-height: 720px;
+  max-width: 100%;
+  height: 100vh;
+  height: 100svh;
+  min-height: 100vh;
   overflow: hidden;
   background-color: var(--color-studio-warm);
   text-decoration: none;
@@ -2349,6 +2351,8 @@ a.product-item-meta__title:hover {
 .category-bg-img {
   width: 100%;
   height: 100%;
+  max-width: none;
+  max-height: none;
   object-fit: cover;
   object-position: center;
   display: block;
@@ -2439,20 +2443,22 @@ a.product-item-meta__title:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive Fluid Scaling: Image and banner resize dynamically as per screen */
+/* Responsive Fluid Scaling: Full-screen height & width on all screen sizes */
 @media (max-width: 1540px) {
   .editorial-categories-grid {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: 100%;
   }
 
   .editorial-category-card {
     display: flex;
     width: 100%;
-    height: auto;
-    aspect-ratio: 1520.8 / 720;
     max-width: 100%;
-    max-height: none;
+    height: 100vh;
+    height: 100svh;
+    min-height: 100vh;
   }
 }
 
@@ -2460,14 +2466,17 @@ a.product-item-meta__title:hover {
   .editorial-categories-grid {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: 100%;
   }
 
   .editorial-category-card {
     display: flex;
     width: 100%;
-    height: auto;
-    aspect-ratio: 1520.8 / 720;
-    min-height: 200px;
+    max-width: 100%;
+    height: 100vh;
+    height: 100svh;
+    min-height: 100vh;
   }
 
   .category-content-overlay,

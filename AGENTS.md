@@ -3125,3 +3125,17 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-21 — Category Editorial Banners Full-Screen Fluid Sizing (100vw × 100vh)**:
+  - **Status:** COMPLETE
+  - **Summary:** Upgraded the homepage Category Editorial Banners (`CategoryGrid.astro`, `EditorialDuo.astro`, and `luxury-custom.css`) to fit the whole screen seamlessly (`width: 100%; height: 100vh; height: 100svh; min-height: 100vh; max-width: 100%;`). Removed fixed aspect ratio and container max-width constraints that caused cards to downscale to 601px height on ~1270px displays and expose subsequent card images in the viewport. Configured `.category-bg-img` with `object-fit: cover`, `max-width: none`, and `max-height: none` to resize and fill the entire screen dynamically on all desktop, tablet, and mobile viewports.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `src/features/home/components/CategoryGrid.astro`, `src/features/home/components/EditorialDuo.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (`115` files checked: `0` errors, `0` warnings, `0` hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `npm --prefix backend run deploy`: PASS (Uploaded 61 updated static assets; Cloudflare Worker deployed live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `652c5838-65c6-4bc7-9ae7-21edc176906f`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
