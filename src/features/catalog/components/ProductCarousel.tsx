@@ -60,7 +60,6 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   showModelView = true
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>(defaultCategory);
-  const [activeColor, setActiveColor] = useState<string>('all');
   const [isModelView, setIsModelView] = useState<boolean>(true);
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [canScrollPrev, setCanScrollPrev] = useState<boolean>(false);
@@ -106,7 +105,6 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
   const effectiveViewAllLink = (typeof cmsProps?.ctaUrl === 'string' && cmsProps.ctaUrl.trim()) || viewAllLink;
   const effectiveCtaLabel = typeof cmsProps?.ctaLabel === 'string' && cmsProps.ctaLabel.trim() ? cmsProps.ctaLabel.trim() : null;
   const effectiveShowModelView = typeof cmsProps?.showModelView === 'boolean' ? cmsProps.showModelView : showModelView;
-  const effectiveShowColorFilter = typeof cmsProps?.showColorFilter === 'boolean' ? cmsProps.showColorFilter : true;
   const effectiveLimit = typeof cmsProps?.limit === 'number' && cmsProps.limit > 0 ? cmsProps.limit : 16;
   const effectiveSectionGroup =
     (typeof cmsProps?.sectionGroup === 'string' && cmsProps.sectionGroup.trim()
@@ -276,40 +274,8 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
     return matches.length > 0 ? matches : liveInitialProducts;
   }, [activeCategory, effectiveCategories, liveInitialProducts, liveCatalog, allCatalogProducts]);
 
-  // Distinct colour swatches available across the category-filtered products
-  const availableColors = useMemo(() => {
-    const map = new Map<string, { name: string; hex: string }>();
-    for (const p of categoryFilteredProducts) {
-      for (const c of p.colors ?? []) {
-        if (!c?.name) continue;
-        const key = c.name.toLowerCase();
-        if (!map.has(key)) {
-          map.set(key, { name: c.name, hex: c.hex || '#111111' });
-        }
-      }
-    }
-    return Array.from(map.values());
-  }, [categoryFilteredProducts]);
-
-  // Reset activeColor to 'all' if the chosen colour isn't in the newly selected category tab
-  useEffect(() => {
-    if (
-      activeColor !== 'all' &&
-      !availableColors.some((c) => c.name.toLowerCase() === activeColor.toLowerCase())
-    ) {
-      setActiveColor('all');
-    }
-  }, [activeColor, availableColors]);
-
-  // Apply colour filter
-  const displayedProducts = useMemo(() => {
-    if (!activeColor || activeColor === 'all') return categoryFilteredProducts;
-    const colorLow = activeColor.toLowerCase();
-    const filtered = categoryFilteredProducts.filter((p) =>
-      (p.colors ?? []).some((c) => c.name.toLowerCase() === colorLow),
-    );
-    return filtered.length > 0 ? filtered : categoryFilteredProducts;
-  }, [categoryFilteredProducts, activeColor]);
+  // Category-filtered products are displayed in the carousel
+  const displayedProducts = categoryFilteredProducts;
 
   // Dynamic View All destination when category is selected
   const activeViewAllLink = useMemo(() => {
@@ -449,51 +415,6 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
           </div>
         )}
 
-        {/* Colour Swatch Filter Bar */}
-        {effectiveShowColorFilter && availableColors.length > 1 && (
-          <div
-            className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-2 mb-3"
-            role="group"
-            aria-label={`Filter ${effectiveTitle} by colour`}
-          >
-            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-400 mr-1 flex-shrink-0">
-              Colour:
-            </span>
-            <button
-              type="button"
-              onClick={() => setActiveColor('all')}
-              className={`px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] border transition-colors flex-shrink-0 ${
-                activeColor === 'all'
-                  ? 'bg-neutral-900 text-white border-neutral-900'
-                  : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-900'
-              }`}
-            >
-              All
-            </button>
-            {availableColors.map((col) => {
-              const isSelected = activeColor.toLowerCase() === col.name.toLowerCase();
-              return (
-                <button
-                  key={col.name}
-                  type="button"
-                  onClick={() => setActiveColor(isSelected ? 'all' : col.name)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] border transition-colors flex-shrink-0 ${
-                    isSelected
-                      ? 'bg-neutral-900 text-white border-neutral-900'
-                      : 'bg-white text-neutral-700 border-neutral-200 hover:border-neutral-900'
-                  }`}
-                >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full border border-neutral-300 flex-shrink-0"
-                    style={{ backgroundColor: col.hex }}
-                  />
-                  <span>{col.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
         {/* Carousel Track */}
         <div className="mastery-carousel-wrap product-list">
           <button
@@ -526,10 +447,9 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
           >
             {displayedProducts.map(prod => (
               <ProductCard
-                key={`${prod.id}-${activeCategory}-${activeColor}`}
+                key={`${prod.id}-${activeCategory}`}
                 product={prod}
                 isModelView={isModelView}
-                preferredColorName={activeColor !== 'all' ? activeColor : undefined}
               />
             ))}
           </div>

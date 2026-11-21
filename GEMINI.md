@@ -2833,3 +2833,17 @@ task.
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-21 — Product Carousel Colour Filter Division Removed**:
+  - **Status:** COMPLETE
+  - **Summary:** Removed the colour filter division (`div.flex.items-center.gap-2.overflow-x-auto.hide-scrollbar.py-2.mb-3` / `aria-label="Filter {title} by colour"`) from `ProductCarousel.tsx` per user screenshot and instruction. Cleaned up associated `activeColor` state, `availableColors` computation, and preferred colour props, while preserving category tabs, model view switch, and smooth carousel navigation.
+  - **Files Modified:** `src/features/catalog/components/ProductCarousel.tsx`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (`115` files checked: `0` errors, `0` warnings, `0` hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `npm --prefix backend run deploy`: PASS (Uploaded 1 updated static asset; Cloudflare Worker deployed live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `d71fc065-d03f-4708-b395-63c0b03b7773`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
