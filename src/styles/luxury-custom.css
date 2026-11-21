@@ -2300,7 +2300,7 @@ a.product-item-meta__title:hover {
   }
 }
 /* ==========================================================================
-   9. EDITORIAL CATEGORIES SECTION (Full-Screen 100vw x 100vh Fluid Banners)
+   9. EDITORIAL CATEGORIES SECTION (2-Column Grid on Desktop / Full-Screen on Mobile)
    ========================================================================== */
 .editorial-categories-section {
   width: 100%;
@@ -2311,28 +2311,27 @@ a.product-item-meta__title:hover {
 
 .editorial-categories-container {
   width: 100%;
-  max-width: 100%;
-  margin: 0;
+  max-width: 1527px; /* 2 * 762px + 3px gap */
+  margin: 0 auto;
   padding: 0;
 }
 
 .editorial-categories-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 762px);
+  justify-content: center;
+  gap: 3px;
   width: 100%;
-  max-width: 100%;
-  margin: 0;
+  max-width: 1527px;
+  margin: 0 auto;
 }
 
 .editorial-category-card {
   position: relative;
-  display: flex;
-  width: 100%;
-  max-width: 100%;
-  height: 100vh;
-  height: 100svh;
-  min-height: 100vh;
+  display: block;
+  width: 762px;
+  height: 762px;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   background-color: var(--color-studio-warm);
   text-decoration: none;
@@ -2443,31 +2442,40 @@ a.product-item-meta__title:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive Fluid Scaling: Full-screen height & width on all screen sizes */
+/* Responsive Scaling: Desktop Fluid (< 1540px and > 768px) keeps 2 columns */
 @media (max-width: 1540px) {
   .editorial-categories-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     width: 100%;
     max-width: 100%;
   }
 
   .editorial-category-card {
-    display: flex;
+    display: block;
     width: 100%;
-    max-width: 100%;
-    height: 100vh;
-    height: 100svh;
-    min-height: 100vh;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-width: none;
+    max-height: none;
   }
 }
 
+/* Mobile & Tablet (<= 768px): Full-Screen (100vw x 100vh) 1-column immersive experience */
 @media (max-width: 768px) {
+  .editorial-categories-container {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
   .editorial-categories-grid {
     display: flex;
     flex-direction: column;
+    gap: 0;
     width: 100%;
     max-width: 100%;
+    margin: 0;
   }
 
   .editorial-category-card {
@@ -2477,6 +2485,7 @@ a.product-item-meta__title:hover {
     height: 100vh;
     height: 100svh;
     min-height: 100vh;
+    aspect-ratio: auto;
   }
 
   .category-content-overlay,

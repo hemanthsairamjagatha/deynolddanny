@@ -3139,3 +3139,17 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-21 — Category Editorial Grid Restored to 2 Columns on Desktop & Full-Screen on Mobile**:
+  - **Status:** COMPLETE
+  - **Summary:** Restored the previous 2-column square card grid on desktop (`> 768px`) for homepage Category Editorial sections (`CategoryGrid.astro`, `EditorialDuo.astro`, and `luxury-custom.css`) while retaining the full-screen immersive view (`100vw × 100vh`) for mobile devices (`<= 768px`). On desktop, `.editorial-categories-grid` renders `grid-template-columns: repeat(2, 762px)` centered within `max-width: 1527px` (fluid `repeat(2, 1fr)` below 1540px) with `aspect-ratio: 1 / 1` square cards, matching user specification. Intrinsic image attributes updated to `width="762" height="762"` to eliminate CLS.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `src/features/home/components/CategoryGrid.astro`, `src/features/home/components/EditorialDuo.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (`115` files checked: `0` errors, `0` warnings, `0` hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `npm --prefix backend run deploy`: PASS (Uploaded 61 updated static assets; Cloudflare Worker deployed live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `ed54865c-19cf-4fbd-8f36-f4ee4766bd9a`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
