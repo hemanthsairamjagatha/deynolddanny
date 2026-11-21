@@ -2723,3 +2723,17 @@ task.
   - **Validation:** `npx astro check`: PASS (115 files, 0 errors, 0 warnings, 0 hints).
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
+
+- **2026-11-21 — Category Editorial Banners Calibrated to 1520.8 × 622.4px**:
+  - **Status:** COMPLETE
+  - **Summary:** Calibrated the homepage Category Editorial Grid (`CategoryGrid.astro`, `EditorialDuo.astro`, and `luxury-custom.css`) from 2-column square cards (`762x762px`) to full-width single banners of exact dimensions `1520.8 × 622.4px` (`aspect-ratio: 1520.8 / 622.4`) with responsive mobile scaling, per user specification and DevTools inspection. Updated container max-width to `1520.8px` matching site chrome, grid template columns to `1fr`, card dimensions to `width: 100%; max-width: 1520.8px; height: 622.4px; aspect-ratio: 1520.8 / 622.4`, and intrinsic image attributes to `width="1521" height="622"` to guarantee zero Cumulative Layout Shift (CLS).
+  - **Files Modified:** `src/styles/luxury-custom.css`, `src/features/home/components/CategoryGrid.astro`, `src/features/home/components/EditorialDuo.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (`115` files checked: `0` errors, `0` warnings, `0` hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `npm --prefix backend run deploy`: PASS (Uploaded 61 updated static assets; Cloudflare Worker deployed live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `c4d44524-b141-4338-bc3e-3b5d44cfe9e3`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

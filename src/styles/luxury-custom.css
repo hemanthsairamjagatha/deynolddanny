@@ -2300,11 +2300,7 @@ a.product-item-meta__title:hover {
   }
 }
 /* ==========================================================================
-   9. EDITORIAL CATEGORIES SECTION (2 + 2 + 2 Grid & Exact 762x762 Sizing)
-   Categories:
-   Row 1: GIUBBINI | PANTALONI
-   Row 2: MAGLIERIA | CAMICIE
-   Row 3: CAPPOTTI | FELPE
+   9. EDITORIAL CATEGORIES SECTION (1520.8 x 622.4 Full-Width Single Banners)
    ========================================================================== */
 .editorial-categories-section {
   width: 100%;
@@ -2314,24 +2310,27 @@ a.product-item-meta__title:hover {
 
 .editorial-categories-container {
   width: 100%;
-  max-width: 1527px; /* 2 * 762px + 3px gap */
+  max-width: 1520.8px;
   margin: 0 auto;
   padding: 0;
 }
 
 .editorial-categories-grid {
   display: grid;
-  grid-template-columns: repeat(2, 762px);
+  grid-template-columns: 1fr;
   justify-content: center;
   gap: 3px;
   width: 100%;
+  max-width: 1520.8px;
+  margin: 0 auto;
 }
 
 .editorial-category-card {
   position: relative;
-  width: 762px;
-  height: 762px;
-  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 1520.8px;
+  height: 622.4px;
+  aspect-ratio: 1520.8 / 622.4;
   overflow: hidden;
   background-color: var(--color-studio-warm);
   display: block;
@@ -2441,17 +2440,17 @@ a.product-item-meta__title:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive Scaling: Preserves exact 1:1 square ratio */
+/* Responsive Scaling: Preserves exact 1520.8 x 622.4 aspect ratio */
 @media (max-width: 1540px) {
   .editorial-categories-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .editorial-category-card {
     width: 100%;
     height: auto;
-    aspect-ratio: 1 / 1;
-    max-width: none;
+    aspect-ratio: 1520.8 / 622.4;
+    max-width: 100%;
     max-height: none;
   }
 }
@@ -2459,6 +2458,12 @@ a.product-item-meta__title:hover {
 @media (max-width: 768px) {
   .editorial-categories-grid {
     grid-template-columns: 1fr;
+  }
+
+  .editorial-category-card {
+    width: 100%;
+    min-height: 200px;
+    aspect-ratio: 16 / 9;
   }
 
   .category-content-overlay,
