@@ -3111,3 +3111,17 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-21 — Category Editorial Banners Calibrated to 1520.8 × 720px with Fluid Responsive Scaling**:
+  - **Status:** COMPLETE
+  - **Summary:** Calibrated the homepage Category Editorial Banners (`CategoryGrid.astro`, `EditorialDuo.astro`, and `luxury-custom.css`) to `height: 720px` at `width: 1520.8px` with fluid responsive scaling (`aspect-ratio: 1520.8 / 720`, `max-height: 720px`) so images and banner containers resize dynamically with screen width while maintaining the exact visual aspect ratio. Updated intrinsic image attributes on `<img class="category-bg-img">` to `width="1521" height="720"` to prevent CLS.
+  - **Files Modified:** `src/styles/luxury-custom.css`, `src/features/home/components/CategoryGrid.astro`, `src/features/home/components/EditorialDuo.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npx astro check`: PASS (`115` files checked: `0` errors, `0` warnings, `0` hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `npm --prefix backend run deploy`: PASS (Uploaded 61 updated static assets; Cloudflare Worker deployed live at `https://deynold-danny-backend.deynolddanny.workers.dev`, Version `7ec623ed-8261-4bfd-917c-5e6668898519`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

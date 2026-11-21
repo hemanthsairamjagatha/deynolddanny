@@ -2300,7 +2300,7 @@ a.product-item-meta__title:hover {
   }
 }
 /* ==========================================================================
-   9. EDITORIAL CATEGORIES SECTION (1520.8 x 947.4 Flex Banners)
+   9. EDITORIAL CATEGORIES SECTION (1520.8 x 720 Fluid Flex Banners)
    ========================================================================== */
 .editorial-categories-section {
   width: 100%;
@@ -2329,8 +2329,8 @@ a.product-item-meta__title:hover {
   display: flex;
   width: 100%;
   max-width: 1520.8px;
-  height: 947.4px;
-  aspect-ratio: 1520.8 / 947.4;
+  aspect-ratio: 1520.8 / 720;
+  max-height: 720px;
   overflow: hidden;
   background-color: var(--color-studio-warm);
   text-decoration: none;
@@ -2439,7 +2439,7 @@ a.product-item-meta__title:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive Scaling: Preserves exact 1520.8 x 947.4 aspect ratio */
+/* Responsive Fluid Scaling: Image and banner resize dynamically as per screen */
 @media (max-width: 1540px) {
   .editorial-categories-grid {
     display: flex;
@@ -2450,7 +2450,7 @@ a.product-item-meta__title:hover {
     display: flex;
     width: 100%;
     height: auto;
-    aspect-ratio: 1520.8 / 947.4;
+    aspect-ratio: 1520.8 / 720;
     max-width: 100%;
     max-height: none;
   }
@@ -2465,8 +2465,9 @@ a.product-item-meta__title:hover {
   .editorial-category-card {
     display: flex;
     width: 100%;
-    min-height: 280px;
-    aspect-ratio: 16 / 10;
+    height: auto;
+    aspect-ratio: 1520.8 / 720;
+    min-height: 200px;
   }
 
   .category-content-overlay,
