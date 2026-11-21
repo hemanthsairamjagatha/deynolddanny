@@ -200,16 +200,16 @@ implementation record accurate, not to rewrite standing rules.
 
 ### Current repository structure / implementation snapshot
 
-- **Verification date:** 2026-11-20
-- **Verification status:** Verified against active working repository (`npx astro check` [114 files, 0 errors], `npm --prefix admin run build`, `npm --prefix backend run type-check`, `npm --prefix backend test` [11/11], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build` [64 Astro pages + Admin SPA])
+- **Verification date:** 2026-11-21
+- **Verification status:** Verified against active working repository (`npx astro check` [115 files, 0 errors], `npm --prefix admin run build`, `npm --prefix backend run type-check`, `npm --prefix backend test` [15/15], `node --test tests/frontend-unit.test.mjs` [5/5], `npm run build` [64 Astro pages + Admin SPA], Playwright Chromium E2E [16 storefront routes + 13 admin routes + live Admin→D1→Storefront sync, 0 console/page errors, 0 broken images, 0px overflow across 1440/768/390px], `k6` load testing [100 VUs: 208.18 req/s, 0.00% errors, p95 119.47ms; 500 VUs: 284.89 req/s, 0.00% errors, API p95 348–397ms])
 - **Framework & Stack:** Astro 4.16.18 + React 18.3.1 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + Nano Stores 0.11.3 (Storefront `src/`) · React 18.3.1 + Vite 5.4 + TypeScript 5.6.3 + Tailwind CSS 3.4.14 + `@dnd-kit` (Commerce OS Admin SPA `admin/`) · Hono + Cloudflare Workers + Workers Static Assets + D1 + KV + R2 + Cron (Backend `backend/`)
 - **Active Routes (`src/pages/` + `/admin/*` SPA):**
   - `/` -> `src/pages/index.astro` (Homepage with 3D/video runway hero, category grid, live D1 `ProductCarousel`, live CMS `StyleLayering`, `Organization`/`WebSite` JSON-LD, live CMS & Brand hydration bridge via `src/lib/storefront/live-cms.ts`)
   - `/categories` -> `src/pages/categories/index.astro` (Live-hydrated storefront category directory via `LiveCategoriesDirectory`)
-  - `/categories/[slug]` & `/categories/live` -> `src/pages/categories/[slug].astro`, `src/pages/categories/live.astro` (Live-hydrated category product listing + dynamic fallback shell for newly created D1 categories)
+  - `/categories/[slug]` & `/categories/live` -> `src/pages/categories/[slug].astro`, `src/pages/categories/live.astro` (Live-hydrated category product listing with `BreadcrumbList` JSON-LD + dynamic fallback shell for newly created D1 categories)
   - `/collections` & `/collections/live` -> `src/pages/collections/index.astro`, `src/pages/collections/live.astro` (Live-hydrated seasonal capsules directory & dynamic detail shell for curated D1 collections)
   - `/pages/live` -> `src/pages/pages/live.astro` (Dynamic fallback shell for custom Visual Content Studio CMS pages & draft preview)
-  - `/products/[slug]` & `/products/live` -> `src/pages/products/[slug].astro`, `src/pages/products/live.astro` (Product Detail Page with full live D1 product & gallery hydration, `/availability` stock & size-wise pricing, live client reviews, `Product` JSON-LD, Fit Finder, live DB Size Guide, and dynamic fallback shell for newly created products)
+  - `/products/[slug]` & `/products/live` -> `src/pages/products/[slug].astro`, `src/pages/products/live.astro` (Product Detail Page with full live D1 product & gallery hydration, `/availability` stock & size-wise pricing, live client reviews, `Product` + `BreadcrumbList` JSON-LD, Fit Finder, live DB Size Guide, and dynamic fallback shell for newly created products)
   - `/search` -> `src/pages/search.astro` (`noindex`, hydrated client `?q=` lookup via `SearchPageExperience`)
   - `/cart` -> `src/pages/cart.astro` (`noindex`, server-backed coupon & bag totals)
   - `/checkout` -> `src/pages/checkout.astro` (`noindex`, fail-closed multi-step checkout with `Idempotency-Key`, live gateway routing & `/api/shipping/*` proxy)
@@ -255,7 +255,7 @@ deynold-danny-ecommerce/
 │   │   │   ├── security/SecurityPage.tsx
 │   │   │   ├── seo/SeoPage.tsx
 │   │   │   ├── settings/SettingsPage.tsx
-│   │   │   ├── studio/{PageEditor.tsx, StudioPage.tsx}
+│   │   │   ├── studio/{PageEditor.tsx, StudioPage.tsx, StyleLayeringPage.tsx}
 │   │   │   └── system/SystemHealthPage.tsx
 │   │   ├── styles/globals.css
 │   │   └── {App.tsx, main.tsx, vite-env.d.ts}
@@ -272,7 +272,10 @@ deynold-danny-ecommerce/
 │   │   ├── 0008_sync_navigation_defaults.sql
 │   │   ├── 0009_variant_pricing_and_payment_controls.sql
 │   │   ├── 0010_menswear_runway_hero.sql
-│   │   └── 0011_menswear_runway_video.sql
+│   │   ├── 0011_menswear_runway_video.sql
+│   │   ├── 0012_multicolor_variants_and_image_fixes.sql
+│   │   ├── 0013_category_slug_and_product_alignment.sql
+│   │   └── 0014_style_layering_and_category_polish.sql
 │   ├── src/
 │   │   ├── config/{constants.ts, env.ts, policy.ts}
 │   │   ├── db/{client.ts, queries/{analytics.ts, cart.ts, inventory.ts, orders.ts, otps.ts, products.ts, users.ts}}
@@ -286,11 +289,13 @@ deynold-danny-ecommerce/
 │   │   └── types/{api.ts, bindings.d.ts, models.ts}
 │   ├── tests/
 │   │   ├── helpers/miniflare-harness.mjs
+│   │   ├── admin-parity-and-security.test.mjs
 │   │   ├── db-and-worker.test.mjs
 │   │   └── payment-security.test.mjs
 │   └── {.dev.vars.example, package.json, package-lock.json, SETUP.md, tsconfig.json, wrangler.toml}
 ├── public/
 │   ├── _headers
+│   ├── favicon.svg
 │   ├── hero-banner.jpg
 │   ├── hero-banner.png
 │   ├── hero-runway.mp4
@@ -339,6 +344,7 @@ deynold-danny-ecommerce/
 │   ├── types/ecommerce.ts
 │   └── env.d.ts
 ├── tests/
+│   ├── load/ecommerce-load.js
 │   └── frontend-unit.test.mjs
 ├── {astro.config.mjs, package.json, package-lock.json, tailwind.config.mjs, tsconfig.json, vercel.json, README.md, AGENTS.md, GEMINI.md}
 ```
@@ -2491,3 +2497,195 @@ task.
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-20 — Product Detail Defaults (`/products/*`) Full Visual Editor, Working Draft Preview & Complete Live PDP Hydration**:
+  - **Status:** COMPLETE
+  - **Summary:** Completed end-to-end Visual Content Studio control, Draft Preview routing, and live storefront hydration for **Product Detail Defaults (`page_pdp_global` / `/products/*`)**:
+    1. **Visual PDP Global Defaults Editor (`PdpTemplateEditor` in `admin/src/modules/studio/PageEditor.tsx`):** Upgraded `pdp_template` in `PageEditor.tsx` with visual toggle cards (`showOriginBadge`, `showExclusiveBanner`, `showFitFinder`, `showSizeGuide`, `showReviews`) and text controls (`originBadgeText`, `conciergeHeading`, `exclusiveBannerText`, `shippingNoticeText`, `returnNoticeText`, `styleItWithHeading`, `relatedHeading`, `reviewsHeading`) plus complete `defaultPropsForType('pdp_template')` defaults.
+    2. **Wildcard Route Draft Preview Fix (`backend/src/routes/admin/cms.ts`):** Updated `POST /api/admin/cms/pages/:pageId/preview-token` so wildcard system templates (`/products/*` / `pdp_global` and `/categories/*` / `category_template`) resolve to the first active product or category slug in D1 (e.g., `/products/tailored-virgin-wool-suit?dd_preview=...`) instead of `/products`, preventing 404 errors when clicking **Preview Draft**.
+    3. **Complete Live Storefront & Preview Hydration (`src/lib/storefront/live-cms.ts` + `src/features/catalog/components/ProductDetailExperience.tsx`):** Added `applyPdpConfig` in `live-cms.ts` (hydrating both published `pdpConfig` and `?dd_preview=` draft `pdp_template` sections, updating `#style-it-with-title`, `#related-products-title`, and `[data-brand-origin-badge]`, and dispatching `dd:pdp-cms-update`). Updated `ProductDetailExperience.tsx` to reactively bind all `pdpConfig` toggles and copy overrides (`showOriginBadge`, `originBadgeText`, `showExclusiveBanner`, `exclusiveBannerText`, `showFitFinder`, `showSizeGuide`, `showReviews`, `shippingNoticeText`, `returnNoticeText`, `conciergeHeading`, `styleItWithHeading`, `relatedHeading`, `reviewsHeading`).
+  - **Files Modified:**
+    - `admin/src/modules/studio/PageEditor.tsx`
+    - `backend/src/routes/admin/cms.ts`
+    - `src/lib/storefront/live-cms.ts`
+    - `src/features/catalog/components/ProductDetailExperience.tsx`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `.\node_modules\.bin\astro.cmd check`: PASS (114 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built into `dist/admin`).
+    - `npm --prefix backend test`: PASS (`11 / 11` Miniflare D1/Worker tests passing).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-20 — Locked Pixenox Footer Attribution, Complete "Our Best Sellers" / "New Arrival" Visual Editor, Multi-Colour Shift, Colour-Wise Filters & Colour/Size Pricing Matrix + Missing Image Resolution**:
+  - **Status:** COMPLETE
+  - **Summary:** Implemented all four pillars requested by the user:
+    1. **Permanently Locked Pixenox Solutions Attribution & Removed Editable Admin Fields (`BrandPage.tsx`, `brand.ts`, `storefrontCache.ts`, `live-cms.ts`):** Completely removed `Attribution Label`, `Attribution URL`, and `Display Attribution Link Next to Copyright in Footer` from `admin/src/modules/brand/BrandPage.tsx`. Hard-locked `LOCKED_ATTRIBUTION` (`HANDCRAFTED BY PIXENOX SOLUTIONS` -> `https://www.pixenox.com`, `showAttribution: true`) in `backend/src/routes/admin/brand.ts`, `backend/src/services/storefrontCache.ts`, and `src/lib/storefront/live-cms.ts` so the footer text and redirect link are always present and cannot be removed or modified via the admin panel.
+    2. **Complete "Our Best Sellers" (`sec_home_best_sellers`), "New Arrival" (`sec_home_new_arrival`) & "Style Layering" (`sec_home_style_layering`) Admin Editability (`PageEditor.tsx`, `ProductCarousel.tsx`, `live-cms.ts`):** Upgraded `ProductCarouselEditor` in `admin/src/modules/studio/PageEditor.tsx` with visual controls for section title, eyebrow, CTA label/URL, primary section group, product display limit, Model View toggle, Colour Swatch Filter Bar toggle, Category Filter Tabs manager, and a live Carousel Products manager featuring a Colour Filter Bar, 1-click product pinning/section assignment, and direct `Colours & Prices →` editor links. Upgraded `StyleLayeringEditor` to manage all shoppable product cards (`pieces`) per look tab. Wired `applyHomeSections` in `src/lib/storefront/live-cms.ts` to dispatch `dd:carousel-cms-update` for instant storefront and draft preview updates.
+    3. **Colour-Wise Filters, Colour Shift (Image & Price Switching), Colour-Wise Pricing & Size-Wise Pricing (`ProductCard.tsx`, `ProductCarousel.tsx`, `LiveCategoryListing.tsx`, `ProductDetailExperience.tsx`, `ProductsListPage.tsx`, `ProductEditor.tsx`, `products.ts`, `admin/products.ts`):**
+       - Extended `GET /api/products` and `GET /api/admin/products` to compute per-colour images (`img`, `hoverImg`, `swatchImg`, `images`), per-colour pricing (`pricePaise`, `price`, `comparePaise`, `hasCustomPrice`), per-colour variants, `sectionGroup` and `color` query filters, and `availableColors`.
+       - Extended `POST /api/admin/products/:id/variants/matrix` (`colorPrices`, `colorImages`, `sizePrices`) and `PATCH /api/admin/products/:id/variants/bulk-price` (bulk colour price/hex/rename, bulk size price, per-variant price).
+       - Updated `ProductCard.tsx` and `ProductDetailExperience.tsx` so clicking any colour swatch or size immediately shifts the garment photography, price, compare price, and quick-buy variant cart payload.
+       - Added interactive Colour Swatch Filter Bars (`All` + colour swatch pills) to `ProductCarousel.tsx` (Our Best Sellers & New Arrival), `LiveCategoryListing.tsx`, `ProductsListPage.tsx`, and `PageEditor.tsx`.
+       - Upgraded `ProductEditor.tsx` with a **Quick Colour-Wise Pricing & Colour Shift Swatch Bar** (per-colour price override, swatch hex picker, Colour Shift photo picker), **+ Add New Colour Option (All Sizes)** modal, **Quick Size-Wise Pricing Bar**, editable colour/hex columns in the Variant Matrix, per-colour price overrides in the Matrix Generator, and per-image **Colour Shift Swatch** assignment in the Images tab.
+    4. **14 Missing Images Populated & Multi-Colour D1 Migration (`0012_multicolor_variants_and_image_fixes.sql`):** Created all 14 missing image assets in `public/images/` (`placeholder.jpg`, `mastery-2-scarf.jpg`, `mastery-3-spread.jpg`, `mastery-5-lapel.jpg`, `style-1-sole.jpg`, `style-2-collar.jpg`, `style-5-open.jpg`, `news-2-sole.jpg`, `news-2-stitch.jpg`, `news-3-pleat.jpg`, `news-4-interior.jpg`, `news-5-dial.jpg`, `news-5-strap.jpg`, `category-capispalla.jpg`) and added D1 migration `0012_multicolor_variants_and_image_fixes.sql` seeding multi-colour variants, colour-shift photography, and colour/size price overrides across `cady-trousers`, `mastery-1..5` (Our Best Sellers), and `style-1..5` (New Arrivals).
+  - **Files Added:**
+    - `backend/migrations/0012_multicolor_variants_and_image_fixes.sql`
+    - `public/images/{placeholder.jpg, mastery-2-scarf.jpg, mastery-3-spread.jpg, mastery-5-lapel.jpg, style-1-sole.jpg, style-2-collar.jpg, style-5-open.jpg, news-2-sole.jpg, news-2-stitch.jpg, news-3-pleat.jpg, news-4-interior.jpg, news-5-dial.jpg, news-5-strap.jpg, category-capispalla.jpg}`
+  - **Files Modified:**
+    - `admin/src/modules/brand/BrandPage.tsx`
+    - `admin/src/lib/api.ts`
+    - `admin/src/modules/catalog/{ProductsListPage.tsx, ProductEditor.tsx}`
+    - `admin/src/modules/studio/PageEditor.tsx`
+    - `backend/src/types/api.ts`
+    - `backend/src/routes/products.ts`
+    - `backend/src/routes/admin/{brand.ts, products.ts}`
+    - `backend/src/services/storefrontCache.ts`
+    - `src/features/catalog/types/product.types.ts`
+    - `src/features/catalog/api/catalog.api.ts`
+    - `src/features/catalog/components/{ProductCard.tsx, ProductCarousel.tsx, LiveCategoryListing.tsx, ProductDetailExperience.tsx}`
+    - `src/lib/storefront/live-cms.ts`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added D1 migration `backend/migrations/0012_multicolor_variants_and_image_fixes.sql` and 14 image assets in `public/images/`.
+  - **Validation:**
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `.\node_modules\.bin\astro.cmd check`: PASS (114 files checked: 0 errors, 0 warnings, 0 hints).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built into `dist/admin`).
+    - `npm --prefix backend test`: PASS (`11 / 11` Miniflare D1/Worker integration tests passing).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-20 — Category Slug React Error #310 Crash Fix, Complete Category Alias Coverage, Dedicated Admin Style Layering Studio & Guest Wishlist Sync Prompt**:
+  - **Status:** COMPLETE
+  - **Summary:** Resolved all `/categories` and `/categories/[slug]` rendering failures, replaced placeholder `Style Layering` looks (`AVANDRESS` / `ZARA BASIC`) with authentic Deynold Danny menswear lookbooks, built a dedicated Admin Style Layering Studio, and refined guest wishlist UX:
+    1. **Fixed `/categories/[slug]` Blank-Screen Crash (`LiveCategoryListing.tsx` + `products.ts` + `categories.ts` + `0013_category_slug_and_product_alignment.sql` + `CategoriesPage.tsx`):** Fixed React Rules of Hooks violation (Error #310: `React.useMemo` hooks placed after `if (loading)` / `if (notFound || !category)` early returns in `LiveCategoryListing.tsx`) that crashed dynamic Worker-served category routes (`/categories/suits`, `/categories/coats`, `/categories/jackets`, `/categories/sweaters`, `/categories/denim-jackets`, `/categories/leather-jackets`, `/categories/t-shirts`, and any newly created Admin category) into a blank page upon API resolution. Aligned D1 category foreign keys (`0013_category_slug_and_product_alignment.sql`), normalized `/api/categories` (`title`/`name`, `image_url`/`imageUrl`), expanded `CATEGORY_ALIASES` so every active storefront category slug returns live garments, and added direct `View Live ↗` route links to `admin/src/modules/catalog/CategoriesPage.tsx`.
+    2. **Dedicated Admin Style Layering Studio & Authentic 6-Look Storefront Lookbook (`StyleLayeringPage.tsx`, `StyleLayering.tsx`, `AdminLayout.tsx`, `App.tsx`, `PageEditor.tsx`, `live-cms.ts`, `index.astro`, `0014_style_layering_and_category_polish.sql`):** Created first-class `/admin/style-layering` module under **Storefront** in `AdminLayout.tsx` with an interactive 3-panel live preview, tab reordering/duplication, backdrop image uploader with live X/Y focal point sliders, 1-click Storefront Catalogue product picker (auto-syncing title, `/products/:slug`, image, INR price, original price & discount %), Show/Hide homepage toggle, Save Draft, Preview Draft (`/?dd_preview=...#style-layering`), and Publish Live. Replaced hardcoded `AVANDRESS`/`AMBLER`/`ZARA BASIC` defaults in `StyleLayering.tsx` with 6 authentic DEYNOLD DANNY looks (`ATELIER DEYNOLD`, `QUIET CASHMERE`, `ARCHITECTURAL COATS`, `SARTORIAL SHIRTING`, `EVENING TAILORING`, `ARTISANAL LEATHER`), switched homepage island to `client:load`, wired homepage Show/Hide in `live-cms.ts`, and applied D1 migration `0014_style_layering_and_category_polish.sql`.
+    3. **Guest Wishlist Soft Sign-In Sync Banner (`WishlistExperience.tsx`):** Added a non-blocking luxury prompt on `/wishlist` for unauthenticated visitors ("Saved on this device. Sign in to sync your curated pieces across devices and receive restock alerts.") matching modern luxury e-commerce best practices while keeping frictionless guest Add-to-Bag and guest Wishlist saves.
+  - **Files Added:**
+    - `admin/src/modules/studio/StyleLayeringPage.tsx`
+    - `backend/migrations/0013_category_slug_and_product_alignment.sql`
+    - `backend/migrations/0014_style_layering_and_category_polish.sql`
+  - **Files Modified:**
+    - `admin/src/App.tsx`
+    - `admin/src/layouts/AdminLayout.tsx`
+    - `admin/src/modules/catalog/CategoriesPage.tsx`
+    - `admin/src/modules/studio/PageEditor.tsx`
+    - `backend/src/db/queries/products.ts`
+    - `backend/src/routes/categories.ts`
+    - `backend/src/routes/products.ts`
+    - `src/features/catalog/components/{LiveCategoriesDirectory.tsx, LiveCategoryListing.tsx}`
+    - `src/features/home/components/StyleLayering.tsx`
+    - `src/features/wishlist/components/WishlistExperience.tsx`
+    - `src/lib/storefront/live-cms.ts`
+    - `src/pages/index.astro`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added dedicated Commerce OS admin module `admin/src/modules/studio/StyleLayeringPage.tsx` (route `/admin/style-layering`) and D1 migrations `0013_category_slug_and_product_alignment.sql` & `0014_style_layering_and_category_polish.sql`.
+  - **Validation:**
+    - `.\node_modules\.bin\astro.cmd check`: PASS (114 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`11 / 11` Miniflare D1/Worker integration tests passing).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA including `StyleLayeringPage` built into `dist/admin`).
+    - `npx wrangler --config backend/wrangler.toml d1 migrations apply deynold-danny-db --remote`: PASS (`0013` & `0014` applied).
+    - `npx wrangler --config backend/wrangler.toml deploy`: PASS (Version `c2e85811-e372-4e30-ae92-54bb41678d96`, 102 assets uploaded) + remote KV cache flush.
+    - Live Edge Smoke Checks: PASS (`/api/storefront/published` returns all 6 DEYNOLD DANNY Style Layering looks; `/` contains `ATELIER DEYNOLD` and does not contain `AVANDRESS`; all 13 tested category slugs including `suits`, `coats`, `denim-jackets`, `leather-jackets`, `t-shirts` return live products).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-20 — Sandbox Test Checkout Order Placement, Live Order Tracking & Admin Fulfilment Workflow Fixes**:
+  - **Status:** COMPLETE
+  - **Summary:** Resolved end-to-end order placement errors in the live testing environment, upgraded customer order tracking UX, and added 1-click fulfilment & tracking verification controls in Commerce OS Admin while strictly preserving staging/production fail-closed payment security:
+    1. **Development-Only Sandbox Test Checkout & Variant Resolution (`backend/wrangler.toml`, `backend/src/routes/checkout.ts`, `backend/src/routes/payments.ts`, `backend/src/index.ts`, `CheckoutExperience.tsx`):** Enabled `ENABLE_TEST_CHECKOUT_FALLBACK = "true"` exclusively in top-level `development` `[vars]` (keeping `[env.staging]` and `[env.production]` strictly `"false"`). Added development-only Admin override `enableTestCheckout` in `store_settings`, exposed `testFallbackEnabled` via `GET /api/config/storefront`, added safe fallback D1 variant resolution by `(productId/slug, size, color)` in `POST /api/checkout`, and fixed `CheckoutExperience.tsx` so `gateway === 'test'` now calls `POST /api/payments/verify` (atomically confirming the order, committing stock, clearing server cart, and logging audit events) and persists `dd_last_order_contact` for instant tracking handoff. Added a clear Sandbox Testing Mode banner on `/checkout` when active.
+    2. **Order Tracking Auto-Lookup, Signed-In Order Chips & Live Activity Log (`OrderTrackingExperience.tsx`, `backend/src/routes/orders.ts`, `backend/src/db/queries/orders.ts`, `backend/src/routes/admin/orders.ts`):** Updated `updateOrderStatus` to stamp `shipped_at` / `delivered_at`, logged `ship` audit events on manual tracking updates, surfaced customer-safe `order_audit_logs` milestones in `liveActivities` when Shiprocket is unconfigured, fixed the misleading `"Email or Mobile (Optional)"` label to required, auto-filled saved/signed-in contact details without triggering false mount errors, added clickable recent-order chips for signed-in patrons, and rendered the Live Shipment & Atelier Activity Log on `/orders/track`.
+    3. **Admin Quick Fulfilment & Testing Controls (`admin/src/modules/orders/OrderDetailPage.tsx`, `admin/src/modules/settings/SettingsPage.tsx`):** Added a 1-click Fulfilment & Live Tracking Testing Bar on `OrderDetailPage.tsx` (`1. Confirm & Mark Paid`, `2. Start Processing`, `3. Dispatch & Assign Test AWB`, `4. Mark Delivered`, and `Open Customer Tracking Page ↗`) plus a `"Sandbox Test Checkout Mode (Testing Only)"` toggle inside `SettingsPage.tsx`.
+  - **Files Modified:**
+    - `backend/wrangler.toml`
+    - `backend/src/index.ts`
+    - `backend/src/db/queries/orders.ts`
+    - `backend/src/routes/{checkout.ts, payments.ts, orders.ts, admin/orders.ts}`
+    - `src/features/checkout/{api/checkout.api.ts, components/CheckoutExperience.tsx}`
+    - `src/features/orders/components/OrderTrackingExperience.tsx`
+    - `admin/src/modules/{orders/OrderDetailPage.tsx, settings/SettingsPage.tsx}`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `.\node_modules\.bin\astro.cmd check`: PASS (114 files checked: 0 errors, 0 warnings, 0 hints).
+    - `npm --prefix backend run type-check`: PASS (0 errors).
+    - `npm --prefix backend test`: PASS (`11 / 11` Miniflare integration tests passing, including `Fail-closed defaults: checkout & courier block when unconfigured in staging/production`).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built into `dist/admin`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-21 — Full-Stack Hardening, Admin↔Storefront Parity, Daily Ops Ergonomics, Security Audit, Browser E2E & Progressive `k6` Load Testing**:
+  - **Status:** COMPLETE (Live Cashfree & Shiprocket external provider calls remain intentionally fail-closed/untested per explicit absence of credentials; 5,000–10,000 VU load testing requires a deployed remote staging/edge target + distributed load generator beyond single-machine local Miniflare limits.)
+  - **Summary:** Completed a full-repository engineering audit and production-readiness hardening pass across Backend (`backend/`), Commerce OS Admin (`admin/`), and Storefront (`src/`) while strictly preserving the customer-facing storefront visual design:
+    1. **SQL Runtime Crash Fixes & Data Integrity (`backend/src/routes/{reviews.ts, admin/returns.ts, admin/disputes.ts, admin/inventory.ts, admin/products.ts, checkout.ts}`, `backend/src/db/queries/{inventory.ts, orders.ts}`):**
+       - Fixed 4 real SQLite/D1 runtime crash bugs where routes referenced non-existent schema columns (`o.shipping_email` in `reviews.ts`, `returns.ts`, `disputes.ts`; `rr.order_item_id`, `oi.title`, `reviewed_by`, `reviewed_at` and invalid `'completed'` CHECK status in `returns.ts`; `evidence_notes` and `resolved_at` in `disputes.ts`; `notified_at` in `inventory.ts`).
+       - Fixed `POST /api/admin/products/:id/variants/matrix` `UNIQUE(product_id, size, color_name)` collision bug when a single variant existed beforehand by pre-checking existing `(color_name, size)` combinations.
+       - Eliminated N+1 variant queries in `POST /api/checkout` (replaced loop with single `WHERE pv.id IN (...)` query) and batched rollback stock releases; eliminated N+1 loop in `POST /api/admin/inventory/restock-subscriptions/notify`.
+       - Passed actual operator reason into `adjustStock` (`inventory_movements.notes`), synced `product_images.color_name` on colour renames, copied variant prices & images on product duplication, enforced `compare_paise > price_paise` discount validation and duplicate `(color, size)` / `sku` `409` guards, added `POST /api/admin/products/bulk`, `DELETE /api/admin/products/:id/colors/:colorName`, `DELETE /api/admin/products/:id/sizes/:size`, sorting & pagination on `GET /api/admin/products`, `GET/POST /:id/restore` on categories, and server-side order search on `GET /api/admin/orders?search=`.
+    2. **Security, RBAC & Fail-Closed Payment/Shipping Hardening (`backend/src/index.ts`, `backend/src/routes/{coupons.ts, orders.ts}`, `backend/src/routes/admin/{orders.ts, customers.ts, coupons.ts, dashboard.ts, uploads.ts, logs.ts, settings.ts, seo.ts, security.ts, systemAdmin.ts, inquiries.ts}`):**
+       - Added request body size limits on `/api/*` (`256 KB` JSON / `12 MB` uploads, including chunked requests without `Content-Length`) returning `413 PAYLOAD_TOO_LARGE` before Zod parsing.
+       - Enforced `requirePermission(...)` consistently across every admin route and upgraded `isAuthorizedOrderAdmin` in `routes/orders.ts` to honor RBAC grants.
+       - Hardened staff revocation & role changes (`security.ts`) to bump `users.token_version`, delete `refresh_tokens`, block self-revocation, and write audit entries.
+       - Added D1 IP rate limiting (`20 req/min`) to `POST /api/coupons/validate`, strict Zod + safe-redirect validation blocking `javascript:`/`data:`/`//` on SEO redirects, HTML escaping on concierge reply emails, and strict Zod schema + audit logging on `PATCH /api/admin/settings`.
+       - Removed fake `DD-TEST-*` dispatch and `TEST-PAY-*` pre-fill from `admin/src/modules/orders/OrderDetailPage.tsx`; verified Cashfree and Shiprocket remain strictly fail-closed in staging/production.
+    3. **Admin Panel Daily-Operations Ergonomics (`admin/src/`):**
+       - Added live topbar breadcrumbs and quick shortcuts (`+ Product`, `Orders`, `Inventory`) to `AdminLayout.tsx`.
+       - Upgraded `ProductsListPage.tsx` with bulk row selection + bulk action bar, sorting, inline base-price quick edit, and pagination.
+       - Upgraded `ProductEditor.tsx` with unsaved-changes (`beforeunload`) protection, Compare/MRP validation + live discount % badge, Featured/Gender/Tag + Editorial Accordion bullets, Cross-Sells (`Style It With` & `Related`) manager tab, Colour Rename & Delete, `+ Add Size (All Colours)` modal & Remove Size, `Set Main` / `Set Hover` gallery actions, and upload progress indicator.
+       - Upgraded `InventoryPage.tsx` (search, low-stock threshold selector, Physical/Reserved/Net Available columns, variant filter on movements, Restock Waitlist tab), `OrdersListPage.tsx` (debounced server-side search), `CustomerDetailPage.tsx` (Suspend/Reactivate account), `CategoriesPage.tsx` (search, SEO fields, Restore archived), `CouponsPage.tsx` (Max Discount Cap ₹), and aligned `ReturnsPage.tsx` / `DisputesPage.tsx` status enums.
+    4. **Storefront Stability & SEO Polish (Zero Visual Design Change):**
+       - Fixed runtime `ProductCard.tsx` crash (`(product.sizes || []).map(...)`) caught during real Chromium E2E testing and added `public/favicon.svg` to eliminate 404 console errors.
+       - Added `BreadcrumbList` JSON-LD to `src/pages/products/[slug].astro` and `src/pages/categories/[slug].astro`, and included `/collections` in `src/pages/sitemap.xml.ts`.
+    5. **Automated Integration Tests & Progressive `k6` Load Suite:**
+       - Added `backend/tests/admin-parity-and-security.test.mjs` (4 comprehensive Miniflare D1/KV test suites) and wired it into `backend/package.json` `"test"` script (`15/15` passing).
+       - Added reproducible `k6` load test suite `tests/load/ecommerce-load.js` (`smoke`, `100`, `500`, `1000`, `5000`, `10000`, `progressive` profiles).
+  - **Files Added:**
+    - `backend/tests/admin-parity-and-security.test.mjs`
+    - `public/favicon.svg`
+    - `tests/load/ecommerce-load.js`
+  - **Files Modified:**
+    - `admin/src/layouts/AdminLayout.tsx`
+    - `admin/src/lib/{api.ts, types.ts}`
+    - `admin/src/modules/catalog/{CategoriesPage.tsx, ProductEditor.tsx, ProductsListPage.tsx}`
+    - `admin/src/modules/customers/CustomerDetailPage.tsx`
+    - `admin/src/modules/disputes/DisputesPage.tsx`
+    - `admin/src/modules/inventory/InventoryPage.tsx`
+    - `admin/src/modules/orders/{OrderDetailPage.tsx, OrdersListPage.tsx}`
+    - `admin/src/modules/promotions/CouponsPage.tsx`
+    - `admin/src/modules/returns/ReturnsPage.tsx`
+    - `backend/package.json`
+    - `backend/src/index.ts`
+    - `backend/src/db/queries/{inventory.ts, orders.ts}`
+    - `backend/src/routes/{checkout.ts, coupons.ts, orders.ts, reviews.ts}`
+    - `backend/src/routes/admin/{categories.ts, coupons.ts, customers.ts, dashboard.ts, disputes.ts, inquiries.ts, inventory.ts, logs.ts, orders.ts, products.ts, returns.ts, security.ts, seo.ts, settings.ts, systemAdmin.ts, uploads.ts}`
+    - `src/features/catalog/components/ProductCard.tsx`
+    - `src/pages/{products/[slug].astro, categories/[slug].astro, sitemap.xml.ts}`
+    - `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** Added `backend/tests/admin-parity-and-security.test.mjs`, `public/favicon.svg`, and `tests/load/ecommerce-load.js`; no changes to core application architecture or feature boundaries.
+  - **Validation:**
+    - `npx astro check`: PASS (`115` files checked: `0` errors, `0` warnings, `0` hints).
+    - `npm --prefix backend run type-check`: PASS (`0` errors).
+    - `npm --prefix backend test`: PASS (`15 / 15` Miniflare D1/KV integration & security tests).
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5`).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built into `dist/admin`).
+    - `npx --prefix backend wrangler d1 migrations apply deynold-danny-db --local --cwd backend`: PASS (`0001..0014` applied).
+    - Real Chrome Playwright E2E + Admin→D1→Storefront Persistence + Responsive Visual Verification (`http://127.0.0.1:8787`): PASS (`16/16` storefront routes `200 OK`, `0` console errors, `0` page errors, `0` failed requests, `0` broken images, `0px` horizontal overflow at `1440px`/`768px`/`390px`; `13/13` admin routes authenticated & rendered cleanly; live Admin price change on `cady-trousers` `6750000 -> 6850000` verified immediately on `/api/products/cady-trousers` and reverted cleanly).
+    - Progressive `k6` Load Tests (`tests/load/ecommerce-load.js` against local unified Worker):
+      - `100 VUs` (`25.4s`): PASS — `5,294` reqs (`208.18 req/s`), `0.00%` error rate (`8,283/8,283` checks), `avg 32.37ms`, `med 14.5ms`, `p95 119.47ms` (API p95s `47–72ms`).
+      - `500 VUs` (`38.7s`): PASS — `11,030` reqs (`284.89 req/s`), `0.00%` error rate (`17,276/17,276` checks), API p95s `348–397ms`.
+      - `1,000 VUs` local ramp: Hit local single-process Windows Miniflare/workerd stability ceiling at `445` VUs after >16,300 sustained back-to-back local requests.
+      - `5,000` / `10,000 VUs`: NOT RUN locally (requires deployed Cloudflare Edge staging/production target + distributed k6 load generators; profiles included in `tests/load/ecommerce-load.js`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers / Exclusions:** Live Cashfree and Shiprocket credentials intentionally not provided (kept fail-closed); distributed 5,000–10,000 VU load testing requires remote staging/edge load-generator infrastructure; SonarQube server token/CLI not installed locally.

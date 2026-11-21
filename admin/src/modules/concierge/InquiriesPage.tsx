@@ -37,8 +37,15 @@ export default function InquiriesPage() {
     try {
       const res = await inquiriesApi.list(tab === 'all' ? undefined : tab);
       const raw = res.data as unknown;
-      const arr = Array.isArray(raw) ? raw : (raw as { inquiries?: InquiryRow[] })?.inquiries ?? [];
-      setList(arr as InquiryRow[]);
+      const arr = Array.isArray(raw) ? raw : ((raw as { items?: InquiryRow[]; inquiries?: InquiryRow[] })?.items ?? (raw as { inquiries?: InquiryRow[] })?.inquiries ?? []);
+      setList(
+        (arr as InquiryRow[]).map((r) => ({
+          ...r,
+          internal_note: (r as Record<string, unknown>).internal_notes
+            ? String((r as Record<string, unknown>).internal_notes)
+            : r.internal_note,
+        })),
+      );
     } finally {
       setLoading(false);
     }

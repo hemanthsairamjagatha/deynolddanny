@@ -2,7 +2,7 @@
 // src/pages/categories/[slug].astro
 import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
 import { fetchProducts } from '../../features/catalog/api/catalog.api';
-import { ProductCard } from '../../features/catalog/components/ProductCard';
+import { LiveCategoryListing } from '../../features/catalog/components/LiveCategoryListing';
 import type { ProductCardData } from '../../features/catalog/types/product.types';
 
 export interface CategoryMeta {
@@ -339,186 +339,45 @@ const { category, products, allCategories } = Astro.props;
 const pageTitle = `${category.title} | DEYNOLD DANNY`;
 const pageDescription = category.description;
 
-// Group products for the Brunello Cucinelli signature rhythmic catalog grid:
-// Block 1: Hero Editorial Mosaic (first 4 products + 1 tall campaign card)
-const mosaicProducts = products.slice(0, 4);
+const serializableCategory = {
+  slug: category.slug,
+  title: category.title,
+  subtitle: category.subtitle,
+  description: category.description,
+  heroEditorialImg: category.heroEditorialImg,
+  heroEditorialTitle: category.heroEditorialTitle,
+  heroEditorialSubtitle: category.heroEditorialSubtitle,
+  duoEditorialLeftImg: category.duoEditorialLeftImg,
+  duoEditorialLeftTitle: category.duoEditorialLeftTitle,
+  duoEditorialRightImg: category.duoEditorialRightImg,
+  duoEditorialRightTitle: category.duoEditorialRightTitle,
+};
 
-// Block 2: 3-column product row (products 4, 5, 6)
-const secondRowProducts = products.slice(4, 7);
+const serializableTabs = allCategories.map((c: CategoryMeta) => ({
+  slug: c.slug,
+  title: c.title,
+}));
 
-// Block 3: Editorial Duo Inset (between product rows)
-
-// Block 4: Continuing 3-column product rows (products 7 onwards)
-const remainingProducts = products.slice(7);
+const siteOrigin = (Astro.site?.toString() || 'https://deynolddanny.com').replace(/\/$/, '');
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": `${siteOrigin}/` },
+    { "@type": "ListItem", "position": 2, "name": "Categories", "item": `${siteOrigin}/categories` },
+    { "@type": "ListItem", "position": 3, "name": category.title, "item": `${siteOrigin}/categories/${category.slug}` }
+  ]
+};
 ---
 
 <StorefrontLayout title={pageTitle} description={pageDescription}>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c')} />
   <main id="main-content" class="min-h-screen bg-white text-black">
-    <div class="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-12 pt-8 pb-24">
-      <!-- Breadcrumbs -->
-      <nav aria-label="Breadcrumb" class="mb-8">
-        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-neutral-400 font-mono">
-          <li>
-            <a href="/" class="hover:text-black transition-colors underline underline-offset-4">Home</a>
-          </li>
-          <li class="select-none text-neutral-300">/</li>
-          <li>
-            <a href="/categories" class="hover:text-black transition-colors">Categories</a>
-          </li>
-          <li class="select-none text-neutral-300">/</li>
-          <li class="text-neutral-900 font-medium" aria-current="page">
-            {category.title}
-          </li>
-        </ol>
-      </nav>
-
-      <!-- Category Heading -->
-      <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-        <h1 class="text-[36px] font-normal tracking-wider text-neutral-900 uppercase font-montserrat">
-          {category.title}
-        </h1>
-      </div>
-
-      <!-- Quick Category Filter Navigation (Referenced Design) -->
-      <div class="mastery-categories-bar flex items-center justify-center gap-6 sm:gap-8 overflow-x-auto hide-scrollbar pb-6 mb-12 border-b border-neutral-200/80">
-        <a
-          href="/categories"
-          class={`mastery-category-tab ${!category ? 'is-active' : ''}`}
-        >
-          ALL
-        </a>
-        {allCategories.map((cat) => {
-          const isActive = cat.slug === category.slug;
-          return (
-            <a
-              href={`/categories/${cat.slug}`}
-              class={`mastery-category-tab ${isActive ? 'is-active' : ''}`}
-            >
-              {cat.title}
-            </a>
-          );
-        })}
-      </div>
-
-      <!-- Category Editorial Grid (Brunello Cucinelli Signature Rhythmic Layout) -->
-      {products.length === 0 ? (
-        <div class="border border-neutral-200 p-12 text-center my-8">
-          <span class="text-[11px] font-mono uppercase tracking-[0.25em] text-neutral-400 block mb-2">
-            Seasonal Atelier Curation
-          </span>
-          <h2 class="text-xl font-serif text-neutral-900 mb-3">
-            No garments currently listed in {category.title}
-          </h2>
-          <p class="text-xs text-neutral-600 max-w-md mx-auto mb-6">
-            New seasonal pieces are currently in preparation. Explore our active tailoring and casual collections below.
-          </p>
-          <a
-            href="/categories"
-            class="inline-block px-8 py-3 bg-neutral-900 text-white text-xs uppercase tracking-widest rounded-full hover:bg-black transition-colors"
-          >
-            Browse All Collections
-          </a>
-        </div>
-      ) : (
-      <div class="catalog-editorial-grid">
-        {/* 1. Hero Editorial Mosaic (Block 1: 4 Products in 2x2 + 1 Tall Campaign Feature) */}
-        {mosaicProducts.length > 0 && (
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch mb-10 lg:mb-12">
-            {/* Left Side: 4 Products arranged in a 2x2 Grid */}
-            <div class="grid grid-cols-2 gap-4 sm:gap-6">
-              {mosaicProducts.map((product) => (
-                <div class="flex justify-center w-full">
-                  <ProductCard client:load product={product} />
-                </div>
-              ))}
-            </div>
-
-            {/* Right Side: Tall Editorial Campaign Portrait (stretches to match 2 stacked rows) */}
-            <div class="catalog-editorial-hero relative w-full h-full min-h-[460px] lg:min-h-0 bg-neutral-100 overflow-hidden group">
-              <img
-                src={category.heroEditorialImg}
-                alt={category.heroEditorialTitle}
-                class="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-105"
-                loading="eager"
-              />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none" />
-              <div class="absolute bottom-6 sm:bottom-8 left-6 sm:left-8 right-6 sm:right-8 text-white">
-                <span class="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.3em] text-white/80 block mb-2">
-                  {category.heroEditorialSubtitle}
-                </span>
-                <h3 class="text-xl sm:text-2xl lg:text-3xl font-serif uppercase tracking-wide text-white mb-2 font-normal">
-                  {category.heroEditorialTitle}
-                </h3>
-                <p class="text-xs text-white/70 max-w-sm line-clamp-2 font-light hidden sm:block">
-                  {category.description}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 2. 3-Column Product Row (Block 2: Exactly 3 Products Side-by-Side) */}
-        {secondRowProducts.length > 0 && (
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-10 lg:mb-12">
-            {secondRowProducts.map((product) => (
-              <div class="flex justify-center w-full">
-                <ProductCard client:load product={product} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 3. Editorial Duo Inset (Block 3: 2 Landscape Campaign Shots Side-by-Side) */}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 my-10 lg:my-14">
-          <div class="group relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-neutral-100">
-            <img
-              src={category.duoEditorialLeftImg}
-              alt={category.duoEditorialLeftTitle}
-              class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-              loading="lazy"
-            />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
-            <div class="absolute bottom-6 left-6 right-6 text-white">
-              <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-white/80 block mb-1">
-                Sartorial Heritage
-              </span>
-              <h4 class="text-lg sm:text-xl font-serif uppercase tracking-wide text-white font-normal">
-                {category.duoEditorialLeftTitle}
-              </h4>
-            </div>
-          </div>
-
-          <div class="group relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-neutral-100">
-            <img
-              src={category.duoEditorialRightImg}
-              alt={category.duoEditorialRightTitle}
-              class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-              loading="lazy"
-            />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
-            <div class="absolute bottom-6 left-6 right-6 text-white">
-              <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-white/80 block mb-1">
-                Atelier Craft
-              </span>
-              <h4 class="text-lg sm:text-xl font-serif uppercase tracking-wide text-white font-normal">
-                {category.duoEditorialRightTitle}
-              </h4>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Continuing 3-Column Product Rows (Block 4: All Remaining Products in 3 Columns) */}
-        {remainingProducts.length > 0 && (
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-10 lg:mb-14">
-            {remainingProducts.map((product) => (
-              <div class="flex justify-center w-full">
-                <ProductCard client:load product={product} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      )}
-    </div>
+    <LiveCategoryListing
+      client:load
+      initialCategory={serializableCategory}
+      initialProducts={products}
+      initialTabs={serializableTabs}
+    />
   </main>
 </StorefrontLayout>

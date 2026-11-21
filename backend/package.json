@@ -14,7 +14,7 @@
     "db:migrate:list:local": "wrangler d1 migrations list deynold-danny-db --local",
     "db:migrate:list:remote": "wrangler d1 migrations list deynold-danny-db --remote",
     "type-check": "tsc --noEmit",
-    "test": "node --test --test-concurrency=1 tests/db-and-worker.test.mjs tests/payment-security.test.mjs"
+    "test": "node --test --test-concurrency=1 tests/db-and-worker.test.mjs tests/payment-security.test.mjs tests/admin-parity-and-security.test.mjs"
   },
   "dependencies": {
     "hono": "^4.6.3",

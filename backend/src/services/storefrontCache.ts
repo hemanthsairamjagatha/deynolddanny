@@ -155,7 +155,12 @@ export async function compilePublishedStorefrontBundle(
       .all<{ source_path: string; target_path: string; status_code: number }>(),
   ]);
 
-  const brand = safeJsonParse<Record<string, unknown>>(brandRow?.published_json, {});
+  const brand: Record<string, unknown> = {
+    ...safeJsonParse<Record<string, unknown>>(brandRow?.published_json, {}),
+    attributionText: 'HANDCRAFTED BY PIXENOX SOLUTIONS',
+    attributionUrl: 'https://www.pixenox.com',
+    showAttribution: true,
+  };
   const storeSettings = safeJsonParse<Record<string, unknown>>(storeRow?.settings_json, {});
 
   // Public-only subset of store configuration (NEVER expose internal/credential/provider flags)

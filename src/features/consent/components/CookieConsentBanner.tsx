@@ -12,12 +12,23 @@ import {
   saveConsentPreferences
 } from '../../../lib/consent/consent.store';
 
+interface CookieCmsConfig {
+  enabled?: boolean;
+  title?: string;
+  description?: string;
+  acceptAllLabel?: string;
+  essentialOnlyLabel?: string;
+  policyLabel?: string;
+  policyUrl?: string;
+}
+
 export const CookieConsentBanner: React.FC = () => {
   const consent = useStore($consent);
   const dialogOpen = useStore($consentDialogOpen);
   const [hydrated, setHydrated] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [marketingEnabled, setMarketingEnabled] = useState(false);
+  const [cms, setCms] = useState<CookieCmsConfig>({});
 
   useEffect(() => {
     const initial = initConsentStore();
@@ -25,9 +36,18 @@ export const CookieConsentBanner: React.FC = () => {
     setMarketingEnabled(initial.marketing);
     setHydrated(true);
 
+    const cached = (window as unknown as { __ddCookieBannerCms?: CookieCmsConfig }).__ddCookieBannerCms;
+    if (cached && typeof cached === 'object') setCms(cached);
+
+    const handleCmsUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<CookieCmsConfig>).detail;
+      if (detail && typeof detail === 'object') setCms(detail);
+    };
     const handleOpenPreferences = () => openConsentPreferences();
+    window.addEventListener('dd:cookie-cms-update', handleCmsUpdate);
     window.addEventListener('dd:open-consent-preferences', handleOpenPreferences);
     return () => {
+      window.removeEventListener('dd:cookie-cms-update', handleCmsUpdate);
       window.removeEventListener('dd:open-consent-preferences', handleOpenPreferences);
     };
   }, []);
@@ -50,7 +70,7 @@ export const CookieConsentBanner: React.FC = () => {
 
   if (!hydrated) return null;
 
-  const showBanner = !hasRecordedConsent(consent) && !dialogOpen;
+  const showBanner = cms.enabled !== false && !hasRecordedConsent(consent) && !dialogOpen;
 
   return (
     <>
@@ -62,13 +82,13 @@ export const CookieConsentBanner: React.FC = () => {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1 text-xs leading-relaxed text-neutral-600">
               <p className="font-semibold uppercase tracking-[0.14em] text-neutral-900">
-                Privacy &amp; Cookie Notice
+                {cms.title?.trim() || 'Privacy & Cookie Notice'}
               </p>
               <p>
-                We use strictly necessary cookies for shopping bag security, session authentication, and fraud prevention.
-                Optional analytics and personalised styling cookies stay disabled unless you choose to enable them under{' '}
-                <a href="/legal/privacy-policy" className="underline underline-offset-2 hover:text-black">
-                  our Privacy Policy
+                {cms.description?.trim() ||
+                  'We use strictly necessary cookies for shopping bag security, session authentication, and fraud prevention. Optional analytics and personalised styling cookies stay disabled unless you choose to enable them under'}{' '}
+                <a href={cms.policyUrl?.trim() || '/legal/privacy-policy'} className="underline underline-offset-2 hover:text-black">
+                  {cms.policyLabel?.trim() || 'our Privacy Policy'}
                 </a>
                 .
               </p>
@@ -86,14 +106,14 @@ export const CookieConsentBanner: React.FC = () => {
                 onClick={() => acceptEssentialOnly()}
                 className="min-h-[40px] border border-neutral-900 bg-white px-3.5 py-2 text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-900 transition-colors hover:bg-neutral-100"
               >
-                Essential Only
+                {cms.essentialOnlyLabel?.trim() || 'Essential Only'}
               </button>
               <button
                 type="button"
                 onClick={() => acceptAllConsent()}
                 className="min-h-[40px] border border-neutral-900 bg-neutral-900 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-black"
               >
-                Accept All
+                {cms.acceptAllLabel?.trim() || 'Accept All'}
               </button>
             </div>
           </div>

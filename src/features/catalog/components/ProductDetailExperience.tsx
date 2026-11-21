@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import type { ProductCardData, ProductVariant } from '../types/product.types';
+import { fetchProductBySlug } from '../api/catalog.api';
+import { ProductCard } from './ProductCard';
 import { ProductLightbox } from './ProductLightbox';
 import { FitFinderDialog } from '../fit-finder/FitFinderDialog';
 import { SizeGuideDialog } from '../size-guide/SizeGuideDialog';
@@ -12,7 +14,34 @@ import { ecommerceConfig } from '../../../config/ecommerce.config';
 import { $fxSnapshot, $selectedCountry, formatInrDisplayString } from '../../../lib/currency/currency.store';
 
 interface ProductDetailExperienceProps {
-  product: ProductCardData;
+  product?: ProductCardData;
+  liveSlug?: string;
+}
+
+interface ReviewItem {
+  id: string;
+  authorName: string;
+  rating: number;
+  title: string;
+  body: string;
+  fitFeedback: 'runs_small' | 'true_to_size' | 'runs_large' | string;
+  verifiedPurchase: boolean;
+  isFeatured: boolean;
+  adminReply: string | null;
+  createdAt: string;
+}
+
+interface ReviewsPayload {
+  summary: {
+    count: number;
+    averageRating: number;
+    fitBreakdown: {
+      runsSmall: number;
+      trueToSize: number;
+      runsLarge: number;
+    };
+  };
+  items: ReviewItem[];
 }
 
 interface DetailAccordionProps {
@@ -23,9 +52,6 @@ interface DetailAccordionProps {
   children: React.ReactNode;
 }
 
-/**
- * Reusable accessible accordion row for under-gallery product specifications.
- */
 const DetailAccordion: React.FC<DetailAccordionProps> = ({ id, title, isOpen, onToggle, children }) => (
   <div className="border-b border-neutral-200">
     <button
@@ -52,9 +78,28 @@ const DetailAccordion: React.FC<DetailAccordionProps> = ({ id, title, isOpen, on
   </div>
 );
 
-export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = ({ product }) => {
+function resolveSlugFromLocation(explicitSlug?: string, product?: ProductCardData): string {
+  if (explicitSlug) return explicitSlug;
+  if (product?.slug) return product.slug;
+  if (product?.id) return product.id;
+  if (typeof window !== 'undefined') {
+    const clean = window.location.pathname.replace(/^\/products\//, '').replace(/\/+$/, '');
+    if (clean && clean !== 'live') return decodeURIComponent(clean);
+  }
+  return '';
+}
+
+export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = ({
+  product: initialProduct,
+  liveSlug,
+}) => {
   const selectedCountry = useStore($selectedCountry);
   const fx = useStore($fxSnapshot);
+
+  const [liveProduct, setLiveProduct] = useState<ProductCardData | null>(initialProduct ?? null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState<boolean>(!initialProduct);
+  const [notFound, setNotFound] = useState<boolean>(false);
+
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
@@ -67,64 +112,282 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
   const [copied, setCopied] = useState(false);
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
   const [isCompositionOpen, setIsCompositionOpen] = useState(false);
-  const [liveVariants, setLiveVariants] = useState<ProductVariant[]>(product.variants || []);
-  const [livePrice, setLivePrice] = useState<string>(product.price);
-  const [livePriceNum, setLivePriceNum] = useState<number>(product.priceNum);
+
+  const [liveVariants, setLiveVariants] = useState<ProductVariant[]>(initialProduct?.variants || []);
+  const [livePrice, setLivePrice] = useState<string>(initialProduct?.price || '₹ 0.00');
+  const [livePriceNum, setLivePriceNum] = useState<number>(initialProduct?.priceNum || 0);
   const [hasVariantPricing, setHasVariantPricing] = useState<boolean>(false);
   const [minVariantPrice, setMinVariantPrice] = useState<string | null>(null);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(
     ecommerceConfig.freeShippingThreshold,
   );
+  const [returnWindowDays, setReturnWindowDays] = useState<number>(14);
+  const [enableFitFinder, setEnableFitFinder] = useState<boolean>(true);
+  const [enableReviewsOnPdp, setEnableReviewsOnPdp] = useState<boolean>(true);
+
+  // Live brand & PDP config tokens from Commerce OS
+  const [showOriginBadge, setShowOriginBadge] = useState<boolean>(true);
+  const [originBadgeText, setOriginBadgeText] = useState<string>('MADE IN INDIA');
+  const [conciergeHeading, setConciergeHeading] = useState<string>(
+    'For more information, contact us at',
+  );
+  const [conciergeEmail, setConciergeEmail] = useState<string>('concierge@deynolddanny.com');
+  const [conciergePhone, setConciergePhone] = useState<string>('+91 11 4820 9000');
+  const [atelierHours, setAtelierHours] = useState<string>(
+    'Our customer service is available Monday to Saturday, 10:00 – 19:00 IST',
+  );
+  const [showExclusiveBanner, setShowExclusiveBanner] = useState<boolean>(true);
+  const [exclusiveBannerText, setExclusiveBannerText] = useState<string>('Online exclusive');
+  const [showSizeGuide, setShowSizeGuide] = useState<boolean>(true);
+  const [styleItWithHeading, setStyleItWithHeading] = useState<string>('Style It With');
+  const [relatedHeading, setRelatedHeading] = useState<string>('More Suggestions');
+  const [reviewsHeading, setReviewsHeading] = useState<string>('Reviews');
+  const [shippingNoticeText, setShippingNoticeText] = useState<string>('');
+  const [returnNoticeText, setReturnNoticeText] = useState<string>('');
+
+  // Reviews state
+  const [reviewsData, setReviewsData] = useState<ReviewsPayload | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    authorName: '',
+    authorEmail: '',
+    rating: 5,
+    fitFeedback: 'true_to_size' as 'runs_small' | 'true_to_size' | 'runs_large',
+    title: '',
+    body: '',
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
   const galleryScrollRef = useRef<HTMLDivElement>(null);
 
+  // Hydrate Brand / PDP settings from published bundle & Draft Preview
   useEffect(() => {
-    const slug = product.slug || product.id;
-    apiFetch<{ price?: string; pricePaise?: number; minPricePaise?: number; hasVariantPricing?: boolean; variants?: Array<any> }>(
-      `/api/products/${encodeURIComponent(slug)}/availability`,
-      { skipAuthRefresh: true },
-    )
-      .then((res) => {
-        if (res.success && res.data) {
-          if (res.data.price) setLivePrice(res.data.price);
-          if (typeof res.data.pricePaise === 'number') setLivePriceNum(Math.round(res.data.pricePaise / 100));
-          if (res.data.hasVariantPricing) {
-            setHasVariantPricing(true);
-            if (typeof res.data.minPricePaise === 'number') {
-              setMinVariantPrice(`₹ ${(res.data.minPricePaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-            }
+    const applyPdp = (pdp: Record<string, any> | undefined) => {
+      if (!pdp || typeof pdp !== 'object') return;
+      if (typeof pdp.showOriginBadge === 'boolean') {
+        setShowOriginBadge(pdp.showOriginBadge);
+      }
+      if (typeof pdp.originBadgeText === 'string' && pdp.originBadgeText.trim()) {
+        setOriginBadgeText(pdp.originBadgeText.trim());
+      }
+      if (typeof pdp.showExclusiveBanner === 'boolean') {
+        setShowExclusiveBanner(pdp.showExclusiveBanner);
+      }
+      if (typeof pdp.exclusiveBannerText === 'string' && pdp.exclusiveBannerText.trim()) {
+        setExclusiveBannerText(pdp.exclusiveBannerText.trim());
+      }
+      if (typeof pdp.showFitFinder === 'boolean') {
+        setEnableFitFinder(pdp.showFitFinder);
+      }
+      if (typeof pdp.showSizeGuide === 'boolean') {
+        setShowSizeGuide(pdp.showSizeGuide);
+      }
+      if (typeof pdp.showReviews === 'boolean') {
+        setEnableReviewsOnPdp(pdp.showReviews);
+      }
+      if (typeof pdp.styleItWithHeading === 'string' && pdp.styleItWithHeading.trim()) {
+        setStyleItWithHeading(pdp.styleItWithHeading.trim());
+      }
+      if (typeof pdp.relatedHeading === 'string' && pdp.relatedHeading.trim()) {
+        setRelatedHeading(pdp.relatedHeading.trim());
+      }
+      if (typeof pdp.reviewsHeading === 'string' && pdp.reviewsHeading.trim()) {
+        setReviewsHeading(pdp.reviewsHeading.trim());
+      }
+      if (typeof pdp.conciergeHeading === 'string' && pdp.conciergeHeading.trim()) {
+        setConciergeHeading(pdp.conciergeHeading.trim());
+      }
+      if (typeof pdp.shippingNoticeText === 'string') {
+        setShippingNoticeText(pdp.shippingNoticeText.trim());
+      }
+      if (typeof pdp.returnNoticeText === 'string') {
+        setReturnNoticeText(pdp.returnNoticeText.trim());
+      }
+    };
+
+    const applyBundle = (bundle: Record<string, any> | undefined) => {
+      if (!bundle || typeof bundle !== 'object') return;
+      const brand = bundle.brand as Record<string, any> | undefined;
+      if (brand) {
+        if (typeof brand.originBadgeText === 'string' && brand.originBadgeText.trim()) {
+          setOriginBadgeText(brand.originBadgeText.trim());
+        }
+        if (typeof brand.conciergeEmail === 'string' && brand.conciergeEmail.trim()) {
+          setConciergeEmail(brand.conciergeEmail.trim());
+        }
+        if (typeof brand.conciergePhone === 'string' && brand.conciergePhone.trim()) {
+          setConciergePhone(brand.conciergePhone.trim());
+        }
+        if (typeof brand.atelierHours === 'string' && brand.atelierHours.trim()) {
+          setAtelierHours(brand.atelierHours.trim());
+        }
+      }
+      const cfg = bundle.storeConfig as Record<string, any> | undefined;
+      if (cfg) {
+        if (typeof cfg.enableFitFinder === 'boolean') setEnableFitFinder(cfg.enableFitFinder);
+        if (typeof cfg.enableReviewsOnPdp === 'boolean') setEnableReviewsOnPdp(cfg.enableReviewsOnPdp);
+        if (typeof cfg.pdpShowExclusiveBanner === 'boolean') {
+          setShowExclusiveBanner(cfg.pdpShowExclusiveBanner);
+        }
+        if (typeof cfg.pdpExclusiveBannerText === 'string' && cfg.pdpExclusiveBannerText.trim()) {
+          setExclusiveBannerText(cfg.pdpExclusiveBannerText.trim());
+        }
+      }
+      applyPdp(bundle.pdpConfig as Record<string, any> | undefined);
+    };
+
+    const existing = (window as unknown as { __ddPublishedBundle?: Record<string, any> }).__ddPublishedBundle;
+    if (existing) applyBundle(existing);
+
+    const existingPdp = (window as unknown as { __ddPdpCms?: Record<string, any> }).__ddPdpCms;
+    if (existingPdp) applyPdp(existingPdp);
+
+    const onReady = (e: Event) => {
+      const detail = (e as CustomEvent<Record<string, any>>).detail;
+      applyBundle(detail);
+    };
+    const onPdpUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<Record<string, any>>).detail;
+      applyPdp(detail);
+    };
+    window.addEventListener('dd:storefront-bundle-ready', onReady);
+    window.addEventListener('dd:pdp-cms-update', onPdpUpdate);
+    return () => {
+      window.removeEventListener('dd:storefront-bundle-ready', onReady);
+      window.removeEventListener('dd:pdp-cms-update', onPdpUpdate);
+    };
+  }, []);
+
+  // Hydrate FULL live product, availability, storefront config, and reviews from D1
+  useEffect(() => {
+    const slug = resolveSlugFromLocation(liveSlug, initialProduct);
+    if (!slug) {
+      setIsLoadingProduct(false);
+      setNotFound(true);
+      return;
+    }
+
+    let active = true;
+
+    fetchProductBySlug(slug)
+      .then((fresh) => {
+        if (!active) return;
+        if (fresh) {
+          setLiveProduct((prev) => ({
+            ...(prev ?? ({} as ProductCardData)),
+            ...fresh,
+            // Keep rich static editorial fallbacks if D1 record omitted them
+            sizeAndFit:
+              fresh.sizeAndFit && fresh.sizeAndFit.length > 0 ? fresh.sizeAndFit : prev?.sizeAndFit,
+            compositionAndCare:
+              fresh.compositionAndCare && fresh.compositionAndCare.length > 0
+                ? fresh.compositionAndCare
+                : prev?.compositionAndCare,
+            styleItWith:
+              fresh.styleItWith && fresh.styleItWith.length > 0 ? fresh.styleItWith : prev?.styleItWith,
+            relatedProducts:
+              fresh.relatedProducts && fresh.relatedProducts.length > 0
+                ? fresh.relatedProducts
+                : prev?.relatedProducts,
+          }));
+          setLivePrice(fresh.price);
+          setLivePriceNum(fresh.priceNum);
+          if (fresh.variants && fresh.variants.length > 0) {
+            setLiveVariants(fresh.variants);
           }
-          if (Array.isArray(res.data.variants) && res.data.variants.length > 0) {
-            setLiveVariants(
-              res.data.variants.map((v) => ({
-                id: v.id,
-                sku: v.sku || v.id,
-                size: v.size,
-                colorName: v.colorName || 'Default',
-                colorHex: v.colorHex || '#111111',
-                stock: v.availableStock ?? 0,
-                reservedStock: 0,
-                inStock: Boolean(v.inStock),
-                pricePaise: typeof v.pricePaise === 'number' ? v.pricePaise : undefined,
-                price: typeof v.price === 'string' ? v.price : undefined,
-                priceNum: typeof v.priceNum === 'number' ? v.priceNum : undefined,
-                comparePaise: typeof v.comparePaise === 'number' ? v.comparePaise : null,
-                comparePrice: typeof v.comparePrice === 'string' ? v.comparePrice : null,
-                hasCustomPrice: Boolean(v.hasCustomPrice),
-              })),
+          if (typeof document !== 'undefined' && fresh.title) {
+            document.title = `${fresh.title} | DEYNOLD DANNY`;
+          }
+          setNotFound(false);
+        } else if (!initialProduct) {
+          setNotFound(true);
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        if (!initialProduct) setNotFound(true);
+      })
+      .finally(() => {
+        if (active) setIsLoadingProduct(false);
+      });
+
+    apiFetch<{
+      price?: string;
+      pricePaise?: number;
+      minPricePaise?: number;
+      hasVariantPricing?: boolean;
+      variants?: Array<any>;
+    }>(`/api/products/${encodeURIComponent(slug)}/availability`, { skipAuthRefresh: true })
+      .then((res) => {
+        if (!active || !res.success || !res.data) return;
+        if (res.data.price) setLivePrice(res.data.price);
+        if (typeof res.data.pricePaise === 'number') setLivePriceNum(Math.round(res.data.pricePaise / 100));
+        if (res.data.hasVariantPricing) {
+          setHasVariantPricing(true);
+          if (typeof res.data.minPricePaise === 'number') {
+            setMinVariantPrice(
+              `₹ ${(res.data.minPricePaise / 100).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`,
             );
           }
         }
+        if (Array.isArray(res.data.variants) && res.data.variants.length > 0) {
+          setLiveVariants(
+            res.data.variants.map((v) => ({
+              id: v.id,
+              sku: v.sku || v.id,
+              size: v.size,
+              colorName: v.colorName || 'Default',
+              colorHex: v.colorHex || '#111111',
+              stock: v.availableStock ?? 0,
+              reservedStock: 0,
+              inStock: Boolean(v.inStock),
+              pricePaise: typeof v.pricePaise === 'number' ? v.pricePaise : undefined,
+              price: typeof v.price === 'string' ? v.price : undefined,
+              priceNum: typeof v.priceNum === 'number' ? v.priceNum : undefined,
+              comparePaise: typeof v.comparePaise === 'number' ? v.comparePaise : null,
+              comparePrice: typeof v.comparePrice === 'string' ? v.comparePrice : null,
+              hasCustomPrice: Boolean(v.hasCustomPrice),
+            })),
+          );
+        }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     fetchStorefrontConfigApi()
       .then((res) => {
-        if (res.success && res.data && typeof res.data.freeShippingThresholdPaise === 'number') {
+        if (!active || !res.success || !res.data) return;
+        if (typeof res.data.freeShippingThresholdPaise === 'number') {
           setFreeShippingThreshold(Math.round(res.data.freeShippingThresholdPaise / 100));
         }
+        if (typeof res.data.returnWindowDays === 'number') {
+          setReturnWindowDays(res.data.returnWindowDays);
+        }
+        if (typeof res.data.enableFitFinder === 'boolean') {
+          setEnableFitFinder(res.data.enableFitFinder);
+        }
+        if (typeof res.data.enableReviewsOnPdp === 'boolean') {
+          setEnableReviewsOnPdp(res.data.enableReviewsOnPdp);
+        }
       })
-      .catch(() => {});
-  }, [product.id, product.slug]);
+      .catch(() => { });
+
+    apiFetch<ReviewsPayload>(`/api/reviews/product/${encodeURIComponent(slug)}`, { skipAuthRefresh: true })
+      .then((res) => {
+        if (!active) return;
+        if (res.success && res.data) {
+          setReviewsData(res.data);
+        }
+      })
+      .catch(() => { });
+
+    return () => {
+      active = false;
+    };
+  }, [initialProduct?.id, initialProduct?.slug, liveSlug]);
 
   useEffect(() => {
     if (isPaused || isLightboxOpen) return;
@@ -143,48 +406,112 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
     return () => window.clearInterval(timer);
   }, [isPaused, isLightboxOpen]);
 
-  // Compute active images based on color or product default images
-  const colors = product.colors && product.colors.length > 0
-    ? product.colors
-    : [
-        { name: 'Bordeaux', hex: '#6b2144' },
-        { name: 'Dark Slate', hex: '#2b363d' },
-        { name: 'Coral Red', hex: '#f43f4f' },
-        { name: 'Espresso', hex: '#3a282b' }
-      ];
+  if (isLoadingProduct) {
+    return (
+      <div className="min-h-[70vh] max-w-[1440px] mx-auto px-6 py-16 animate-pulse">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="h-[520px] bg-neutral-100 rounded" />
+          <div className="h-[520px] bg-neutral-100 rounded hidden lg:block" />
+          <div className="space-y-4 pt-4">
+            <div className="h-4 w-40 bg-neutral-200 rounded" />
+            <div className="h-8 w-3/4 bg-neutral-200 rounded" />
+            <div className="h-6 w-28 bg-neutral-200 rounded" />
+            <div className="h-12 w-full bg-neutral-200 rounded-full mt-8" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const currentColor = colors[selectedColorIndex] || colors[0];
-  const galleryImages = (currentColor?.images && currentColor.images.length > 0)
-    ? currentColor.images
-    : (product.images && product.images.length > 0)
-    ? product.images
-    : [product.defaultImg, product.hoverImg].filter(Boolean);
+  if (notFound || !liveProduct) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-6 py-24 text-center bg-white text-black">
+        <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-neutral-400 mb-3">
+          Atelier Archive
+        </span>
+        <h1 className="text-2xl sm:text-3xl font-serif uppercase tracking-wider mb-3">
+          Garment Not Found
+        </h1>
+        <p className="text-sm text-neutral-600 max-w-md mb-8">
+          This piece may have been archived or moved to a seasonal collection.
+        </p>
+        <a
+          href="/categories"
+          className="px-8 py-3 bg-black text-white text-xs uppercase tracking-[0.2em] rounded-full hover:bg-neutral-800 transition-colors"
+        >
+          Explore Collections
+        </a>
+      </div>
+    );
+  }
 
-  // Resolve the currently selected size/color variant for live size-wise pricing & stock
+  const product = liveProduct;
+
+  const colors =
+    product.colors && product.colors.length > 0
+      ? product.colors
+      : [{ name: 'Signature', hex: '#111111' }];
+
+  const safeColorIdx = selectedColorIndex < colors.length ? selectedColorIndex : 0;
+  const currentColor = colors[safeColorIdx] || colors[0];
+  const galleryImages =
+    currentColor?.images && currentColor.images.length > 0
+      ? currentColor.images
+      : product.images && product.images.length > 0
+        ? product.images
+        : [product.defaultImg, product.hoverImg].filter(Boolean);
+
+  const effectiveSizes =
+    product.sizes && product.sizes.length > 0
+      ? product.sizes
+      : Array.from(new Set(liveVariants.map((v) => v.size).filter(Boolean)));
+
+  const activeColorVariants = liveVariants.filter(
+    (v) => !currentColor?.name || v.colorName.toLowerCase() === currentColor.name.toLowerCase(),
+  );
+
   const activeVariant: ProductVariant | undefined = selectedSize
-    ? liveVariants.find(
-        (v) =>
-          v.size.toLowerCase() === selectedSize.toLowerCase() &&
-          (!currentColor?.name || v.colorName.toLowerCase() === currentColor.name.toLowerCase()),
-      ) || liveVariants.find((v) => v.size.toLowerCase() === selectedSize.toLowerCase())
+    ? activeColorVariants.find((v) => v.size.toLowerCase() === selectedSize.toLowerCase()) ||
+      liveVariants.find((v) => v.size.toLowerCase() === selectedSize.toLowerCase())
     : undefined;
 
-  const effectiveDisplayPrice = activeVariant?.price || (hasVariantPricing && !selectedSize && minVariantPrice ? minVariantPrice : livePrice);
-  const effectivePriceNum = activeVariant?.priceNum ?? livePriceNum;
-  const effectiveComparePrice = activeVariant?.comparePrice ?? null;
-  const effectiveSku = activeVariant?.sku || product.sku || 'CFC0130327003B098';
+  const colorLeadVariant: ProductVariant | undefined =
+    activeColorVariants.length > 0
+      ? [...activeColorVariants].sort(
+          (a, b) => (a.pricePaise ?? a.priceNum ?? livePriceNum) - (b.pricePaise ?? b.priceNum ?? livePriceNum),
+        )[0]
+      : undefined;
+
+  const colorHasMultipleSizePrices =
+    activeColorVariants.length > 1 &&
+    new Set(activeColorVariants.map((v) => v.pricePaise ?? v.priceNum ?? livePriceNum)).size > 1;
+
+  const effectiveDisplayPrice =
+    activeVariant?.price ||
+    currentColor?.price ||
+    colorLeadVariant?.price ||
+    (hasVariantPricing && !selectedSize && minVariantPrice ? minVariantPrice : livePrice);
+  const effectivePriceNum =
+    activeVariant?.priceNum ??
+    currentColor?.priceNum ??
+    colorLeadVariant?.priceNum ??
+    livePriceNum;
+  const effectiveComparePrice =
+    activeVariant?.comparePrice ??
+    currentColor?.comparePrice ??
+    colorLeadVariant?.comparePrice ??
+    product.comparePrice ??
+    null;
+  const effectiveSku = activeVariant?.sku || colorLeadVariant?.sku || product.sku || product.id;
 
   const getSizeVariant = (sizeLabel: string) =>
-    liveVariants.find(
-      (v) =>
-        v.size.toLowerCase() === sizeLabel.toLowerCase() &&
-        (!currentColor?.name || v.colorName.toLowerCase() === currentColor.name.toLowerCase()),
-    ) || liveVariants.find((v) => v.size.toLowerCase() === sizeLabel.toLowerCase());
+    activeColorVariants.find((v) => v.size.toLowerCase() === sizeLabel.toLowerCase()) ||
+    liveVariants.find((v) => v.size.toLowerCase() === sizeLabel.toLowerCase());
 
   const totalGallery = galleryImages.length;
   const primaryMosaicIdx = totalGallery >= 3 ? 2 : 0;
   const topRightMosaicIdx = totalGallery >= 2 ? 1 : 0;
-  const bottomRightMosaicIdx = totalGallery >= 3 ? 0 : (totalGallery >= 2 ? 1 : 0);
+  const bottomRightMosaicIdx = totalGallery >= 3 ? 0 : totalGallery >= 2 ? 1 : 0;
 
   const productDiscoveryTags = Array.from(
     new Set(
@@ -193,12 +520,15 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
         product.category,
         product.subCategory,
         product.tag,
-        product.title
-      ].filter((value): value is string => Boolean(value && value.trim()))
-    )
+        product.title,
+      ].filter((value): value is string => Boolean(value && value.trim())),
+    ),
   );
 
-  const isSoldOut = product.badge === 'SOLD OUT' || (product.sizes && product.sizes.length === 0);
+  const allVariantsOutOfStock =
+    liveVariants.length > 0 && liveVariants.every((v) => v.inStock === false);
+  const isSoldOut =
+    product.badge === 'SOLD OUT' || (effectiveSizes.length === 0 && liveVariants.length === 0) || allVariantsOutOfStock;
 
   const handleOpenLightbox = (index: number) => {
     setLightboxInitialIndex(index);
@@ -210,7 +540,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
     const scrollAmount = 506;
     galleryScrollRef.current.scrollBy({
       left: direction === 'left' ? -scrollAmount : scrollAmount,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
   };
 
@@ -219,7 +549,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       if (typeof navigator !== 'undefined' && navigator.share) {
         await navigator.share({
           title: product.title,
-          url: window.location.href
+          url: window.location.href,
         });
       } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(window.location.href);
@@ -232,7 +562,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
   };
 
   const handleAddToBag = () => {
-    if (!selectedSize && product.sizes && product.sizes.length > 0) {
+    if (!selectedSize && effectiveSizes.length > 0) {
       setSizeError(true);
       return;
     }
@@ -261,8 +591,8 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       priceNum: matchedVariant?.priceNum ?? effectivePriceNum,
       color: currentColor?.name,
       variantId: matchedVariant?.id,
-      img: currentColor.swatchImg || currentColor.img || product.defaultImg,
-      size: activeSize
+      img: currentColor?.swatchImg || currentColor?.img || galleryImages[0] || product.defaultImg,
+      size: activeSize,
     });
 
     setTimeout(() => {
@@ -271,13 +601,54 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
     }, 450);
   };
 
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const slug = product.slug || product.id;
+    setSubmittingReview(true);
+    setReviewMessage(null);
+    const res = await apiFetch<{ status: string; message: string }>(
+      `/api/reviews/product/${encodeURIComponent(slug)}`,
+      {
+        method: 'POST',
+        skipAuthRefresh: true,
+        body: JSON.stringify(reviewForm),
+      },
+    );
+    setSubmittingReview(false);
+    if (!res.success) {
+      setReviewMessage({
+        type: 'err',
+        text: res.error?.message || 'Could not submit review. Please check all fields.',
+      });
+      return;
+    }
+    setReviewMessage({
+      type: 'ok',
+      text: res.data?.message || 'Thank you. Your review has been received.',
+    });
+    setReviewForm({
+      authorName: '',
+      authorEmail: '',
+      rating: 5,
+      fitFeedback: 'true_to_size',
+      title: '',
+      body: '',
+    });
+    setShowReviewForm(false);
+    // Refresh approved reviews if auto-approved
+    apiFetch<ReviewsPayload>(`/api/reviews/product/${encodeURIComponent(slug)}`, { skipAuthRefresh: true })
+      .then((r) => {
+        if (r.success && r.data) setReviewsData(r.data);
+      })
+      .catch(() => { });
+  };
+
   return (
     <div className="relative w-full bg-white text-neutral-900">
       {/* ============================================================ */}
-      {/* 1. Rinascimento Horizontal Gallery (505.66 x 674.21 per image) */}
+      {/* 1. Horizontal Gallery (505.66 x 674.21 per image)            */}
       {/* ============================================================ */}
       <div className="relative w-full overflow-hidden bg-[#faf8f5]">
-        {/* Top-Right Slideshow Controls matching reference */}
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
           <button
             type="button"
@@ -298,7 +669,6 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
           </button>
         </div>
 
-        {/* Gallery Navigation Arrows for Wide Desktops */}
         <button
           type="button"
           onClick={() => handleScrollGallery('left')}
@@ -321,7 +691,6 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
           </svg>
         </button>
 
-        {/* Horizontal Image Track: 505.66 x 674.21 per image */}
         <div
           ref={galleryScrollRef}
           className="w-full flex flex-row overflow-x-auto scrollbar-none snap-x snap-mandatory min-h-[520px] lg:min-h-[675px]"
@@ -329,13 +698,13 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
         >
           {galleryImages.map((img, idx) => (
             <div
-              key={idx}
+              key={`${img}-${idx}`}
               onClick={() => handleOpenLightbox(idx)}
               className="flex-shrink-0 snap-start relative overflow-hidden bg-[#faf8f5] border-r border-neutral-100 last:border-r-0 cursor-zoom-in group"
               style={{
                 width: '505.66px',
                 maxWidth: '85vw',
-                height: '674.21px'
+                height: '674.21px',
               }}
             >
               <img
@@ -350,7 +719,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
         </div>
 
         {/* ============================================================ */}
-        {/* 2. Floating Product Info Card matching exact 526 x 354.1 Box  */}
+        {/* 2. Floating Product Info Card                                */}
         {/* ============================================================ */}
         <div
           className="product-info-wrapper bg-body p-2 p-xl-4 w-full max-w-[526px] bg-white rounded-[8px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-neutral-200/70 z-20 mx-auto my-6 lg:mx-0 lg:my-0 lg:absolute lg:bottom-6 lg:right-8 transition-all"
@@ -358,7 +727,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             width: '526px',
             maxWidth: 'calc(100vw - 32px)',
             padding: '20px',
-            backgroundColor: '#FFFFFF'
+            backgroundColor: '#FFFFFF',
           }}
         >
           {/* Row 1: Breadcrumbs & Status / Price Badge */}
@@ -367,9 +736,14 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             style={{ width: '486px', maxWidth: '100%' }}
           >
             <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-              <a href="/" className="hover:text-black transition-colors">HOME</a>
+              <a href="/" className="hover:text-black transition-colors">
+                HOME
+              </a>
               <span>&gt;</span>
-              <a href="/categories" className="hover:text-black transition-colors">
+              <a
+                href={product.category ? `/categories/${encodeURIComponent(product.category)}` : '/categories'}
+                className="hover:text-black transition-colors"
+              >
                 {product.category ? product.category.toUpperCase() : 'ATELIER'}
               </a>
               <span>&gt;</span>
@@ -380,14 +754,13 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               </span>
             </div>
 
-            {/* Status / Sold Out / Live Size-Wise Price Badge */}
             {isSoldOut ? (
               <span className="bg-[#e5e5e5] text-neutral-700 text-[10px] font-semibold px-2.5 py-0.5 uppercase tracking-wider rounded-[2px] flex-shrink-0">
                 SOLD OUT
               </span>
             ) : (
               <span className="flex items-baseline gap-1.5 flex-shrink-0">
-                {hasVariantPricing && !selectedSize && (
+                {colorHasMultipleSizePrices && !selectedSize && (
                   <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">From</span>
                 )}
                 {effectiveComparePrice && (
@@ -402,38 +775,38 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             )}
           </div>
 
-          {/* Row 2: Product Title (364.39 x 46.4, 16px) & Boxed "MADE IN INDIA" Badge (101.15 x 22.24, 11px) */}
+          {/* Row 2: Product Title & Origin Badge */}
           <div
             className="flex items-start justify-between gap-4 mt-2.5"
             style={{ width: '486px', maxWidth: '100%' }}
           >
             <h1
               className="m-0 p-0 text-[16px] leading-[23.2px] text-black uppercase font-medium tracking-normal"
-              style={{ width: '364.39px', maxWidth: 'calc(100% - 110px)' }}
+              style={{ width: '364.39px', maxWidth: showOriginBadge ? 'calc(100% - 110px)' : '100%' }}
             >
-              <span style={{ display: 'inline-block', width: '100%' }}>
-                {product.title}
-              </span>
+              <span style={{ display: 'inline-block', width: '100%' }}>{product.title}</span>
             </h1>
 
-            {/* Boxed MADE IN INDIA Badge matching reference with thin border & exact 101.15 x 22.24 box */}
-            <div
-              className="p-1 uppercase text-black font-medium tracking-wider flex items-center justify-center whitespace-nowrap flex-shrink-0"
-              style={{
-                width: '101.15px',
-                height: '22.24px',
-                fontSize: '11px',
-                padding: '4px',
-                margin: '-3px 0px 0px -3px',
-                border: '1px solid #000000',
-                color: '#000000'
-              }}
-            >
-              MADE IN INDIA
-            </div>
+            {showOriginBadge && (
+              <div
+                data-brand-origin-badge
+                className="p-1 uppercase text-black font-medium tracking-wider flex items-center justify-center whitespace-nowrap flex-shrink-0"
+                style={{
+                  minWidth: '101.15px',
+                  height: '22.24px',
+                  fontSize: '11px',
+                  padding: '4px 6px',
+                  margin: '-3px 0px 0px -3px',
+                  border: '1px solid #000000',
+                  color: '#000000',
+                }}
+              >
+                {originBadgeText}
+              </div>
+            )}
           </div>
 
-          {/* Row 3: SKU (381.16 x 10.5, 10px, mt-1 = 4px margin) */}
+          {/* Row 3: SKU */}
           <div
             className="product-sku mt-1 uppercase tracking-wider font-mono"
             style={{
@@ -442,13 +815,13 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               minHeight: '10.5px',
               fontSize: '10px',
               color: '#000000',
-              margin: '4px 0px 0px'
+              margin: '4px 0px 0px',
             }}
           >
             SKU {effectiveSku}
           </div>
 
-          {/* Row 4: Color Label (110.59 x 19.2, 14px, leading 19.2px) */}
+          {/* Row 4: Color Label */}
           <div className="mt-3.5" style={{ width: '486px', maxWidth: '100%' }}>
             <span
               className="text-black"
@@ -458,16 +831,16 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                 height: '19.2px',
                 fontSize: '14px',
                 lineHeight: '19.2px',
-                color: '#000000'
+                color: '#000000',
               }}
             >
               Color <strong className="font-bold">{currentColor.name}</strong>
             </span>
           </div>
 
-          {/* Row 5: Square Color Swatches (div.color-group.mt-2: 486 x 45.8, each swatch 40 x 40 with 17px right margin) */}
+          {/* Row 5: Color Swatches */}
           <div
-            className="color-group mt-2 flex items-center"
+            className="color-group mt-2 flex items-center flex-wrap gap-y-2"
             role="radiogroup"
             aria-label="Available colors"
             style={{
@@ -476,14 +849,14 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               minHeight: '45.8px',
               fontSize: '14px',
               color: '#000000',
-              margin: '10px 0px 0px'
+              margin: '10px 0px 0px',
             }}
           >
             {colors.map((c, idx) => {
-              const isSelected = selectedColorIndex === idx;
+              const isSelected = safeColorIdx === idx;
               return (
                 <button
-                  key={idx}
+                  key={`${c.name}-${idx}`}
                   type="button"
                   role="radio"
                   aria-checked={isSelected}
@@ -491,19 +864,18 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                   onClick={() => setSelectedColorIndex(idx)}
                   className="text-decoration-none color-badge-link inline-flex items-center p-0 border-0 bg-transparent text-[14px] text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-black flex-shrink-0"
                   style={{
-                    margin: idx === colors.length - 1 ? '0px' : '0px 17px 0px 0px'
+                    margin: idx === colors.length - 1 ? '0px' : '0px 17px 0px 0px',
                   }}
                 >
                   <span
-                    className={`variant-color d-inline-block block rounded-none transition-colors ${
-                      isSelected
-                        ? 'border border-black shadow-[inset_0_-2px_0_#000000]'
-                        : 'border border-neutral-300 hover:border-black'
-                    }`}
+                    className={`variant-color d-inline-block block rounded-none transition-colors ${isSelected
+                      ? 'border border-black shadow-[inset_0_-2px_0_#000000]'
+                      : 'border border-neutral-300 hover:border-black'
+                      }`}
                     style={{
                       width: '40px',
                       height: '40px',
-                      backgroundColor: c.hex
+                      backgroundColor: c.hex,
                     }}
                   />
                 </button>
@@ -511,32 +883,35 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             })}
           </div>
 
-          {/* Row 6: Interactive Size Selection & Add to Bag (When in stock) */}
-          {!isSoldOut && product.sizes && product.sizes.length > 0 && (
+          {/* Row 6: Size Selection & Add to Bag */}
+          {!isSoldOut && effectiveSizes.length > 0 && (
             <div className="mt-4 space-y-2.5" style={{ width: '486px', maxWidth: '100%' }}>
               <div className="flex items-center justify-between text-[11px] uppercase tracking-wider">
                 <span className="font-medium text-neutral-700">Size: {selectedSize || 'Select'}</span>
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsFitFinderOpen(true)}
-                    className="text-neutral-500 hover:text-black underline transition-colors"
-                  >
-                    Find your size
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsSizeGuideOpen(true)}
-                    className="text-neutral-500 hover:text-black underline transition-colors"
-                  >
-                    Size guide
-                  </button>
+                  {enableFitFinder && (
+                    <button
+                      type="button"
+                      onClick={() => setIsFitFinderOpen(true)}
+                      className="text-neutral-500 hover:text-black underline transition-colors"
+                    >
+                      Find your size
+                    </button>
+                  )}
+                  {showSizeGuide && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSizeGuideOpen(true)}
+                      className="text-neutral-500 hover:text-black underline transition-colors"
+                    >
+                      Size guide
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Size Pill Choices (with live size-wise price indicator & out-of-stock state) */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                {product.sizes.map((s) => {
+                {effectiveSizes.map((s) => {
                   const isChosen = selectedSize === s;
                   const sizeVar = getSizeVariant(s);
                   const outOfStock = sizeVar ? sizeVar.inStock === false : false;
@@ -556,17 +931,18 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                         setSelectedSize(s);
                         setSizeError(false);
                       }}
-                      className={`min-h-[32px] px-3 py-1 rounded-[3px] text-xs font-medium border transition-all flex flex-col items-center justify-center leading-tight ${
-                        outOfStock
-                          ? 'border-neutral-200 text-neutral-300 line-through cursor-not-allowed bg-neutral-50'
-                          : isChosen
-                            ? 'bg-neutral-900 text-white border-neutral-900'
-                            : 'border-neutral-300 text-neutral-800 hover:border-black'
-                      }`}
+                      className={`min-h-[32px] px-3 py-1 rounded-[3px] text-xs font-medium border transition-all flex flex-col items-center justify-center leading-tight ${outOfStock
+                        ? 'border-neutral-200 text-neutral-300 line-through cursor-not-allowed bg-neutral-50'
+                        : isChosen
+                          ? 'bg-neutral-900 text-white border-neutral-900'
+                          : 'border-neutral-300 text-neutral-800 hover:border-black'
+                        }`}
                     >
                       <span>{s}</span>
                       {hasVariantPricing && sizeVar?.price && !outOfStock && (
-                        <span className={`text-[9px] font-normal ${isChosen ? 'text-neutral-200' : 'text-neutral-500'}`}>
+                        <span
+                          className={`text-[9px] font-normal ${isChosen ? 'text-neutral-200' : 'text-neutral-500'}`}
+                        >
                           {formatInrDisplayString(sizeVar.price, selectedCountry, fx)}
                         </span>
                       )}
@@ -575,18 +951,15 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                 })}
               </div>
 
-              {sizeError && (
-                <p className="text-[11px] text-red-500">Please choose a size</p>
-              )}
+              {sizeError && <p className="text-[11px] text-red-500">Please choose an available size</p>}
 
-              {/* Add To Bag Primary CTA matching exact 45.6px height and #424242 background */}
               <div
                 className="bg-white ProductDetailDescription__product-detail-description__cart-block mt-3"
                 style={{
                   margin: '0px -16px',
                   padding: '16px',
                   width: 'calc(100% + 32px)',
-                  backgroundColor: '#FFFFFF'
+                  backgroundColor: '#FFFFFF',
                 }}
               >
                 <button
@@ -597,14 +970,18 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                   style={{
                     padding: '13px 24px 9px 24px',
                     height: '45.6px',
-                    backgroundColor: '#424242'
+                    backgroundColor: '#424242',
                   }}
                 >
                   {isAdding ? (
                     <span className="inline-flex items-center gap-2 text-[14px] font-semibold tracking-wider uppercase text-white leading-[22px]">
                       <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
                       </svg>
                       <span>ADDING...</span>
                     </span>
@@ -618,18 +995,18 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             </div>
           )}
 
-          {/* Row 7: Divider (div.w100.border-bottom.mt-5.mb-5.bordermb-none: 486 x 0.8, margin: 24px 0px) */}
+          {/* Row 7: Divider */}
           <div
             className="w100 border-bottom mt-5 mb-5 bordermb-none border-b border-neutral-200"
             style={{
               width: '486px',
               maxWidth: '100%',
               height: '0.8px',
-              margin: '24px 0px'
+              margin: '24px 0px',
             }}
           />
 
-          {/* Row 8: Share & Save to Wishlist Section */}
+          {/* Row 8: Share & Save */}
           <div
             className="product-info-wishlist d-flex flex items-center justify-between gap-4"
             style={{
@@ -638,7 +1015,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               height: '56px',
               padding: '16px 0px',
               fontSize: '14px',
-              color: '#000000'
+              color: '#000000',
             }}
           >
             <button
@@ -646,8 +1023,18 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               onClick={handleShare}
               className="inline-flex items-center gap-2.5 text-[14px] text-black hover:opacity-80 transition-opacity focus:outline-none"
             >
-              <svg className="w-4 h-4 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 15V3m0 0l-4 4m4-4l4 4" />
+              <svg
+                className="w-4 h-4 text-black"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 15V3m0 0l-4 4m4-4l4 4"
+                />
               </svg>
               <span>{copied ? 'Link copied to clipboard!' : 'Share this product'}</span>
             </button>
@@ -659,12 +1046,12 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                   id: product.id,
                   slug: product.slug,
                   title: product.title,
-                  price: livePrice,
-                  priceNum: product.priceNum,
-                  image: currentColor?.img || product.defaultImg,
-                  link: product.link,
+                  price: effectiveDisplayPrice,
+                  priceNum: effectivePriceNum,
+                  image: currentColor?.img || galleryImages[0] || product.defaultImg,
+                  link: product.link || `/products/${product.slug}`,
                   category: product.category,
-                  sizes: product.sizes,
+                  sizes: effectiveSizes,
                 }}
               />
             </div>
@@ -683,14 +1070,20 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
           {/* Left Column: Shipping Notice + 2:1 Editorial Image Mosaic */}
           <div className="min-w-0 w-full">
             <div className="mb-5 space-y-1 text-[13px] leading-[1.6] text-black">
-              <p>
-                <strong className="font-semibold">Complimentary express shipping</strong>{' '}
-                on orders above{' '}
-                {product.price.includes('€')
-                  ? '€200'
-                  : `₹${freeShippingThreshold.toLocaleString('en-IN')}`}.
+              {shippingNoticeText ? (
+                <p className="font-semibold">{shippingNoticeText}</p>
+              ) : (
+                <p>
+                  <strong className="font-semibold">Complimentary express shipping</strong> on orders above{' '}
+                  {effectiveDisplayPrice.includes('€')
+                    ? '€200'
+                    : `₹${freeShippingThreshold.toLocaleString('en-IN')}`}
+                  .
+                </p>
+              )}
+              <p className="font-semibold">
+                {returnNoticeText || `Complimentary ${returnWindowDays}-day return window`}
               </p>
-              <p className="font-semibold">Free return</p>
             </div>
 
             {galleryImages.length > 0 && (
@@ -703,7 +1096,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                     label: `Zoom editorial image of ${product.title}`,
                     layoutClass: 'sm:row-span-2 aspect-[3/4] sm:h-full',
                     width: 631,
-                    height: 842
+                    height: 842,
                   },
                   {
                     src: galleryImages[topRightMosaicIdx],
@@ -712,7 +1105,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                     label: `Zoom detail view of ${product.title}`,
                     layoutClass: 'aspect-[3/4]',
                     width: 316,
-                    height: 421
+                    height: 421,
                   },
                   {
                     src: galleryImages[bottomRightMosaicIdx],
@@ -721,8 +1114,8 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                     label: `Zoom studio view of ${product.title}`,
                     layoutClass: 'aspect-[3/4]',
                     width: 316,
-                    height: 421
-                  }
+                    height: 421,
+                  },
                 ].map((tile, idx) => (
                   <button
                     key={`${tile.src}-${idx}`}
@@ -745,7 +1138,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
             )}
           </div>
 
-          {/* Right Column: Description details & Composition Accordions, Merchandising Banner & Discovery */}
+          {/* Right Column: Description details & Composition Accordions */}
           <div className="min-w-0 w-full">
             <DetailAccordion
               id="pdp-description-details-panel"
@@ -757,7 +1150,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                 {product.description ||
                   'Tailored garment designed for effortless elegance and refined movement. Made in India through sustainable artisanal processes.'}
               </p>
-              <p>- Made in India</p>
+              {showOriginBadge && <p>- {originBadgeText}</p>}
               {product.sizeAndFit && product.sizeAndFit.length > 0 && (
                 <div className="space-y-1">
                   {product.sizeAndFit.map((item, idx) => (
@@ -776,19 +1169,22 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               {product.compositionAndCare && product.compositionAndCare.length > 0 ? (
                 product.compositionAndCare.map((line, idx) => <p key={idx}>{line}</p>)
               ) : (
-                <p>Carefully crafted in India. Specialist dry clean recommended.</p>
+                <p>
+                  {[product.material, product.careGuide].filter(Boolean).join(' · ') ||
+                    'Carefully crafted in India. Specialist dry clean recommended.'}
+                </p>
               )}
             </DetailAccordion>
 
-            {/* Soft Blush Online Exclusive Banner */}
-            <div
-              className="my-5 py-3 px-4 text-center text-[13px] font-semibold text-black tracking-wide"
-              style={{ backgroundColor: '#f3e5e5' }}
-            >
-              Online exclusive
-            </div>
+            {showExclusiveBanner && (
+              <div
+                className="my-5 py-3 px-4 text-center text-[13px] font-semibold text-black tracking-wide"
+                style={{ backgroundColor: '#f3e5e5' }}
+              >
+                {exclusiveBannerText}
+              </div>
+            )}
 
-            {/* Find this product in */}
             {productDiscoveryTags.length > 0 && (
               <div className="mt-5 text-[11px] leading-[1.7] text-neutral-700">
                 <p className="text-[12px] font-semibold text-black mb-1">Find this product in:</p>
@@ -802,7 +1198,9 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
                         {label}
                       </a>
                       {idx < productDiscoveryTags.length - 1 && (
-                        <span className="text-neutral-500 mr-0.5" aria-hidden="true">,</span>
+                        <span className="text-neutral-500 mr-0.5" aria-hidden="true">
+                          ,
+                        </span>
                       )}
                     </React.Fragment>
                   ))}
@@ -810,31 +1208,298 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
               </div>
             )}
 
-            {/* Client Service & SKU Reference */}
             <div className="mt-8 space-y-1 text-[11px] leading-[1.6] text-neutral-600">
               <p>
-                For more information, contact us at{' '}
+                {conciergeHeading}{' '}
                 <a
                   href="/contact"
                   className="underline text-black hover:opacity-75 transition-opacity"
+                  data-brand-concierge-email
                 >
-                  concierge@deynolddanny.com
+                  {conciergeEmail}
                 </a>
               </p>
-              <p>Our customer service is available Monday to Saturday, 10:00 – 19:00 IST</p>
+              <p data-brand-atelier-hours>{atelierHours}</p>
               <p>
                 Telephone assistance:{' '}
-                <a href="tel:+911148209000" className="hover:underline text-neutral-800">
-                  +91 11 4820 9000
+                <a
+                  href={`tel:${conciergePhone.replace(/[^+\d]/g, '')}`}
+                  className="hover:underline text-neutral-800"
+                  data-brand-concierge-phone
+                >
+                  {conciergePhone}
                 </a>
               </p>
               <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-500 pt-1">
-                SKU {product.sku || 'CFC0130327003B098'}
+                SKU {effectiveSku}
               </p>
             </div>
           </div>
         </div>
       </section>
+
+      {/* ============================================================ */}
+      {/* 3. Dynamic Style It With / Related (when rendered on /live)  */}
+      {/* ============================================================ */}
+      {!initialProduct && product.styleItWith && product.styleItWith.length > 0 && (
+        <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-12 border-t border-neutral-100">
+          <h2 id="style-it-with-title" className="text-xl uppercase tracking-[0.18em] font-normal text-center mb-8">
+            {styleItWithHeading}
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {product.styleItWith.map((item) => (
+              <ProductCard
+                key={item.id}
+                product={{
+                  id: item.id,
+                  slug: item.link.replace(/^\/products\//, '').replace(/\/+$/, '') || item.id,
+                  title: item.title,
+                  price: item.price,
+                  priceNum: item.priceNum,
+                  defaultImg: item.image,
+                  hoverImg: item.image,
+                  link: item.link,
+                  sizes: ['S', 'M', 'L', 'XL'],
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!initialProduct && product.relatedProducts && product.relatedProducts.length > 0 && (
+        <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-12 border-t border-neutral-100">
+          <h2 id="related-products-title" className="text-xl uppercase tracking-[0.18em] font-normal text-center mb-8">
+            {relatedHeading}
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {product.relatedProducts.map((item) => (
+              <ProductCard
+                key={item.id}
+                product={{
+                  id: item.id,
+                  slug: item.link.replace(/^\/products\//, '').replace(/\/+$/, '') || item.id,
+                  title: item.title,
+                  price: item.price,
+                  priceNum: item.priceNum,
+                  defaultImg: item.image,
+                  hoverImg: item.image,
+                  link: item.link,
+                  sizes: ['S', 'M', 'L', 'XL'],
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ============================================================ */}
+      {/* 4. Live Client Reviews (Synced with Admin Reviews Moderation)*/}
+      {/* ============================================================ */}
+      {enableReviewsOnPdp && (
+        <section
+          aria-label="Client Reviews"
+          className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-10 py-14 border-t border-neutral-200"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-neutral-500 mb-1">
+                Client Perspectives
+              </p>
+              <h2 className="text-2xl font-serif uppercase tracking-wider text-black">
+                {reviewsHeading}{' '}
+                {reviewsData && reviewsData.summary.count > 0 && (
+                  <span className="text-base font-sans font-normal text-neutral-500">
+                    ({reviewsData.summary.averageRating.toFixed(1)} ★ · {reviewsData.summary.count})
+                  </span>
+                )}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowReviewForm((prev) => !prev);
+                setReviewMessage(null);
+              }}
+              className="px-6 py-2.5 border border-black text-xs uppercase tracking-[0.18em] text-black hover:bg-black hover:text-white transition-colors self-start sm:self-auto"
+            >
+              {showReviewForm ? 'Close Form' : 'Write a Review'}
+            </button>
+          </div>
+
+          {reviewMessage && (
+            <div
+              className={`mb-6 px-4 py-3 text-xs border ${reviewMessage.type === 'ok'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                : 'bg-red-50 border-red-200 text-red-900'
+                }`}
+            >
+              {reviewMessage.text}
+            </div>
+          )}
+
+          {showReviewForm && (
+            <form
+              onSubmit={handleSubmitReview}
+              className="mb-10 p-6 border border-neutral-200 bg-neutral-50/70 space-y-4"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-600 mb-1">
+                    Your Name *
+                  </label>
+                  <input
+                    required
+                    minLength={2}
+                    value={reviewForm.authorName}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, authorName: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 bg-white focus:outline-none focus:border-black"
+                    placeholder="Full name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-600 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    value={reviewForm.authorEmail}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, authorEmail: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 bg-white focus:outline-none focus:border-black"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-600 mb-1">
+                    Rating
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewForm((f) => ({ ...f, rating: star }))}
+                        aria-label={`Rate ${star} stars`}
+                        className={`text-xl leading-none ${star <= reviewForm.rating ? 'text-black' : 'text-neutral-300'
+                          }`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-600 mb-1">
+                    Fit Assessment
+                  </label>
+                  <select
+                    value={reviewForm.fitFeedback}
+                    onChange={(e) =>
+                      setReviewForm((f) => ({
+                        ...f,
+                        fitFeedback: e.target.value as 'runs_small' | 'true_to_size' | 'runs_large',
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 bg-white focus:outline-none focus:border-black"
+                  >
+                    <option value="runs_small">Runs Small</option>
+                    <option value="true_to_size">True to Size</option>
+                    <option value="runs_large">Runs Large</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-neutral-600 mb-1">
+                  Headline *
+                </label>
+                <input
+                  required
+                  minLength={2}
+                  value={reviewForm.title}
+                  onChange={(e) => setReviewForm((f) => ({ ...f, title: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 bg-white focus:outline-none focus:border-black"
+                  placeholder="Summarize your impression"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-neutral-600 mb-1">
+                  Review *
+                </label>
+                <textarea
+                  required
+                  minLength={10}
+                  rows={3}
+                  value={reviewForm.body}
+                  onChange={(e) => setReviewForm((f) => ({ ...f, body: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 bg-white focus:outline-none focus:border-black"
+                  placeholder="Share details on drape, craftsmanship, and fit..."
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingReview}
+                className="px-6 py-2.5 bg-black text-white text-xs uppercase tracking-[0.18em] hover:bg-neutral-800 disabled:opacity-50"
+              >
+                {submittingReview ? 'Submitting…' : 'Submit Review'}
+              </button>
+            </form>
+          )}
+
+          {reviewsData && reviewsData.items.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {reviewsData.items.map((rev) => (
+                <article key={rev.id} className="border border-neutral-200 p-5 space-y-2.5 bg-white">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm tracking-widest text-black">
+                      {'★'.repeat(rev.rating)}
+                      <span className="text-neutral-300">{'★'.repeat(Math.max(0, 5 - rev.rating))}</span>
+                    </span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400">
+                      {new Date(rev.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-black">{rev.title}</h3>
+                  <p className="text-xs leading-relaxed text-neutral-700">{rev.body}</p>
+                  <div className="flex items-center flex-wrap gap-3 text-[11px] text-neutral-500 pt-1">
+                    <span className="font-medium text-neutral-800">{rev.authorName}</span>
+                    {rev.verifiedPurchase && (
+                      <span className="px-2 py-0.5 bg-neutral-100 text-neutral-700 uppercase tracking-wider text-[9px]">
+                        Verified Purchase
+                      </span>
+                    )}
+                    <span className="uppercase tracking-wider text-[10px]">
+                      Fit: {rev.fitFeedback.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  {rev.adminReply && (
+                    <div className="mt-3 pl-3 border-l-2 border-black bg-neutral-50 p-3 text-xs text-neutral-700">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-black font-semibold mb-1">
+                        Deynold Danny Atelier Response
+                      </p>
+                      <p>{rev.adminReply}</p>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-neutral-500">
+              No client reviews published for this garment yet. Be the first to share your perspective.
+            </p>
+          )}
+        </section>
+      )}
 
       {/* Lightbox Modal */}
       <ProductLightbox
@@ -849,7 +1514,7 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
       <FitFinderDialog
         isOpen={isFitFinderOpen}
         onClose={() => setIsFitFinderOpen(false)}
-        availableSizes={product.sizes}
+        availableSizes={effectiveSizes}
         productTitle={product.title}
         onApplySize={(size) => {
           setSelectedSize(size);
@@ -862,10 +1527,9 @@ export const ProductDetailExperience: React.FC<ProductDetailExperienceProps> = (
         onClose={() => setIsSizeGuideOpen(false)}
         productTitle={product.title}
         category={product.category}
-        gender={product.gender}
-        sizes={product.sizes}
+        gender={product.gender || undefined}
+        sizes={effectiveSizes}
       />
     </div>
   );
 };
-

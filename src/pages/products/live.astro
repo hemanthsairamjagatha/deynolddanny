@@ -1,0 +1,17 @@
+---
+// src/pages/products/live.astro
+// Dynamic client-hydrated shell served by Cloudflare Worker for newly created Admin products
+// whose slugs were added to D1 after the last static Astro build.
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+import { ProductDetailExperience } from '../../features/catalog/components/ProductDetailExperience';
+
+const pageTitle = 'Garment | DEYNOLD DANNY';
+const pageDescription = 'Explore handcrafted luxury apparel and accessories from the house of DEYNOLD DANNY.';
+---
+
+<StorefrontLayout title={pageTitle} description={pageDescription} ogType="product">
+  <main id="main-content" class="min-h-screen bg-white">
+    <ProductDetailExperience client:load />
+  </main>
+</StorefrontLayout>
+

@@ -18,58 +18,101 @@ export interface CatalogListResponse {
 /**
  * Normalizes backend product data into full frontend ProductCardData structure
  */
-export function normalizeProduct(p: ProductCardData & { gallery?: Array<{ colorName: string; images: string[] }> }): ProductCardData {
+export function normalizeProduct(
+  p: ProductCardData & {
+    gallery?: Array<{ colorName: string; images: string[] }>;
+    compositionCare?: string[];
+    shippingReturns?: string[];
+    crossSells?: { styleItWith?: ProductCardData['styleItWith']; related?: ProductCardData['relatedProducts'] };
+  },
+): ProductCardData {
   if (!p) return p;
 
-  const galleryImages = p.gallery?.[0]?.images || [];
-  const topImages = (p.images && p.images.length > 0) 
-    ? p.images 
-    : (galleryImages.length > 0 ? galleryImages : [p.defaultImg, p.hoverImg].filter(Boolean));
+  const galleryImages = (p.gallery ?? []).flatMap((g) => g.images ?? []).filter(Boolean);
+  const topImages = Array.from(
+    new Set(
+      [
+        ...(p.images ?? []),
+        ...galleryImages,
+        p.defaultImg,
+        p.hoverImg,
+      ].filter((u): u is string => Boolean(u && u.trim())),
+    ),
+  );
 
   const colors = (p.colors || []).map((c, idx) => {
-    const matchingGallery = p.gallery?.find(g => g.colorName.toLowerCase() === c.name.toLowerCase());
+    const matchingGallery = p.gallery?.find((g) => g.colorName.toLowerCase() === c.name.toLowerCase());
+    const colorVars = (p.variants || []).filter((v) => v.colorName?.toLowerCase() === c.name.toLowerCase());
+    const varPrices = colorVars
+      .map((v) => v.priceNum ?? (typeof v.pricePaise === 'number' ? v.pricePaise / 100 : undefined))
+      .filter((n): n is number => typeof n === 'number' && n > 0);
+    const minColorPriceNum = c.priceNum ?? (varPrices.length > 0 ? Math.min(...varPrices) : p.priceNum);
+    const resolvedImages =
+      matchingGallery?.images?.length
+        ? matchingGallery.images
+        : c.images?.length
+          ? c.images
+          : idx === 0
+            ? topImages
+            : [c.img, c.hoverImg, topImages[idx % Math.max(1, topImages.length)], p.hoverImg, p.defaultImg].filter(
+                (u): u is string => Boolean(u && u.trim()),
+              );
+    const primaryImg = c.img || resolvedImages[0] || p.defaultImg;
+    const secondaryImg = c.hoverImg || resolvedImages[1] || (idx === 0 ? p.hoverImg : p.defaultImg) || primaryImg;
     return {
       ...c,
-      images: matchingGallery?.images || (idx === 0 ? topImages : [p.defaultImg, p.hoverImg].filter(Boolean)),
-      swatchImg: c.swatchImg || p.defaultImg,
+      img: primaryImg,
+      hoverImg: secondaryImg,
+      images: resolvedImages,
+      swatchImg: c.swatchImg || primaryImg,
+      priceNum: minColorPriceNum,
+      price:
+        c.price ||
+        (minColorPriceNum
+          ? `₹ ${minColorPriceNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : p.price),
     };
   });
 
   return {
     ...p,
     images: topImages,
+    compositionAndCare: p.compositionAndCare?.length ? p.compositionAndCare : p.compositionCare,
+    shippingAndReturns: p.shippingAndReturns?.length ? p.shippingAndReturns : p.shippingReturns,
+    styleItWith: p.styleItWith?.length ? p.styleItWith : p.crossSells?.styleItWith,
+    relatedProducts: p.relatedProducts?.length ? p.relatedProducts : p.crossSells?.related,
     colors: colors.length > 0 ? colors : [{ name: 'Default', hex: '#111111', images: topImages, swatchImg: p.defaultImg }],
   };
 }
 
 /**
- * Fetch products list from Cloudflare backend with fallback to static catalog
+ * Fetch products list from Cloudflare backend with fallback to static catalog only when offline
  */
 export async function fetchProducts(params: {
   category?: string;
+  section?: string;
   sort?: string;
   limit?: number;
   cursor?: string;
 } = {}): Promise<ProductCardData[]> {
   const query = new URLSearchParams();
   if (params.category) query.set('category', params.category);
+  if (params.section) query.set('section', params.section);
   if (params.sort) query.set('sort', params.sort);
   if (params.limit) query.set('limit', params.limit.toString());
   if (params.cursor) query.set('cursor', params.cursor);
 
   const endpoint = `/api/products${query.toString() ? `?${query.toString()}` : ''}`;
-  const res = await apiFetch<CatalogListResponse>(endpoint);
+  const res = await apiFetch<CatalogListResponse>(endpoint, { skipAuthRefresh: true });
 
-  if (res.success && res.data?.items && res.data.items.length > 0) {
-    const remoteItems = res.data.items.map(normalizeProduct);
-    const remoteSlugs = new Set(remoteItems.map(p => p.slug || p.id));
-    const additionalLocal = allProducts.filter(p => !remoteSlugs.has(p.slug || p.id));
-    return [...remoteItems, ...additionalLocal];
+  // When backend responds authoritatively in the browser, honor live D1 catalog (including archives & newly created items)
+  if (res.success && Array.isArray(res.data?.items)) {
+    return res.data.items.map(normalizeProduct);
   }
 
-  // Graceful fallback to local products if offline or empty
+  // Graceful fallback to static seed catalog during offline build or network failure
   if (params.category) {
-    return allProducts.filter(p => p.category?.toLowerCase() === params.category?.toLowerCase());
+    return allProducts.filter((p) => p.category?.toLowerCase() === params.category?.toLowerCase());
   }
   return allProducts;
 }
@@ -78,13 +121,16 @@ export async function fetchProducts(params: {
  * Fetch a single product by slug from Cloudflare backend with fallback
  */
 export async function fetchProductBySlug(slug: string): Promise<ProductCardData | null> {
-  const res = await apiFetch<ProductCardData>(`/api/products/${slug}`);
+  const res = await apiFetch<ProductCardData>(`/api/products/${encodeURIComponent(slug)}`, { skipAuthRefresh: true });
 
   if (res.success && res.data) {
     return normalizeProduct(res.data);
   }
 
-  // Fallback to local product definition
+  // Fallback to local product definition only if backend is unreachable (status 0/5xx)
+  if (res.error?.status === 404) {
+    return null;
+  }
   const local = getLocalProductBySlug(slug);
   return local ? normalizeProduct(local) : null;
 }

@@ -157,6 +157,7 @@ export const CheckoutExperience: React.FC = () => {
   const [standardShipping, setStandardShipping] = useState<number>(
     ecommerceConfig.standardShippingRate,
   );
+  const [testModeEnabled, setTestModeEnabled] = useState<boolean>(false);
   const shippingFee = subtotal > 0 && subtotal < freeShippingThreshold ? standardShipping : 0;
   const totalPayable = totalAfterDiscount + shippingFee;
 
@@ -236,6 +237,9 @@ export const CheckoutExperience: React.FC = () => {
           }
           if (typeof res.data.standardShippingPaise === 'number') {
             setStandardShipping(Math.round(res.data.standardShippingPaise / 100));
+          }
+          if (typeof res.data.testFallbackEnabled === 'boolean') {
+            setTestModeEnabled(res.data.testFallbackEnabled);
           }
         }
       })
@@ -822,6 +826,9 @@ export const CheckoutExperience: React.FC = () => {
     // Map current wardrobe items for checkout commitment
     const checkoutItems = items.map((it) => ({
       variantId: it.variantId || `${it.id}-${it.size.replace(/\s+/g, '')}`,
+      productId: it.id,
+      size: it.size,
+      color: it.color,
       quantity: it.qty,
     }));
 
@@ -895,6 +902,9 @@ export const CheckoutExperience: React.FC = () => {
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('dd_last_order', orderNumber);
+            if (email.trim() || cleanDigits) {
+              localStorage.setItem('dd_last_order_contact', email.trim() || cleanDigits);
+            }
           }
         } catch {}
         setCompletedOrder({
@@ -1026,7 +1036,16 @@ export const CheckoutExperience: React.FC = () => {
       }
       // ── GATEWAY 3: EXPLICIT DEVELOPMENT SANDBOX TEST FALLBACK ────────────────
       else if (res.data.gateway === 'test') {
-        finalizeSuccess();
+        const verifyRes = await verifyPaymentApi({ orderId });
+        if (verifyRes.success) {
+          finalizeSuccess();
+        } else {
+          setIsSubmitting(false);
+          setErrorMessage(
+            verifyRes.error?.message ||
+              `Sandbox verification failed for order ${orderNumber}. Please retry.`,
+          );
+        }
       } else {
         setIsSubmitting(false);
         setErrorMessage(
@@ -1077,7 +1096,7 @@ export const CheckoutExperience: React.FC = () => {
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
-            href={`/orders/track?order=${encodeURIComponent(completedOrder.orderNumber)}`}
+            href={`/orders/track?order=${encodeURIComponent(completedOrder.orderNumber)}${email.trim() ? `&contact=${encodeURIComponent(email.trim())}` : ''}`}
             className="w-full sm:w-auto px-8 py-3.5 bg-neutral-900 text-white uppercase text-xs tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 font-medium"
             style={fontStyle}
           >
@@ -1683,6 +1702,16 @@ export const CheckoutExperience: React.FC = () => {
                 </label>
               </div>
 
+              {/* Sandbox Test Mode Indicator (Testing Environment Only) */}
+              {testModeEnabled && (
+                <div className="p-3.5 rounded-[4px] bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+                  <strong className="uppercase tracking-wider font-semibold block mb-0.5">
+                    Sandbox Testing Mode Active
+                  </strong>
+                  Orders placed right now are confirmed instantly without charging a real card, so you can test Order Placement, Order Tracking, and Admin Fulfilment end-to-end.
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="pt-5">
                 <button
@@ -1691,7 +1720,11 @@ export const CheckoutExperience: React.FC = () => {
                   className="w-full py-4 bg-neutral-900 text-white uppercase text-[15px] font-bold tracking-widest hover:bg-neutral-800 transition-colors disabled:opacity-50 rounded-[4px]"
                   style={fontStyle}
                 >
-                  {isSubmitting ? 'Reserving Stock & Authorizing...' : 'Authorize & Place Order'}
+                  {isSubmitting
+                    ? 'Reserving Stock & Authorizing...'
+                    : testModeEnabled
+                      ? 'Place Test Order (Sandbox)'
+                      : 'Authorize & Place Order'}
                 </button>
               </div>
             </form>

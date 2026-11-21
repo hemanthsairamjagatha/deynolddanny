@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Button, Spinner, Badge, statusVariant } from '../../components/ui';
 import { customers as customersApi } from '../../lib/api';
@@ -11,19 +11,54 @@ export default function CustomerDetailPage() {
   const [orderHistory, setOrderHistory] = useState<Order[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const load = () => {
     if (!id) return;
     setLoading(true);
-    customersApi.get(id).then(res => {
-      const raw = res.data as unknown as { customer?: Customer; orders?: Order[]; addresses?: unknown[] } | Customer | undefined;
-      setCustomer((raw && 'customer' in raw && raw.customer ? raw.customer : raw ?? null) as Customer | null);
-      setOrderHistory((raw && 'orders' in raw && Array.isArray(raw.orders) ? raw.orders : []) as Order[]);
-      setAddresses((raw && 'addresses' in raw && Array.isArray(raw.addresses) ? raw.addresses : []) as any[]);
-    }).finally(() => setLoading(false));
+    customersApi
+      .get(id)
+      .then((res) => {
+        const raw = res.data as unknown as { customer?: Customer; orders?: Order[]; addresses?: unknown[] } | Customer | undefined;
+        setCustomer((raw && 'customer' in raw && raw.customer ? raw.customer : raw ?? null) as Customer | null);
+        setOrderHistory((raw && 'orders' in raw && Array.isArray(raw.orders) ? raw.orders : []) as Order[]);
+        setAddresses((raw && 'addresses' in raw && Array.isArray(raw.addresses) ? raw.addresses : []) as any[]);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
   }, [id]);
 
   const fmt = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const isActive = customer ? Number(customer.is_active ?? 1) === 1 : true;
+
+  const handleToggleStatus = async () => {
+    if (!id || !customer) return;
+    const nextActive = !isActive;
+    const msg = nextActive
+      ? `Reactivate customer account for ${customer.email}?`
+      : `Suspend customer account for ${customer.email}? Their active sessions will be revoked.`;
+    if (!confirm(msg)) return;
+    setToggling(true);
+    setError('');
+    setNotice('');
+    try {
+      const res = await customersApi.updateStatus(id, nextActive);
+      if (!res.success) {
+        setError(res.error?.message ?? 'Failed to update customer status.');
+        return;
+      }
+      setNotice(nextActive ? 'Customer account reactivated.' : 'Customer account suspended and sessions revoked.');
+      load();
+    } finally {
+      setToggling(false);
+    }
+  };
 
   if (loading) return <div className="flex justify-center py-24"><Spinner size="lg" /></div>;
   if (!customer) return <div className="text-center py-24 text-ink-500">Customer not found.</div>;
@@ -31,15 +66,35 @@ export default function CustomerDetailPage() {
   return (
     <div className="space-y-6">
       <button onClick={() => navigate('/customers')} className="text-sm text-ink-500 hover:text-ink-900 flex items-center gap-1">← All Customers</button>
-      <PageHeader title={customer.full_name ?? customer.email} description={`Customer since ${new Date(customer.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}`} />
+      <PageHeader
+        title={customer.full_name ?? customer.name ?? customer.email}
+        description={`Customer since ${new Date(customer.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}`}
+        actions={
+          <div className="flex items-center gap-3">
+            <Badge variant={isActive ? 'success' : 'danger'} size="md">{isActive ? 'Active Account' : 'Suspended'}</Badge>
+            <Button
+              size="sm"
+              variant={isActive ? 'danger' : 'primary'}
+              loading={toggling}
+              onClick={handleToggleStatus}
+            >
+              {isActive ? 'Suspend Account' : 'Reactivate Account'}
+            </Button>
+          </div>
+        }
+      />
+
+      {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3 rounded-xl">{notice}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile */}
         <Card title="Profile">
           <dl className="space-y-3 text-sm">
-            <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Full Name</dt><dd className="text-ink-900 font-medium">{customer.full_name ?? '—'}</dd></div>
+            <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Full Name</dt><dd className="text-ink-900 font-medium">{customer.full_name ?? customer.name ?? '—'}</dd></div>
             <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Email</dt><dd className="text-ink-700">{customer.email}</dd></div>
             <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Phone</dt><dd className="text-ink-700">{customer.phone ?? '—'}</dd></div>
+            <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Account Status</dt><dd><Badge variant={isActive ? 'success' : 'danger'}>{isActive ? 'Active' : 'Suspended'}</Badge></dd></div>
             <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Account ID</dt><dd className="font-mono text-xs text-ink-400">{customer.id}</dd></div>
             <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Total Orders</dt><dd className="text-ink-900 font-semibold">{orderHistory.length}</dd></div>
             <div><dt className="text-ink-500 text-xs uppercase tracking-wide mb-0.5">Total Spend</dt><dd className="text-ink-900 font-semibold">{fmt(orderHistory.reduce((s, o) => s + (o.total_paise ?? 0), 0))}</dd></div>

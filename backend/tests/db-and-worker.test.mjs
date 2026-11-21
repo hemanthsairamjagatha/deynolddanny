@@ -509,3 +509,122 @@ test('Size-wise variant pricing propagates to availability, cart & checkout + au
     await worker.dispose();
   }
 });
+
+test('Admin local media upload (chunked >500KB PNG without R2), live serving, deletion, gallery sync & inventory delta', async () => {
+  const worker = await createTestWorker({
+    ENVIRONMENT: 'development',
+    ADMIN_EMAILS: 'media-admin@deynolddanny.test',
+  });
+  try {
+    const admin = await authenticateUser(worker, 'media-admin@deynolddanny.test', {
+      fullName: 'Creative Director',
+    });
+
+    // Build a synthetic ~520 KB valid-magic PNG buffer (forces multi-chunk D1 storage + KV caching without R2)
+    const pngBytes = new Uint8Array(520 * 1024);
+    pngBytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+    for (let i = 8; i < pngBytes.length; i += 1024) {
+      pngBytes[i] = i % 251;
+    }
+
+    // 1. Upload via multipart FormData with empty MIME type (simulates Windows browser missing MIME)
+    const form = new FormData();
+    form.append('file', new Blob([pngBytes], { type: '' }), 'atelier-lookbook.png');
+    form.append('altText', 'Atelier Lookbook Shot');
+
+    const uploadRes = await worker.mf.dispatchFetch(
+      'https://api.deynolddanny.com/api/admin/media/library/upload',
+      {
+        method: 'POST',
+        headers: {
+          Origin: 'https://deynolddanny.com',
+          Authorization: `Bearer ${admin.accessToken}`,
+        },
+        body: form,
+      },
+    );
+    const uploadJson = await uploadRes.json();
+    assert.equal(uploadRes.status, 201, `Upload failed: ${JSON.stringify(uploadJson)}`);
+    assert.equal(uploadJson.success, true);
+    assert.equal(uploadJson.data.mimeType, 'image/png');
+    assert.ok(uploadJson.data.url.startsWith('/api/media/file/'));
+
+    // 2. Serve uploaded binary over public /api/media/file/* route
+    const serveRes = await worker.mf.dispatchFetch(
+      `https://api.deynolddanny.com${uploadJson.data.url}`,
+      { headers: { Origin: 'https://deynolddanny.com' } },
+    );
+    assert.equal(serveRes.status, 200);
+    assert.equal(serveRes.headers.get('content-type'), 'image/png');
+    const servedBuf = new Uint8Array(await serveRes.arrayBuffer());
+    assert.equal(servedBuf.byteLength, pngBytes.byteLength);
+    assert.equal(servedBuf[0], 0x89);
+    assert.equal(servedBuf[1024], pngBytes[1024]);
+
+    // 3. Evict KV entry to verify durable D1 chunk re-assembly fallback
+    await worker.kv.delete(`media:bin:${uploadJson.data.objectKey}`);
+    const serveD1Res = await worker.mf.dispatchFetch(
+      `https://api.deynolddanny.com${uploadJson.data.url}`,
+      { headers: { Origin: 'https://deynolddanny.com' } },
+    );
+    assert.equal(serveD1Res.status, 200, 'D1 chunked fallback must serve uploaded binary even after KV eviction');
+    const servedD1Buf = new Uint8Array(await serveD1Res.arrayBuffer());
+    assert.equal(servedD1Buf.byteLength, pngBytes.byteLength);
+
+    // 4. Attach uploaded image to a product gallery via { url } alias & verify GET /api/products/:slug reflects it
+    const prod = await worker.db
+      .prepare('SELECT id, slug FROM products WHERE is_active = 1 LIMIT 1')
+      .first();
+    assert.ok(prod);
+
+    const galRes = await worker.request(`/api/admin/products/${prod.id}/images`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${admin.accessToken}`,
+      },
+      body: JSON.stringify({
+        images: [{ url: uploadJson.data.url, alt_text: 'Lookbook hero', sort_order: 0 }],
+      }),
+    });
+    assert.equal(galRes.status, 200);
+
+    const pdpRes = await worker.request(`/api/products/${prod.slug}`);
+    assert.equal(pdpRes.status, 200);
+    assert.ok(
+      pdpRes.json.data.images.includes(uploadJson.data.url),
+      'Live storefront PDP API must return newly attached admin gallery image',
+    );
+
+    // 5. Inventory delta adjustment endpoint works with { delta, reason }
+    const variant = await getSeedVariant(worker, 5);
+    const invRes = await worker.request(`/api/admin/inventory/${variant.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${admin.accessToken}`,
+      },
+      body: JSON.stringify({ delta: 3, reason: 'Atelier restock' }),
+    });
+    assert.equal(invRes.status, 200);
+    assert.equal(invRes.json.data.stock, 8);
+
+    // 6. Delete media asset & verify binary returns 404
+    const delRes = await worker.request(
+      `/api/admin/media/library/assets/${uploadJson.data.id}?force=true`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${admin.accessToken}` },
+      },
+    );
+    assert.equal(delRes.status, 200);
+
+    const serveAfterDel = await worker.mf.dispatchFetch(
+      `https://api.deynolddanny.com${uploadJson.data.url}`,
+      { headers: { Origin: 'https://deynolddanny.com' } },
+    );
+    assert.equal(serveAfterDel.status, 404, 'Deleted media asset must no longer be served');
+  } finally {
+    await worker.dispose();
+  }
+});

@@ -5,10 +5,10 @@ import { returns as returnsApi } from '../../lib/api';
 
 const RETURN_TABS = [
   { id: 'all', label: 'All Returns' },
-  { id: 'pending', label: 'Pending Review' },
+  { id: 'requested', label: 'Pending Review' },
   { id: 'approved', label: 'Approved' },
   { id: 'rejected', label: 'Rejected' },
-  { id: 'completed', label: 'Completed' },
+  { id: 'closed', label: 'Completed' },
 ];
 
 export default function ReturnsPage() {
@@ -25,8 +25,8 @@ export default function ReturnsPage() {
     setLoading(true);
     try {
       const res = await returnsApi.list(tab === 'all' ? undefined : tab);
-      const raw = res.data as unknown as { returns?: any[] } | any[];
-      setData(Array.isArray(raw) ? raw : (raw?.returns ?? []));
+      const raw = res.data as unknown as { items?: any[]; returns?: any[] } | any[];
+      setData(Array.isArray(raw) ? raw : (raw?.items ?? raw?.returns ?? []));
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function ReturnsPage() {
       header: '',
       render: r => (
         <div className="flex gap-2 justify-end">
-          {r.status === 'pending' && (
+          {(r.status === 'requested' || r.status === 'pending') && (
             <>
               <Button size="sm" variant="primary" onClick={() => openReview(r, 'approve')}>Approve</Button>
               <Button size="sm" variant="danger" onClick={() => openReview(r, 'reject')}>Reject</Button>

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/bindings.js';
-import { requirePermission } from '../../middleware/adminAuth.js';
+import { auditAdminAction, requirePermission } from '../../middleware/adminAuth.js';
 import {
   generateBase32Secret,
   buildTotpUri,
@@ -86,10 +86,12 @@ security.post('/staff', requirePermission('security.manage'), async (c) => {
      ON CONFLICT(user_id) DO UPDATE SET role_id = excluded.role_id, granted_by = excluded.granted_by, is_active = 1, updated_at = datetime('now')`,
   ).bind(user.id, roleRow.id, actor).run();
 
+  await auditAdminAction(c, 'INVITE_ADMIN_STAFF', 'user', user.id, { email, roleId: roleRow.id, roleSlug: roleRow.slug });
+
   return c.json({ success: true, data: { userId: user.id, roleId: roleRow.id } }, 201);
 });
 
-// PATCH /staff/:userId/role — change role
+// PATCH /staff/:userId/role — change role & force token refresh
 security.patch('/staff/:userId/role', requirePermission('security.manage'), async (c) => {
   const { userId } = c.req.param();
   const body = await c.req.json<{ role_id?: string; roleId?: string }>();
@@ -105,28 +107,41 @@ security.patch('/staff/:userId/role', requirePermission('security.manage'), asyn
   }
 
   const actor = c.get('userEmail') ?? c.get('userId') ?? 'super_admin';
-  await c.env.DB.prepare(
-    `INSERT INTO admin_staff_grants (user_id, role_id, granted_by, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, 1, datetime('now'), datetime('now'))
-     ON CONFLICT(user_id) DO UPDATE SET role_id = excluded.role_id, granted_by = excluded.granted_by, is_active = 1, updated_at = datetime('now')`,
-  ).bind(userId, roleRow.id, actor).run();
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO admin_staff_grants (user_id, role_id, granted_by, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, 1, datetime('now'), datetime('now'))
+       ON CONFLICT(user_id) DO UPDATE SET role_id = excluded.role_id, granted_by = excluded.granted_by, is_active = 1, updated_at = datetime('now')`,
+    ).bind(userId, roleRow.id, actor),
+    c.env.DB.prepare(
+      `UPDATE users SET admin_role_id = ?, role = ?, token_version = token_version + 1, updated_at = datetime('now') WHERE id = ?`,
+    ).bind(roleRow.id, roleRow.slug === 'super_admin' ? 'superadmin' : 'admin', userId),
+  ]);
 
-  await c.env.DB.prepare(
-    `UPDATE users SET admin_role_id = ?, role = ?, updated_at = datetime('now') WHERE id = ?`,
-  ).bind(roleRow.id, roleRow.slug === 'super_admin' ? 'superadmin' : 'admin', userId).run();
+  await auditAdminAction(c, 'UPDATE_STAFF_ROLE', 'user', userId, { roleId: roleRow.id, roleSlug: roleRow.slug });
 
   return c.json({ success: true });
 });
 
-// DELETE /staff/:userId — deactivate grant
+// DELETE /staff/:userId — deactivate grant, demote role, revoke refresh tokens & invalidate JWTs
 security.delete('/staff/:userId', requirePermission('security.manage'), async (c) => {
   const { userId } = c.req.param();
-  await c.env.DB.prepare(
-    `UPDATE admin_staff_grants SET is_active = 0, updated_at = datetime('now') WHERE user_id = ?`,
-  ).bind(userId).run();
-  await c.env.DB.prepare(
-    `UPDATE users SET role = 'customer', admin_role_id = NULL, updated_at = datetime('now') WHERE id = ?`,
-  ).bind(userId).run();
+  if (userId === c.get('userId')) {
+    return c.json(
+      { success: false, error: { code: 'FORBIDDEN', message: 'You cannot revoke your own administrator access.', status: 400 } },
+      400,
+    );
+  }
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE admin_staff_grants SET is_active = 0, updated_at = datetime('now') WHERE user_id = ?`,
+    ).bind(userId),
+    c.env.DB.prepare(
+      `UPDATE users SET role = 'customer', admin_role_id = NULL, token_version = token_version + 1, updated_at = datetime('now') WHERE id = ?`,
+    ).bind(userId),
+    c.env.DB.prepare(`DELETE FROM refresh_tokens WHERE user_id = ?`).bind(userId),
+  ]);
+  await auditAdminAction(c, 'REVOKE_ADMIN_STAFF', 'user', userId);
   return c.json({ success: true });
 });
 
@@ -258,12 +273,14 @@ security.delete('/sessions/:jti', async (c) => {
   return c.json({ success: true });
 });
 
-// DELETE /sessions — revoke all sessions for current user
+// DELETE /sessions — revoke all sessions and bump token_version for current user
 security.delete('/sessions', async (c) => {
   const userId = c.get('userId');
-  await c.env.DB.prepare(
-    `DELETE FROM refresh_tokens WHERE user_id = ?`,
-  ).bind(userId).run();
+  await c.env.DB.batch([
+    c.env.DB.prepare(`DELETE FROM refresh_tokens WHERE user_id = ?`).bind(userId),
+    c.env.DB.prepare(`UPDATE users SET token_version = token_version + 1, updated_at = datetime('now') WHERE id = ?`).bind(userId),
+  ]);
+  await auditAdminAction(c, 'REVOKE_ALL_SESSIONS', 'user', userId);
   return c.json({ success: true });
 });
 

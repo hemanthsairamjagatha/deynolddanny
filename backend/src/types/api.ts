@@ -74,6 +74,21 @@ export interface ApiCrossSellItem {
   badge?: string;
 }
 
+export interface ApiProductColor {
+  name: string;
+  hex: string;
+  img?: string;
+  hoverImg?: string;
+  swatchImg?: string;
+  images?: string[];
+  pricePaise?: number;
+  price?: string;
+  priceNum?: number;
+  comparePaise?: number | null;
+  comparePrice?: string | null;
+  hasCustomPrice?: boolean;
+}
+
 export interface ApiProductCard extends MoneyFields {
   id: string;
   slug: string;
@@ -89,7 +104,8 @@ export interface ApiProductCard extends MoneyFields {
   hoverImg: string;
   images?: string[];
   sizes: string[];
-  colors: { name: string; hex: string }[];
+  colors: ApiProductColor[];
+  variants?: ApiVariant[];
   link: string;
   comparePaise?: number | null;
   comparePrice?: string | null;

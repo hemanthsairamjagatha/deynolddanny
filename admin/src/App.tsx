@@ -12,6 +12,7 @@ const DashboardPage = lazy(() => import('./modules/dashboard/DashboardPage'));
 const BrandPage = lazy(() => import('./modules/brand/BrandPage'));
 const StudioPage = lazy(() => import('./modules/studio/StudioPage'));
 const PageEditor = lazy(() => import('./modules/studio/PageEditor'));
+const StyleLayeringPage = lazy(() => import('./modules/studio/StyleLayeringPage'));
 const NavigationPage = lazy(() => import('./modules/navigation/NavigationPage'));
 const MediaLibraryPage = lazy(() => import('./modules/media/MediaLibraryPage'));
 const ProductsListPage = lazy(() => import('./modules/catalog/ProductsListPage'));
@@ -60,6 +61,7 @@ function ProtectedApp() {
           <Route path="brand" element={<BrandPage />} />
           <Route path="studio" element={<StudioPage />} />
           <Route path="studio/:pageId" element={<PageEditor />} />
+          <Route path="style-layering" element={<StyleLayeringPage />} />
           <Route path="navigation" element={<NavigationPage />} />
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="catalog/products" element={<ProductsListPage />} />

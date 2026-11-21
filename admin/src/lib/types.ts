@@ -138,6 +138,7 @@ export interface Coupon {
   discount_type: 'flat' | 'percent';
   discount_value: number;
   min_order_paise: number | null;
+  max_discount_paise?: number | null;
   max_uses: number | null;
   used_count: number;
   expires_at: string | null;
@@ -229,6 +230,7 @@ export interface Customer {
   full_name?: string | null;
   name?: string | null;
   phone?: string | null;
+  is_active?: number | boolean;
   orders_count?: number;
   created_at: string;
 }

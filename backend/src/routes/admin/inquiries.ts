@@ -105,11 +105,13 @@ adminInquiries.post(
     const replySubject = payload.replySubject?.trim() || `Re: ${inq.subject || 'DEYNOLD DANNY Client Concierge'}`;
 
     if (c.env.RESEND_API_KEY) {
+      const esc = (s: string) =>
+        s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const html = `
         <div style="font-family:Montserrat,sans-serif;max-width:560px;margin:30px auto;padding:40px;border:1px solid #eaeaea;background:#ffffff;color:#111111;">
           <p style="font-size:11px;letter-spacing:0.25em;text-transform:uppercase;color:#8c7355;margin:0 0 16px;">DEYNOLD DANNY &bull; CLIENT CARE</p>
-          <p style="font-size:14px;color:#111111;margin:0 0 16px;">Dear ${inq.name},</p>
-          <div style="font-size:13px;line-height:1.7;color:#333333;margin:0 0 24px;white-space:pre-wrap;">${replyMessage}</div>
+          <p style="font-size:14px;color:#111111;margin:0 0 16px;">Dear ${esc(inq.name)},</p>
+          <div style="font-size:13px;line-height:1.7;color:#333333;margin:0 0 24px;white-space:pre-wrap;">${esc(replyMessage)}</div>
           <p style="font-size:11px;color:#777777;border-top:1px solid #f0f0f0;padding-top:16px;">DEYNOLD DANNY Flagship Atelier &bull; Sartorial House, New Delhi</p>
         </div>
       `;

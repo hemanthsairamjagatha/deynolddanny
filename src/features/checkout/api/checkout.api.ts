@@ -4,6 +4,7 @@ export interface CheckoutItemPayload {
   variantId?: string;
   productId?: string;
   size?: string;
+  color?: string;
   quantity: number;
 }
 
@@ -61,9 +62,12 @@ export interface VerifyPaymentResponse {
 export interface StorefrontConfig {
   freeShippingThresholdPaise: number;
   standardShippingPaise: number;
+  taxInclusive?: boolean;
   returnWindowDays: number;
   upiMaxPaise: number;
   panVerificationThresholdPaise: number;
+  enableFitFinder?: boolean;
+  enableReviewsOnPdp?: boolean;
   courierCheckEnabled: boolean;
   razorpayEnabled?: boolean;
   cashfreeEnabled?: boolean;

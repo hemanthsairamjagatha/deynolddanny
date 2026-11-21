@@ -1,0 +1,16 @@
+---
+// src/pages/pages/live.astro
+// Dynamic client-hydrated shell served by Cloudflare Worker for custom Visual Content Studio pages.
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+import { LiveCmsPageExperience } from '../../features/home/components/LiveCmsPageExperience';
+
+const title = 'Editorial | DEYNOLD DANNY';
+const description = 'House of Deynold Danny editorial stories and curated showcases.';
+---
+
+<StorefrontLayout title={title} description={description}>
+  <main id="main-content" class="min-h-screen bg-white text-black">
+    <LiveCmsPageExperience client:load />
+  </main>
+</StorefrontLayout>
+

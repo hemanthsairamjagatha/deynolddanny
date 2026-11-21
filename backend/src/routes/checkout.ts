@@ -29,6 +29,9 @@ const checkout = new Hono<{ Bindings: Env }>();
 
 const checkoutItemSchema = z.object({
   variantId: z.string().min(1),
+  productId: z.string().optional(),
+  size: z.string().optional(),
+  color: z.string().optional(),
   quantity: z.number().int().min(1).max(10).default(1),
 });
 
@@ -141,10 +144,51 @@ checkout.post(
     // Sync exact client variant IDs into D1 cart if client submitted items cleanly
     if ((!cartData || cartData.items.length === 0) && body.items && body.items.length > 0) {
       for (const item of body.items) {
-        const directMatch = await env.DB
+        let directMatch = await env.DB
           .prepare(`SELECT id FROM product_variants WHERE id = ?1 AND is_active = 1`)
           .bind(item.variantId)
           .first<{ id: string }>();
+
+        // Fallback resolution by productId/slug + size (+ optional color) when client sends synthetic IDs
+        if (!directMatch && item.productId) {
+          const prodRow = await env.DB
+            .prepare(`SELECT id FROM products WHERE (id = ?1 OR slug = ?1) AND is_active = 1 LIMIT 1`)
+            .bind(item.productId)
+            .first<{ id: string }>();
+          if (prodRow) {
+            if (item.size && item.color) {
+              directMatch = await env.DB
+                .prepare(
+                  `SELECT id FROM product_variants
+                   WHERE product_id = ?1 AND is_active = 1
+                     AND LOWER(size) = LOWER(?2) AND LOWER(color_name) = LOWER(?3)
+                   ORDER BY (stock - reserved_stock) DESC LIMIT 1`,
+                )
+                .bind(prodRow.id, item.size.trim(), item.color.trim())
+                .first<{ id: string }>();
+            }
+            if (!directMatch && item.size) {
+              directMatch = await env.DB
+                .prepare(
+                  `SELECT id FROM product_variants
+                   WHERE product_id = ?1 AND is_active = 1 AND LOWER(size) = LOWER(?2)
+                   ORDER BY (stock - reserved_stock) DESC LIMIT 1`,
+                )
+                .bind(prodRow.id, item.size.trim())
+                .first<{ id: string }>();
+            }
+            if (!directMatch) {
+              directMatch = await env.DB
+                .prepare(
+                  `SELECT id FROM product_variants
+                   WHERE product_id = ?1 AND is_active = 1
+                   ORDER BY (stock - reserved_stock) DESC, sort_order ASC LIMIT 1`,
+                )
+                .bind(prodRow.id)
+                .first<{ id: string }>();
+            }
+          }
+        }
 
         if (!directMatch) {
           return c.json(
@@ -178,27 +222,40 @@ checkout.post(
       );
     }
 
-    // 2. Fetch authoritative variant/product catalog rows directly from DB (never trust client price)
+    // 2. Fetch authoritative variant/product catalog rows directly from DB in a single query (eliminates N+1)
     const variantMetaMap = new Map<
       string,
       { sku: string; hsnCode: string | null; gstRateBps: number }
     >();
-    for (const item of cartData.items) {
-      const row = await env.DB
+    const uniqueVariantIds = Array.from(new Set(cartData.items.map((it) => it.variantId)));
+    if (uniqueVariantIds.length > 0) {
+      const placeholders = uniqueVariantIds.map((_, i) => `?${i + 1}`).join(', ');
+      const metaRes = await env.DB
         .prepare(
-          `SELECT pv.sku, p.hsn_code, p.gst_rate_bps
+          `SELECT pv.id, pv.sku, p.hsn_code, p.gst_rate_bps
            FROM product_variants pv
            JOIN products p ON p.id = pv.product_id
-           WHERE pv.id = ?1`,
+           WHERE pv.id IN (${placeholders})`,
         )
-        .bind(item.variantId)
-        .first<{ sku: string; hsn_code: string | null; gst_rate_bps: number | null }>();
+        .bind(...uniqueVariantIds)
+        .all<{ id: string; sku: string; hsn_code: string | null; gst_rate_bps: number | null }>();
 
-      variantMetaMap.set(item.variantId, {
-        sku: row?.sku || item.variantId,
-        hsnCode: row?.hsn_code ?? null,
-        gstRateBps: row?.gst_rate_bps ?? policy.defaultGstRateBps,
-      });
+      for (const row of metaRes.results ?? []) {
+        variantMetaMap.set(row.id, {
+          sku: row.sku || row.id,
+          hsnCode: row.hsn_code ?? null,
+          gstRateBps: row.gst_rate_bps ?? policy.defaultGstRateBps,
+        });
+      }
+    }
+    for (const item of cartData.items) {
+      if (!variantMetaMap.has(item.variantId)) {
+        variantMetaMap.set(item.variantId, {
+          sku: item.variantId,
+          hsnCode: null,
+          gstRateBps: policy.defaultGstRateBps,
+        });
+      }
     }
 
     // Read live admin payment & shipping policy overrides from store_settings
@@ -389,7 +446,13 @@ checkout.post(
       env.CASHFREE_SECRET_KEY.length > 5,
     );
 
-    if (!isRazorpayConfigured && !isCashfreeConfigured && !policy.allowTestCheckoutFallback) {
+    const allowTestCheckout =
+      !policy.isProductionLike &&
+      (storeSettings.enableTestCheckout !== undefined
+        ? Boolean(storeSettings.enableTestCheckout)
+        : policy.allowTestCheckoutFallback);
+
+    if (!isRazorpayConfigured && !isCashfreeConfigured && !allowTestCheckout) {
       return c.json(
         {
           success: false,
@@ -451,13 +514,16 @@ checkout.post(
         lineItemInputs,
       );
     } catch (err) {
-      // Compensate held stock on DB write error
-      await atomicHoldAllOrRollback(env.DB, []);
-      for (const item of cartData.items) {
-        await env.DB
-          .prepare(`UPDATE product_variants SET reserved_stock = MAX(0, reserved_stock - ?1) WHERE id = ?2`)
-          .bind(item.qty, item.variantId)
-          .run();
+      // Compensate held stock atomically in a single batch on DB write error
+      if (cartData.items.length > 0) {
+        await runBatch(
+          env.DB,
+          cartData.items.map((item) =>
+            env.DB
+              .prepare(`UPDATE product_variants SET reserved_stock = MAX(0, reserved_stock - ?1) WHERE id = ?2`)
+              .bind(item.qty, item.variantId),
+          ),
+        );
       }
       throw err;
     }
@@ -583,7 +649,7 @@ checkout.post(
 
     const gatewayOrderId = razorpayOrderId || cashfreeOrderId;
     if (!gatewayOrderId) {
-      if (policy.allowTestCheckoutFallback) {
+      if (allowTestCheckout) {
         activeGateway = 'test';
         const testGwId = `test_order_${order.id}`;
         await runBatch(env.DB, [

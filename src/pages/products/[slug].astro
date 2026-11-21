@@ -66,11 +66,23 @@ const jsonLd = {
     "itemCondition": "https://schema.org/NewCondition"
   }
 };
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": `${siteOrigin}/` },
+    ...(product.category
+      ? [{ "@type": "ListItem", "position": 2, "name": product.category, "item": `${siteOrigin}/categories/${encodeURIComponent(product.category.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}` }]
+      : []),
+    { "@type": "ListItem", "position": product.category ? 3 : 2, "name": product.title, "item": `${siteOrigin}/products/${product.slug}` }
+  ]
+};
 ---
 
 <StorefrontLayout title={pageTitle} description={pageDescription} ogType="product" ogImage={absoluteImages[0]}>
   {/* SEO JSON-LD */}
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')} />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c')} />
 
   <main id="main-content" class="min-h-screen bg-white">
     {/* Primary Interactive Island: Split-screen Gallery + Sticky Purchase Panel */}

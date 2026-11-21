@@ -44,6 +44,45 @@ app.use('/media/*', cors);
 app.use('/health*', securityHeaders);
 app.use('/health*', cors);
 
+// Request body size limits (mitigates oversized JSON / Zod DoS while permitting up to 12 MB media uploads)
+app.use('/api/*', async (c, next) => {
+  const method = c.req.method;
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+    const contentLengthHeader = c.req.header('content-length');
+    const contentLength = contentLengthHeader ? Number(contentLengthHeader) : NaN;
+    const isUploadRoute =
+      c.req.path.startsWith('/api/admin/media/library/upload') ||
+      c.req.path.startsWith('/api/admin/uploads');
+    const maxBytes = isUploadRoute ? 12 * 1024 * 1024 : 256 * 1024;
+    let bodyTooLarge = Number.isFinite(contentLength) && contentLength > maxBytes;
+    if (!bodyTooLarge && !isUploadRoute && !Number.isFinite(contentLength)) {
+      try {
+        const cloned = c.req.raw.clone();
+        const buf = await cloned.arrayBuffer();
+        if (buf.byteLength > maxBytes) {
+          bodyTooLarge = true;
+        }
+      } catch {
+        // Ignore stream clone failures; downstream parser will handle
+      }
+    }
+    if (bodyTooLarge) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'PAYLOAD_TOO_LARGE',
+            message: `Request body exceeds maximum allowed size (${isUploadRoute ? '12 MB' : '256 KB'}).`,
+            status: 413,
+          },
+        },
+        413,
+      );
+    }
+  }
+  await next();
+});
+
 // Runtime secret hygiene guard in staging/production
 app.use('/api/*', async (c, next) => {
   const configIssues = assertSafeRuntimeSecrets(c.env);
@@ -153,6 +192,11 @@ app.get('/api/config/storefront', async (c) => {
         courierCheckEnabled: Boolean(
           pickupPin && c.env.SHIPROCKET_EMAIL && c.env.SHIPROCKET_PASSWORD,
         ),
+        testFallbackEnabled:
+          !policy.isProductionLike &&
+          (dbSettings.enableTestCheckout !== undefined
+            ? Boolean(dbSettings.enableTestCheckout)
+            : policy.allowTestCheckoutFallback),
       },
     },
     200,

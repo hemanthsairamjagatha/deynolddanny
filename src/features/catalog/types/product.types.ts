@@ -2,8 +2,15 @@ export interface ProductColor {
   name: string;
   hex: string;
   img?: string;
+  hoverImg?: string;
   swatchImg?: string;
   images?: string[];
+  pricePaise?: number;
+  price?: string;
+  priceNum?: number;
+  comparePaise?: number | null;
+  comparePrice?: string | null;
+  hasCustomPrice?: boolean;
 }
 
 export interface ProductVariant {
@@ -36,11 +43,12 @@ export interface RelatedItem {
 export interface ProductCardData {
   id: string;
   slug?: string;
-  badge?: string;
-  tag?: string;
+  badge?: string | null;
+  tag?: string | null;
   title: string;
   price: string;
   priceNum: number;
+  comparePrice?: string | null;
   defaultImg: string;
   hoverImg: string;
   images?: string[];
@@ -49,10 +57,14 @@ export interface ProductCardData {
   colors?: ProductColor[];
   variants?: ProductVariant[];
   sku?: string;
+  sectionGroup?: string;
+  categoryId?: string | null;
   category?: string;
   subCategory?: string;
-  gender?: string;
-  description?: string;
+  gender?: string | null;
+  description?: string | null;
+  material?: string | null;
+  careGuide?: string | null;
   details?: string[];
   sizeAndFit?: string[];
   compositionAndCare?: string[];

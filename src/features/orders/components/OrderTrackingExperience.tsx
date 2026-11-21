@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { trackOrderApi, type OrderTrackingDetails } from '../api/orders.api';
+import {
+  trackOrderApi,
+  fetchMyOrdersApi,
+  type OrderTrackingDetails,
+  type PatronOrderSummary,
+} from '../api/orders.api';
+import { getStoredClientEmail, hasSessionHint } from '../../../lib/api/client';
 
 interface OrderTrackingExperienceProps {
   initialOrderNumber?: string;
@@ -15,23 +21,45 @@ export const OrderTrackingExperience: React.FC<OrderTrackingExperienceProps> = (
   const [orderDetails, setOrderDetails] = useState<OrderTrackingDetails | null>(null);
   const [copiedAwb, setCopiedAwb] = useState(false);
   const [recentOrderNumber, setRecentOrderNumber] = useState<string | null>(null);
+  const [myRecentOrders, setMyRecentOrders] = useState<PatronOrderSummary[]>([]);
 
-  // Read URL query parameter or localStorage on mount
+  // Read URL query parameter, saved email/contact, and signed-in patron orders on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlOrder = params.get('order') || params.get('orderNumber') || params.get('id');
+      const urlContact = params.get('contact') || params.get('email') || params.get('phone');
       const storedLast = localStorage.getItem('dd_last_order');
+      const storedContact =
+        urlContact ||
+        localStorage.getItem('dd_last_order_contact') ||
+        getStoredClientEmail() ||
+        '';
 
       if (storedLast) {
         setRecentOrderNumber(storedLast);
       }
+      if (storedContact) {
+        setEmailOrPhone(storedContact);
+      }
 
       if (urlOrder) {
         setOrderNumber(urlOrder);
-        performLookup(urlOrder);
+        if (storedContact) {
+          performLookup(urlOrder, storedContact);
+        }
       } else if (storedLast && !initialOrderNumber) {
         setOrderNumber(storedLast);
+      }
+
+      if (hasSessionHint()) {
+        fetchMyOrdersApi(1, 5)
+          .then((res) => {
+            if (res.success && res.data?.items) {
+              setMyRecentOrders(res.data.items);
+            }
+          })
+          .catch(() => {});
       }
     }
   }, [initialOrderNumber]);
@@ -134,15 +162,16 @@ export const OrderTrackingExperience: React.FC<OrderTrackingExperienceProps> = (
 
             <div className="relative sm:w-64">
               <label htmlFor="verify-input" className="sr-only">
-                Billing Email or Mobile (Optional)
+                Billing Email or 10-digit Mobile
               </label>
               <input
                 id="verify-input"
                 type="text"
                 value={emailOrPhone}
                 onChange={(e) => setEmailOrPhone(e.target.value)}
-                placeholder="Email or Mobile (Optional)"
+                placeholder="Billing Email or Mobile *"
                 className="w-full h-12 px-3 text-xs sm:text-sm bg-transparent border border-neutral-200 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black placeholder:text-neutral-400 transition-colors"
+                required
               />
             </div>
 
@@ -169,20 +198,42 @@ export const OrderTrackingExperience: React.FC<OrderTrackingExperienceProps> = (
             </button>
           </form>
 
-          {/* Quick chip for last completed order */}
-          {recentOrderNumber && recentOrderNumber !== orderNumber && !orderDetails && (
-            <div className="mt-3 text-center sm:text-left flex items-center justify-center sm:justify-start gap-2 text-xs text-neutral-500">
-              <span className="font-light">Recent order:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setOrderNumber(recentOrderNumber);
-                  performLookup(recentOrderNumber);
-                }}
-                className="font-mono text-neutral-900 underline underline-offset-4 hover:text-black font-medium"
-              >
-                {recentOrderNumber}
-              </button>
+          {/* Quick chips for signed-in patron orders or last completed order */}
+          {(myRecentOrders.length > 0 || (recentOrderNumber && recentOrderNumber !== orderNumber && !orderDetails)) && (
+            <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-neutral-500">
+              <span className="font-light">Your recent orders:</span>
+              {myRecentOrders.length > 0 ? (
+                myRecentOrders.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => {
+                      const contact = emailOrPhone || getStoredClientEmail() || '';
+                      setOrderNumber(o.orderNumber);
+                      if (contact) {
+                        setEmailOrPhone(contact);
+                        performLookup(o.orderNumber, contact);
+                      }
+                    }}
+                    className="px-2.5 py-1 rounded-full bg-white border border-neutral-200 hover:border-black font-mono text-[11px] text-neutral-900 transition-colors"
+                  >
+                    {o.orderNumber} <span className="text-neutral-400 uppercase">({o.status})</span>
+                  </button>
+                ))
+              ) : (
+                recentOrderNumber && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderNumber(recentOrderNumber);
+                      if (emailOrPhone.trim()) performLookup(recentOrderNumber, emailOrPhone);
+                    }}
+                    className="font-mono text-neutral-900 underline underline-offset-4 hover:text-black font-medium"
+                  >
+                    {recentOrderNumber}
+                  </button>
+                )
+              )}
             </div>
           )}
 
@@ -319,6 +370,43 @@ export const OrderTrackingExperience: React.FC<OrderTrackingExperienceProps> = (
                 })}
               </div>
             </div>
+
+            {/* Live Shipment & Atelier Activity Log */}
+            {Array.isArray(orderDetails.liveActivities) && orderDetails.liveActivities.length > 0 && (
+              <div className="mt-8 pt-8 border-t border-neutral-100">
+                <h3 className="text-xs uppercase tracking-widest text-neutral-400 font-mono mb-4">
+                  Live Shipment &amp; Atelier Activity Log
+                </h3>
+                <div className="space-y-3">
+                  {orderDetails.liveActivities.map((act, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-3.5 rounded-xl bg-neutral-50 border border-neutral-200/70 text-xs"
+                    >
+                      <div>
+                        <span className="inline-block font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-neutral-900 text-white mr-2">
+                          {act.status.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-neutral-800 font-medium">{act.activity}</span>
+                        {act.location && (
+                          <span className="text-neutral-500 ml-2">· {act.location}</span>
+                        )}
+                      </div>
+                      {act.date && (
+                        <span className="text-[11px] font-mono text-neutral-400 whitespace-nowrap">
+                          {new Date(act.date).toLocaleString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Carrier & AWB Details Callout if present */}
             {orderDetails.trackingNumber && (

@@ -5,6 +5,7 @@ const STATIC_PUBLIC_PATHS = [
   '/',
   '/about',
   '/categories',
+  '/collections',
   '/contact',
   '/legal/privacy-policy',
   '/legal/shipping-returns',

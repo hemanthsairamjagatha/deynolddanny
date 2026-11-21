@@ -7,11 +7,12 @@ export interface LayeredProduct {
   id: string;
   slug: string;
   title: string;
+  subtitle?: string;
   image: string;
   price: string;
   priceNum: number;
-  originalPrice: string;
-  discount: string;
+  originalPrice?: string;
+  discount?: string;
   link: string;
 }
 
@@ -22,368 +23,389 @@ export interface LayeredLook {
   ctaText: string;
   ctaLink: string;
   modelImage: string;
+  focalX?: number;
+  focalY?: number;
   products: LayeredProduct[];
 }
 
 export const STYLE_LAYERING_LOOKS: LayeredLook[] = [
   {
-    id: 'avandress',
-    title: 'AVANDRESS',
-    subtitle: 'Classic Two-Tuck Wide Slacks & Layered Pigment Essentials',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/trousers',
-    modelImage: '/images/news-1-model.jpg',
+    id: 'atelier-deynold',
+    title: 'ATELIER DEYNOLD',
+    subtitle: 'Full-Canvas Virgin Wool Tailoring & Fine Knitwear',
+    ctaText: 'Shop Look',
+    ctaLink: '/categories/tailoring',
+    modelImage: '/images/mastery-1-model.jpg',
+    focalX: 50,
+    focalY: 20,
     products: [
       {
-        id: 'classic-two-tuck-wide-slacks',
-        slug: 'cady-trousers',
-        title: 'Classic Two-Tuck Wide...',
-        image: '/images/cady-trousers-product.jpg',
-        originalPrice: '₹ 84',
-        discount: '15%',
-        price: '₹ 71',
-        priceNum: 71,
-        link: '/products/cady-trousers'
-      },
-      {
-        id: 'r-pigment-hoodie-2',
-        slug: 'artisanal-ribbed-cashmere-zip-sweater',
-        title: 'R Pigment Hoodie _ 2...',
+        id: 'sl-atelier-1',
+        slug: 'tailored-virgin-wool-suit',
+        title: 'Tailored Virgin Wool Suit',
+        subtitle: '100% Virgin Wool • Charcoal',
         image: '/images/mastery-1-product.jpg',
-        originalPrice: '₹ 119',
-        discount: '38%',
-        price: '₹ 74',
-        priceNum: 74,
-        link: '/products/artisanal-ribbed-cashmere-zip-sweater'
+        price: '₹ 2,700.00',
+        priceNum: 2700,
+        link: '/products/tailored-virgin-wool-suit',
       },
       {
-        id: 'aachen-windbreaker-jacket',
-        slug: 'stand-collar-virgin-wool-tailored-car-coat',
-        title: 'Aachen Windbreaker Jump...',
-        image: '/images/news-1-product.jpg',
-        originalPrice: '₹ 135',
-        discount: '10%',
-        price: '₹ 122',
-        priceNum: 122,
-        link: '/products/stand-collar-virgin-wool-tailored-car-coat'
-      }
-    ]
-  },
-  {
-    id: 'ambler',
-    title: 'AMBLER',
-    subtitle: 'Oversized Streetwear & Graphic Embroidered Knitwear',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/hoodies',
-    modelImage: '/images/mastery-men-2.jpg',
-    products: [
-      {
-        id: 'ambler-embroidery-hoodie',
-        slug: 'merino-wool-ribbed-turtleneck',
-        title: 'Embroidered Heavy Hoodie',
-        image: '/images/mastery-2-product.jpg',
-        originalPrice: '₹ 128',
-        discount: '25%',
-        price: '₹ 96',
-        priceNum: 96,
-        link: '/products/merino-wool-ribbed-turtleneck'
-      },
-      {
-        id: 'ambler-sweatpants',
-        slug: 'cady-trousers',
-        title: 'Relaxed Pigment Joggers',
-        image: '/images/cady-trousers-swatch.jpg',
-        originalPrice: '₹ 92',
-        discount: '20%',
-        price: '₹ 74',
-        priceNum: 74,
-        link: '/products/cady-trousers'
-      },
-      {
-        id: 'ambler-beanie',
-        slug: 'cashmere-blend-ribbed-beanie',
-        title: 'Ribbed Knit Skull Beanie',
-        image: '/images/news-2-product.jpg',
-        originalPrice: '₹ 45',
-        discount: '15%',
-        price: '₹ 38',
-        priceNum: 38,
-        link: '/products/cashmere-blend-ribbed-beanie'
-      }
-    ]
-  },
-  {
-    id: 'minimal-project',
-    title: 'MINIMAL PROJECT',
-    subtitle: 'Technical Outerwear & Utility Pocket Silhouettes',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/outerwear',
-    modelImage: '/images/mastery-men-1.jpg',
-    products: [
-      {
-        id: 'minimal-hooded-parka',
-        slug: 'minimalist-cotton-twill-tailored-trench-coat',
-        title: 'Technical Utility Parka',
-        image: '/images/news-3-product.jpg',
-        originalPrice: '₹ 180',
-        discount: '20%',
-        price: '₹ 144',
-        priceNum: 144,
-        link: '/products/minimalist-cotton-twill-tailored-trench-coat'
-      },
-      {
-        id: 'minimal-cargo-pants',
-        slug: 'pleated-high-rise-wool-trousers',
-        title: 'Multi-Pocket Cargo Pants',
-        image: '/images/mastery-3-product.jpg',
-        originalPrice: '₹ 98',
-        discount: '18%',
-        price: '₹ 80',
-        priceNum: 80,
-        link: '/products/pleated-high-rise-wool-trousers'
-      },
-      {
-        id: 'minimal-chelsea-boot',
-        slug: 'handcrafted-burnished-calfskin-ankle-boots',
-        title: 'Commuter Ankle Boot',
-        image: '/images/mastery-4-product.jpg',
-        originalPrice: '₹ 165',
-        discount: '15%',
-        price: '₹ 140',
-        priceNum: 140,
-        link: '/products/handcrafted-burnished-calfskin-ankle-boots'
-      }
-    ]
-  },
-  {
-    id: 'basemoment',
-    title: 'BASEMOMENT',
-    subtitle: 'Relaxed Daily Cotton & Structural Basics',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/clothing',
-    modelImage: '/images/mastery-men-3.jpg',
-    products: [
-      {
-        id: 'base-heavy-crewneck',
-        slug: 'ribbed-cashmere-crewneck-knit-sweater',
-        title: 'Heavy Cotton Crewneck',
-        image: '/images/style-3-product.jpg',
-        originalPrice: '₹ 78',
-        discount: '20%',
-        price: '₹ 62',
-        priceNum: 62,
-        link: '/products/ribbed-cashmere-crewneck-knit-sweater'
-      },
-      {
-        id: 'base-wide-denim',
-        slug: 'cady-trousers',
-        title: 'Vintage Washed Wide Denim',
-        image: '/images/style-2-product.jpg',
-        originalPrice: '₹ 105',
-        discount: '15%',
-        price: '₹ 89',
-        priceNum: 89,
-        link: '/products/cady-trousers'
-      },
-      {
-        id: 'base-leather-loafer',
-        slug: 'hand-stitched-suede-loafer',
-        title: 'Everyday Leather Loafer',
-        image: '/images/style-4-product.jpg',
-        originalPrice: '₹ 145',
-        discount: '12%',
-        price: '₹ 128',
-        priceNum: 128,
-        link: '/products/hand-stitched-suede-loafer'
-      }
-    ]
-  },
-  {
-    id: 'theweather',
-    title: 'THEWEATHER#&SOMETHING',
-    subtitle: 'All-Weather Tech Shells & Windproof Layering',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/overcoats',
-    modelImage: '/images/news-2-model.jpg',
-    products: [
-      {
-        id: 'weather-shell-jacket',
-        slug: 'stand-collar-virgin-wool-tailored-car-coat',
-        title: 'Stormproof Modular Shell',
-        image: '/images/news-2-product.jpg',
-        originalPrice: '₹ 195',
-        discount: '22%',
-        price: '₹ 152',
-        priceNum: 152,
-        link: '/products/stand-collar-virgin-wool-tailored-car-coat'
-      },
-      {
-        id: 'weather-tech-pants',
-        slug: 'pleated-high-rise-wool-trousers',
-        title: 'Waterproof Stretch Slacks',
-        image: '/images/news-4-product.jpg',
-        originalPrice: '₹ 110',
-        discount: '15%',
-        price: '₹ 93',
-        priceNum: 93,
-        link: '/products/pleated-high-rise-wool-trousers'
-      },
-      {
-        id: 'weather-crossbody-bag',
-        slug: 'handcrafted-tuscan-leather-travel-weekender',
-        title: 'Weatherproof Tactical Sling',
-        image: '/images/style-5-product.jpg',
-        originalPrice: '₹ 68',
-        discount: '10%',
-        price: '₹ 61',
-        priceNum: 61,
-        link: '/products/handcrafted-tuscan-leather-travel-weekender'
-      }
-    ]
-  },
-  {
-    id: 'search410',
-    title: 'SEARCH410',
-    subtitle: 'Subtle Distressed Details & Modern Street Cuts',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/denim-sweatshirts',
-    modelImage: '/images/news-4-model.jpg',
-    products: [
-      {
-        id: 'search-distressed-sweatshirt',
-        slug: 'artisanal-ribbed-cashmere-zip-sweater',
-        title: 'Faded Arch Sweatshirt',
-        image: '/images/mastery-5-product.jpg',
-        originalPrice: '₹ 94',
-        discount: '30%',
-        price: '₹ 65',
-        priceNum: 65,
-        link: '/products/artisanal-ribbed-cashmere-zip-sweater'
-      },
-      {
-        id: 'search-skater-chinos',
-        slug: 'cady-trousers',
-        title: 'Baggy Skater Chinos',
-        image: '/images/cady-trousers-detail.jpg',
-        originalPrice: '₹ 86',
-        discount: '15%',
-        price: '₹ 73',
-        priceNum: 73,
-        link: '/products/cady-trousers'
-      },
-      {
-        id: 'search-canvas-cap',
-        slug: 'cashmere-blend-ribbed-beanie',
-        title: 'Embroidered Cotton Cap',
-        image: '/images/news-5-product.jpg',
-        originalPrice: '₹ 42',
-        discount: '10%',
-        price: '₹ 38',
-        priceNum: 38,
-        link: '/products/cashmere-blend-ribbed-beanie'
-      }
-    ]
-  },
-  {
-    id: 'maintain',
-    title: 'MAINTAIN',
-    subtitle: 'Contemporary Clean Lines & Minimal Palette',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/shirts',
-    modelImage: '/images/style-1-model.jpg',
-    products: [
-      {
-        id: 'maintain-oxford-shirt',
+        id: 'sl-atelier-2',
         slug: 'sartorial-poplin-and-twill-dress-shirts-trio',
-        title: 'Boxy Poplin Overshirt',
+        title: 'Sartorial Poplin Dress Shirt',
+        subtitle: 'Egyptian Cotton • Ivory',
         image: '/images/mastery-3-product.jpg',
-        originalPrice: '₹ 88',
-        discount: '18%',
-        price: '₹ 72',
-        priceNum: 72,
-        link: '/products/sartorial-poplin-and-twill-dress-shirts-trio'
+        price: '₹ 1,980.00',
+        priceNum: 1980,
+        link: '/products/sartorial-poplin-and-twill-dress-shirts-trio',
       },
       {
-        id: 'maintain-tailored-shorts',
-        slug: 'cady-trousers',
-        title: 'Tailored Pleated Bermudas',
-        image: '/images/cady-trousers-waist.jpg',
-        originalPrice: '₹ 75',
-        discount: '15%',
-        price: '₹ 63',
-        priceNum: 63,
-        link: '/products/cady-trousers'
-      },
-      {
-        id: 'maintain-leather-mule',
+        id: 'sl-atelier-3',
         slug: 'nappa-leather-chelsea-flat',
-        title: 'Minimalist Nappa Flat',
-        image: '/images/news-4-product.jpg',
-        originalPrice: '₹ 135',
-        discount: '12%',
-        price: '₹ 118',
-        priceNum: 118,
-        link: '/products/nappa-leather-chelsea-flat'
-      }
-    ]
+        title: 'Nappa Leather Chelsea Flat',
+        subtitle: 'Full-Grain Calfskin • Espresso',
+        image: '/images/style-1-product.jpg',
+        price: '₹ 1,170.00',
+        priceNum: 1170,
+        link: '/products/nappa-leather-chelsea-flat',
+      },
+    ],
   },
   {
-    id: 'mathematik',
-    title: 'MATHEMATIK',
-    subtitle: 'Functional Bags & Ergonomic Commuter Accents',
-    ctaText: 'Shop Now',
-    ctaLink: '/categories/accessories',
-    modelImage: '/images/style-5-model.jpg',
+    id: 'quiet-cashmere',
+    title: 'QUIET CASHMERE',
+    subtitle: 'Double-Faced Overcoats & Inner-Fleece Knitwear',
+    ctaText: 'Shop Look',
+    ctaLink: '/categories/knitwear',
+    modelImage: '/images/mastery-2-model.jpg',
+    focalX: 50,
+    focalY: 22,
     products: [
       {
-        id: 'math-backpack',
-        slug: 'handcrafted-tuscan-leather-travel-weekender',
-        title: 'Ergonomic Commuter Pack',
-        image: '/images/style-5-product.jpg',
-        originalPrice: '₹ 140',
-        discount: '20%',
-        price: '₹ 112',
-        priceNum: 112,
-        link: '/products/handcrafted-tuscan-leather-travel-weekender'
+        id: 'sl-cashmere-1',
+        slug: 'tailored-virgin-wool-overcoat-with-cashmere-scarf',
+        title: 'Virgin Wool Overcoat & Scarf',
+        subtitle: 'Virgin Wool & Cashmere',
+        image: '/images/mastery-2-product.jpg',
+        price: '₹ 4,500.00',
+        priceNum: 4500,
+        link: '/products/tailored-virgin-wool-overcoat-with-cashmere-scarf',
       },
       {
-        id: 'math-messenger',
-        slug: 'handcrafted-tuscan-leather-travel-weekender',
-        title: 'Waterproof Messenger Bag',
-        image: '/images/style-1-product.jpg',
-        originalPrice: '₹ 115',
-        discount: '15%',
-        price: '₹ 97',
-        priceNum: 97,
-        link: '/products/handcrafted-tuscan-leather-travel-weekender'
+        id: 'sl-cashmere-2',
+        slug: 'merino-wool-ribbed-turtleneck',
+        title: 'Merino Ribbed Turtleneck',
+        subtitle: 'Superfine Merino • Stone',
+        image: '/images/mastery-4-product.jpg',
+        price: '₹ 1,440.00',
+        priceNum: 1440,
+        link: '/products/merino-wool-ribbed-turtleneck',
       },
       {
-        id: 'math-wallet',
-        slug: 'round-polarized-sunglasses-on-carrara-marble',
-        title: 'Modular Zip Coin Card Case',
+        id: 'sl-cashmere-3',
+        slug: 'cashmere-blend-ribbed-beanie',
+        title: 'Cashmere Ribbed Beanie',
+        subtitle: 'Pure Inner Fleece • Navy',
+        image: '/images/style-4-product.jpg',
+        price: '₹ 540.00',
+        priceNum: 540,
+        link: '/products/cashmere-blend-ribbed-beanie',
+      },
+    ],
+  },
+  {
+    id: 'architectural-coats',
+    title: 'ARCHITECTURAL COATS',
+    subtitle: 'Structured Car Coats & High-Rise Pleated Trousers',
+    ctaText: 'Shop Look',
+    ctaLink: '/categories/coats',
+    modelImage: '/images/style-2-model.jpg',
+    focalX: 50,
+    focalY: 20,
+    products: [
+      {
+        id: 'sl-coats-1',
+        slug: 'stand-collar-virgin-wool-tailored-car-coat',
+        title: 'Stand-Collar Tailored Car Coat',
+        subtitle: 'Heavyweight Virgin Wool',
+        image: '/images/style-2-product.jpg',
+        price: '₹ 3,330.00',
+        priceNum: 3330,
+        link: '/products/stand-collar-virgin-wool-tailored-car-coat',
+      },
+      {
+        id: 'sl-coats-2',
+        slug: 'pleated-high-rise-wool-trousers',
+        title: 'Pleated High-Rise Trousers',
+        subtitle: 'Architectural Drape • Slate',
+        image: '/images/news-3-product.jpg',
+        price: '₹ 1,260.00',
+        priceNum: 1260,
+        link: '/products/pleated-high-rise-wool-trousers',
+      },
+      {
+        id: 'sl-coats-3',
+        slug: 'hand-stitched-suede-loafer',
+        title: 'Hand-Stitched Suede Loafer',
+        subtitle: 'Water-Repellent Suede',
+        image: '/images/news-2-product.jpg',
+        price: '₹ 1,440.00',
+        priceNum: 1440,
+        link: '/products/hand-stitched-suede-loafer',
+      },
+    ],
+  },
+  {
+    id: 'sartorial-shirting',
+    title: 'SARTORIAL SHIRTING',
+    subtitle: 'Crisp Poplin, Tailored Vests & Fluid Trousers',
+    ctaText: 'Shop Look',
+    ctaLink: '/categories/shirts',
+    modelImage: '/images/mastery-3-model.jpg',
+    focalX: 50,
+    focalY: 20,
+    products: [
+      {
+        id: 'sl-shirt-1',
+        slug: 'sartorial-poplin-and-twill-dress-shirts-trio',
+        title: 'Poplin & Twill Dress Shirts',
+        subtitle: 'Mother-of-Pearl Buttons',
+        image: '/images/mastery-3-product.jpg',
+        price: '₹ 1,980.00',
+        priceNum: 1980,
+        link: '/products/sartorial-poplin-and-twill-dress-shirts-trio',
+      },
+      {
+        id: 'sl-shirt-2',
+        slug: 'cady-crepe-tailored-vest',
+        title: 'Cady Crêpe Tailored Vest',
+        subtitle: 'Sculpted Waistcoat',
+        image: '/images/style-3-product.jpg',
+        price: '₹ 900.00',
+        priceNum: 900,
+        link: '/products/cady-crepe-tailored-vest',
+      },
+      {
+        id: 'sl-shirt-3',
+        slug: 'cady-trousers',
+        title: 'CADY-TROUSERS',
+        subtitle: 'Double-Pleated Silhouette',
+        image: '/images/cady-trousers-product.jpg',
+        price: '₹ 67,500.00',
+        priceNum: 67500,
+        link: '/products/cady-trousers',
+      },
+    ],
+  },
+  {
+    id: 'evening-tailoring',
+    title: 'EVENING TAILORING',
+    subtitle: 'Peak-Lapel Dinner Jackets & Horological Accents',
+    ctaText: 'Shop Look',
+    ctaLink: '/categories/suits',
+    modelImage: '/images/mastery-5-model.jpg',
+    focalX: 50,
+    focalY: 20,
+    products: [
+      {
+        id: 'sl-eve-1',
+        slug: 'full-canvas-peak-lapel-dinner-jacket',
+        title: 'Peak Lapel Dinner Jacket',
+        subtitle: 'Silk Grosgrain Facings',
+        image: '/images/mastery-5-product.jpg',
+        price: '₹ 3,600.00',
+        priceNum: 3600,
+        link: '/products/full-canvas-peak-lapel-dinner-jacket',
+      },
+      {
+        id: 'sl-eve-2',
+        slug: 'automatic-chronograph-timepiece-with-alligator-strap',
+        title: 'Automatic Chronograph',
+        subtitle: 'Swiss Calibre • Leather Strap',
         image: '/images/news-5-product.jpg',
-        originalPrice: '₹ 55',
-        discount: '10%',
-        price: '₹ 49',
-        priceNum: 49,
-        link: '/products/round-polarized-sunglasses-on-carrara-marble'
-      }
-    ]
-  }
+        price: '₹ 7,200.00',
+        priceNum: 7200,
+        link: '/products/automatic-chronograph-timepiece-with-alligator-strap',
+      },
+      {
+        id: 'sl-eve-3',
+        slug: 'pleated-high-rise-wool-trousers',
+        title: 'High-Rise Wool Trousers',
+        subtitle: 'Formal Barathea Wool',
+        image: '/images/news-3-product.jpg',
+        price: '₹ 1,260.00',
+        priceNum: 1260,
+        link: '/products/pleated-high-rise-wool-trousers',
+      },
+    ],
+  },
+  {
+    id: 'artisanal-leather',
+    title: 'ARTISANAL LEATHER',
+    subtitle: 'Hand-Burnished Footwear & Full-Grain Travel Goods',
+    ctaText: 'Shop Look',
+    ctaLink: '/categories/accessories',
+    modelImage: '/images/style-1-model.jpg',
+    focalX: 50,
+    focalY: 25,
+    products: [
+      {
+        id: 'sl-leather-1',
+        slug: 'grain-leather-structured-tote',
+        title: 'Grain Leather Structured Tote',
+        subtitle: 'Vegetable-Tanned Calfskin',
+        image: '/images/style-5-product.jpg',
+        price: '₹ 2,250.00',
+        priceNum: 2250,
+        link: '/products/grain-leather-structured-tote',
+      },
+      {
+        id: 'sl-leather-2',
+        slug: 'lambskin-crossbody-mini-bag',
+        title: 'Lambskin Crossbody Bag',
+        subtitle: 'Supple Nappa • Palladium',
+        image: '/images/news-4-product.jpg',
+        price: '₹ 1,980.00',
+        priceNum: 1980,
+        link: '/products/lambskin-crossbody-mini-bag',
+      },
+      {
+        id: 'sl-leather-3',
+        slug: 'nappa-leather-chelsea-flat',
+        title: 'Nappa Leather Chelsea Flat',
+        subtitle: 'Blake-Stitched Sole',
+        image: '/images/style-1-product.jpg',
+        price: '₹ 1,170.00',
+        priceNum: 1170,
+        link: '/products/nappa-leather-chelsea-flat',
+      },
+    ],
+  },
 ];
+
+interface StyleLayeringCmsPayload {
+  title?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  tabs?: Array<{
+    key?: string;
+    label?: string;
+    subtitle?: string;
+    ctaLabel?: string;
+    ctaUrl?: string;
+    backdropImage?: string;
+    focalX?: number;
+    focalY?: number;
+    pieces?: Array<{
+      title?: string;
+      subtitle?: string;
+      image?: string;
+      href?: string;
+      price?: string;
+      originalPrice?: string;
+      discount?: string;
+    }>;
+  }>;
+}
 
 export const StyleLayering: React.FC = () => {
   const selectedCountry = useStore($selectedCountry);
   const fx = useStore($fxSnapshot);
-  const looks = STYLE_LAYERING_LOOKS;
+  const [cmsConfig, setCmsConfig] = useState<StyleLayeringCmsPayload | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const win = window as unknown as {
+      __ddStyleLayeringCms?: StyleLayeringCmsPayload;
+      __ddPublishedBundle?: { homepageSections?: Array<{ sectionType?: string; section_type?: string; props?: StyleLayeringCmsPayload; config_json?: StyleLayeringCmsPayload }> };
+    };
+
+    if (win.__ddStyleLayeringCms) {
+      setCmsConfig(win.__ddStyleLayeringCms);
+    } else if (win.__ddPublishedBundle?.homepageSections) {
+      const sec = win.__ddPublishedBundle.homepageSections.find(
+        (s) => (s.sectionType ?? s.section_type) === 'style_layering',
+      );
+      if (sec) setCmsConfig(sec.props ?? sec.config_json ?? null);
+    }
+
+    const onUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<StyleLayeringCmsPayload>).detail;
+      if (detail && typeof detail === 'object') setCmsConfig(detail);
+    };
+    const onBundle = (e: Event) => {
+      const bundle = (e as CustomEvent<{ homepageSections?: Array<{ sectionType?: string; section_type?: string; props?: StyleLayeringCmsPayload; config_json?: StyleLayeringCmsPayload }> }>).detail;
+      const sec = bundle?.homepageSections?.find((s) => (s.sectionType ?? s.section_type) === 'style_layering');
+      if (sec) setCmsConfig(sec.props ?? sec.config_json ?? null);
+    };
+    window.addEventListener('dd:style-layering-cms-update', onUpdate);
+    window.addEventListener('dd:storefront-bundle-ready', onBundle);
+    return () => {
+      window.removeEventListener('dd:style-layering-cms-update', onUpdate);
+      window.removeEventListener('dd:storefront-bundle-ready', onBundle);
+    };
+  }, []);
+
+  const looks: LayeredLook[] = React.useMemo(() => {
+    if (cmsConfig?.tabs && Array.isArray(cmsConfig.tabs) && cmsConfig.tabs.length > 0) {
+      const mapped = cmsConfig.tabs
+        .filter((t) => t && (t.label || t.backdropImage))
+        .map((t, idx) => {
+          const fallback = STYLE_LAYERING_LOOKS[idx % STYLE_LAYERING_LOOKS.length];
+          const pieces: LayeredProduct[] =
+            Array.isArray(t.pieces) && t.pieces.length > 0
+              ? t.pieces.map((p, pi) => {
+                  const fbPiece = fallback.products[pi % fallback.products.length];
+                  const priceStr = (p.price || '').trim() || fbPiece.price;
+                  const origStr = (p.originalPrice || '').trim();
+                  const discStr = (p.discount || '').trim();
+                  return {
+                    id: `${t.key || idx}-p-${pi}`,
+                    slug: (p.href || '').replace(/^\/products\//, '') || fbPiece.slug,
+                    title: (p.title || '').trim() || fbPiece.title,
+                    subtitle: (p.subtitle || '').trim() || fbPiece.subtitle,
+                    image: (p.image || '').trim() || fbPiece.image,
+                    originalPrice: origStr && origStr !== priceStr ? origStr : undefined,
+                    discount: discStr || undefined,
+                    price: priceStr,
+                    priceNum: parseFloat(priceStr.replace(/[^0-9.]/g, '')) || fbPiece.priceNum,
+                    link: (p.href || '').trim() || fbPiece.link,
+                  };
+                })
+              : fallback.products;
+          return {
+            id: t.key || `cms-look-${idx}`,
+            title: (t.label || '').trim() || fallback.title,
+            subtitle: (t.subtitle || '').trim() || fallback.subtitle,
+            ctaText: (t.ctaLabel || cmsConfig.ctaLabel || '').trim() || fallback.ctaText,
+            ctaLink: (t.ctaUrl || cmsConfig.ctaUrl || '').trim() || fallback.ctaLink,
+            modelImage: (t.backdropImage || '').trim() || fallback.modelImage,
+            focalX: typeof t.focalX === 'number' ? t.focalX : fallback.focalX ?? 50,
+            focalY: typeof t.focalY === 'number' ? t.focalY : fallback.focalY ?? 25,
+            products: pieces,
+          };
+        });
+      if (mapped.length > 0) return mapped;
+    }
+    return STYLE_LAYERING_LOOKS;
+  }, [cmsConfig]);
+
+  const sectionTitle = cmsConfig?.title?.trim() || 'STYLE LAYERING';
+  const sectionCtaLabel = cmsConfig?.ctaLabel?.trim() || 'Shop All Looks';
+  const sectionCtaUrl = cmsConfig?.ctaUrl?.trim() || '/categories';
+
   const LOOKS_COUNT = looks.length;
-  // Triple the looks array for infinite looping: [0..7, 8..15 (middle original), 16..23]
+  // Triple the looks array for infinite looping: [0..N-1, N..2N-1 (middle original), 2N..3N-1]
   const TRIPLED_LOOKS = React.useMemo(() => [...looks, ...looks, ...looks], [looks]);
 
-  // Start at index LOOKS_COUNT (index 8, the first item of the middle set)
-  const [slideIndex, setSlideIndex] = useState<number>(LOOKS_COUNT);
   const [withTransition, setWithTransition] = useState<boolean>(true);
+  const [slideIndex, setSlideIndex] = useState<number>(LOOKS_COUNT);
   const [isDesktop, setIsDesktop] = useState<boolean>(true);
+
+  useEffect(() => {
+    setWithTransition(false);
+    setSlideIndex(LOOKS_COUNT);
+  }, [LOOKS_COUNT]);
 
   const brandNavRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -409,7 +431,7 @@ export const StyleLayering: React.FC = () => {
       const containerWidth = container.offsetWidth;
       container.scrollTo({
         left: tabLeft - containerWidth / 2 + tabWidth / 2,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
     }
   }, [activeBrandIndex]);
@@ -495,11 +517,11 @@ export const StyleLayering: React.FC = () => {
         <div className="mastery-header-row">
           <div className="mastery-title-wrap">
             <h2 className="mastery-heading">
-              STYLE LAYERING
+              {sectionTitle}
             </h2>
           </div>
-          <a href="/categories" className="mastery-view-all">
-            Shop All Looks
+          <a href={sectionCtaUrl} className="mastery-view-all">
+            {sectionCtaLabel}
           </a>
         </div>
       </div>
@@ -519,7 +541,7 @@ export const StyleLayering: React.FC = () => {
               onClick={() => handleTabClick(idx)}
               className={`text-[13px] sm:text-[14px] uppercase tracking-[0.06em] font-montserrat whitespace-nowrap transition-colors duration-200 cursor-pointer pb-1 ${
                 activeBrandIndex === idx
-                  ? 'text-black font-bold'
+                  ? 'text-black font-bold border-b border-black'
                   : 'text-[#8e8e93] hover:text-black font-medium'
               }`}
             >
@@ -544,7 +566,7 @@ export const StyleLayering: React.FC = () => {
                 : `translateX(calc(50% - 45vw - ${slideIndex * 92}vw))`,
               transition: withTransition
                 ? 'transform 700ms cubic-bezier(0.22, 1, 0.36, 1)'
-                : 'none'
+                : 'none',
             }}
           >
             {TRIPLED_LOOKS.map((look, idx) => {
@@ -563,30 +585,38 @@ export const StyleLayering: React.FC = () => {
                     <img
                       src={look.modelImage}
                       alt={look.title}
-                      className="w-full h-full object-cover object-top transition-transform duration-700 ease-out"
-                      loading={Math.abs(idx - slideIndex) <= 1 ? "eager" : "lazy"}
+                      style={{ objectPosition: `${look.focalX ?? 50}% ${look.focalY ?? 25}%` }}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out"
+                      loading={Math.abs(idx - slideIndex) <= 1 ? 'eager' : 'lazy'}
                     />
 
                     {/* Gradient Overlay for Crisp Text Contrast */}
-                    <div className={`absolute inset-0 transition-opacity duration-500 ${
-                      isActive
-                        ? 'bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none'
-                        : 'bg-black/40 hover:bg-black/20 pointer-events-none'
-                    }`} />
+                    <div
+                      className={`absolute inset-0 transition-opacity duration-500 ${
+                        isActive
+                          ? 'bg-gradient-to-t from-black/90 via-black/35 to-black/25 pointer-events-none'
+                          : 'bg-black/40 hover:bg-black/20 pointer-events-none'
+                      }`}
+                    />
 
                     {/* Interactive Content (Visible on active slide) */}
                     <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                       {/* Center Brand / Collection Title */}
-                      <div className="absolute top-[38%] sm:top-[42%] left-0 right-0 text-center px-6 z-10 pointer-events-none">
-                        <h3 className="brand-look-title text-[28px] sm:text-[40px] font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md leading-[40px]">
+                      <div className="absolute top-[36%] sm:top-[40%] left-0 right-0 text-center px-6 z-10 pointer-events-none">
+                        <h3 className="brand-look-title text-[26px] sm:text-[38px] font-semibold tracking-[0.16em] text-white uppercase font-montserrat drop-shadow-md leading-tight">
                           {look.title}
                         </h3>
+                        {look.subtitle && (
+                          <p className="mt-2 text-[11px] sm:text-xs text-white/80 tracking-[0.12em] uppercase font-montserrat drop-shadow">
+                            {look.subtitle}
+                          </p>
+                        )}
                       </div>
 
-                      {/* Bottom Row of 3 Shoppable Product Cards */}
+                      {/* Bottom Row of Shoppable Product Cards */}
                       <div className="absolute bottom-5 sm:bottom-7 left-0 right-0 flex justify-center px-3 sm:px-6 z-10">
                         <div className="grid grid-cols-3 gap-2.5 sm:gap-[15px] max-w-[550px] w-full">
-                          {look.products.map((prod) => (
+                          {look.products.slice(0, 3).map((prod) => (
                             <a
                               key={prod.id}
                               href={prod.link}
@@ -598,18 +628,19 @@ export const StyleLayering: React.FC = () => {
                                   src={prod.image}
                                   alt={prod.title}
                                   className="w-full h-full sm:w-[173px] sm:h-[230.78px] object-cover object-center"
-                                  loading={isActive ? "eager" : "lazy"}
+                                  loading={isActive ? 'eager' : 'lazy'}
                                 />
                                 {/* Wishlist Button inside Image */}
                                 <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 z-10">
                                   <WishlistButton
                                     item={{
-                                      id: prod.id,
+                                      id: prod.slug || prod.id,
+                                      slug: prod.slug,
                                       title: prod.title,
                                       price: prod.price,
                                       priceNum: prod.priceNum,
                                       image: prod.image,
-                                      link: prod.link
+                                      link: prod.link,
                                     }}
                                     className="style-layering-wishlist-btn p-1 bg-transparent hover:bg-transparent text-neutral-400 hover:text-black shadow-none"
                                   />
@@ -621,13 +652,17 @@ export const StyleLayering: React.FC = () => {
                                 <p className="text-[11px] sm:text-[12px] font-medium text-white truncate tracking-tight font-montserrat mb-0.5">
                                   {prod.title}
                                 </p>
-                                <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
-                                  {formatInrDisplayString(prod.originalPrice, selectedCountry, fx)}
-                                </p>
+                                {prod.originalPrice && (
+                                  <p className="text-[10px] sm:text-[11px] text-white/50 line-through font-montserrat leading-none mb-1">
+                                    {formatInrDisplayString(prod.originalPrice, selectedCountry, fx)}
+                                  </p>
+                                )}
                                 <p className="text-[11px] sm:text-[12px] font-montserrat leading-none flex items-center gap-1.5">
-                                  <span className="text-[#ff4d4f] font-bold">
-                                    {prod.discount}
-                                  </span>
+                                  {prod.discount && (
+                                    <span className="text-[#ff4d4f] font-bold">
+                                      {prod.discount}
+                                    </span>
+                                  )}
                                   <span className="text-white font-semibold">
                                     {formatInrDisplayString(prod.price, selectedCountry, fx)}
                                   </span>

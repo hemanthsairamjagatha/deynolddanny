@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { cms } from '../../lib/api';
+import { cms, products as productsApi } from '../../lib/api';
 import type { SectionType } from '../../lib/types';
 import { Button, Badge, statusVariant, Modal, Input, Textarea, Select, Spinner } from '../../components/ui';
 import { ImageUrlField } from '../../components/MediaPickerModal';
@@ -62,6 +62,8 @@ interface StyleLayeringPiece {
   image: string;
   href: string;
   price: string;
+  originalPrice?: string;
+  discount?: string;
 }
 
 interface StyleLayeringTab {
@@ -72,6 +74,34 @@ interface StyleLayeringTab {
   focalY?: number;
   pieces: StyleLayeringPiece[];
 }
+
+interface CarouselCategoryTab {
+  label: string;
+  value: string;
+}
+
+interface CarouselProductItem {
+  id: string;
+  slug: string;
+  title: string;
+  section_group: string;
+  price_paise: number;
+  min_price_paise: number;
+  max_price_paise: number;
+  default_img: string;
+  colors: Array<{ name: string; hex: string }>;
+}
+
+const DEFAULT_CAROUSEL_CATEGORIES: CarouselCategoryTab[] = [
+  { label: 'ALL', value: 'all' },
+  { label: 'TAILORING', value: 'tailoring' },
+  { label: 'SHIRTS', value: 'shirts' },
+  { label: 'TROUSERS', value: 'trousers' },
+  { label: 'KNITWEAR', value: 'knitwear' },
+  { label: 'OUTERWEAR', value: 'outerwear' },
+  { label: 'FOOTWEAR', value: 'footwear' },
+  { label: 'ACCESSORIES', value: 'accessories' },
+];
 
 const SECTION_TYPES: Array<{ value: SectionType; label: string; description: string }> = [
   { value: 'hero_banner', label: 'Hero Banner', description: 'Full-width editorial hero with desktop/mobile imagery, overlay tint, focal point, headline & CTA buttons' },
@@ -215,14 +245,15 @@ function HeroBannerEditor({ config, onChange }: { config: Record<string, unknown
         </div>
 
         <div className="sm:col-span-2 p-4 rounded-xl border border-gold-300 bg-gold-50/40 space-y-2">
-          <Input
-            label="Optional Looping Runway Video URL (.mp4 / .webm)"
+          <ImageUrlField
+            label="Optional Looping Runway Video (.mp4 / .webm)"
             value={videoUrl}
-            onChange={(e) => set('videoUrl', e.target.value)}
-            placeholder="https://.../menswear-runway-loop.mp4 (leave blank to run 3D Multi-Look Runway)"
+            onChange={(url) => set('videoUrl', url)}
+            allowVideo
+            placeholder="Upload .mp4 / .webm or paste URL (leave blank for 3D Multi-Look Runway)"
           />
           <p className="text-[11px] text-ink-500">
-            When a video URL is added, the homepage plays a silent looping runway film automatically (with your Desktop Image as instant poster). Leave blank to display the interactive 3D-Depth Runway Looks below.
+            When a video is uploaded or linked, the homepage plays a silent looping runway film automatically (with your Desktop Image as instant poster). Remove or leave blank to display the interactive 3D-Depth Runway Looks below.
           </p>
         </div>
 
@@ -435,11 +466,67 @@ function EditorialDuoEditor({ config, onChange }: { config: Record<string, unkno
 
 // ─── 5. VISUAL STYLE LAYERING EDITOR ─────────────────────────────────────────
 function StyleLayeringEditor({ config, onChange }: { config: Record<string, unknown>; onChange: (n: Record<string, unknown>) => void }) {
+  const navigate = useNavigate();
   const tabs: StyleLayeringTab[] = Array.isArray(config.tabs) ? (config.tabs as StyleLayeringTab[]) : [];
   const updateTabs = (next: StyleLayeringTab[]) => onChange({ ...config, tabs: next });
 
+  const updatePiece = (tIdx: number, pIdx: number, patch: Partial<StyleLayeringPiece>) => {
+    updateTabs(
+      tabs.map((t, i) => {
+        if (i !== tIdx) return t;
+        const pieces = Array.isArray(t.pieces) ? t.pieces : [];
+        return {
+          ...t,
+          pieces: pieces.map((p, j) => (j === pIdx ? { ...p, ...patch } : p)),
+        };
+      }),
+    );
+  };
+
+  const addPiece = (tIdx: number) => {
+    updateTabs(
+      tabs.map((t, i) => {
+        if (i !== tIdx) return t;
+        const pieces = Array.isArray(t.pieces) ? t.pieces : [];
+        return {
+          ...t,
+          pieces: [
+            ...pieces,
+            {
+              title: 'Tailored Garment',
+              subtitle: '100% Virgin Wool',
+              image: '/images/mastery-1-product.jpg',
+              href: '/products/tailored-virgin-wool-suit',
+              price: '₹ 2,700.00',
+              originalPrice: '₹ 3,200.00',
+              discount: '15%',
+            },
+          ],
+        };
+      }),
+    );
+  };
+
+  const removePiece = (tIdx: number, pIdx: number) => {
+    updateTabs(
+      tabs.map((t, i) => {
+        if (i !== tIdx) return t;
+        const pieces = Array.isArray(t.pieces) ? t.pieces : [];
+        return { ...t, pieces: pieces.filter((_, j) => j !== pIdx) };
+      }),
+    );
+  };
+
   return (
     <div className="col-span-2 space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-xl bg-gold-50/70 border border-gold-200">
+        <p className="text-xs text-ink-800">
+          Want a full-screen 3-panel live preview &amp; 1-click catalogue product picker for Style Layering?
+        </p>
+        <Button size="sm" variant="primary" onClick={() => navigate('/style-layering')}>
+          Open Style Layering Studio →
+        </Button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Input label="Section Title" value={String(config.title ?? '')} onChange={(e) => onChange({ ...config, title: e.target.value })} />
         <Input label="CTA Label" value={String(config.ctaLabel ?? '')} onChange={(e) => onChange({ ...config, ctaLabel: e.target.value })} />
@@ -459,26 +546,558 @@ function StyleLayeringEditor({ config, onChange }: { config: Record<string, unkn
         </Button>
       </div>
 
-      {tabs.map((tab, tIdx) => (
-        <div key={tab.key || tIdx} className="p-4 border border-ink-200 rounded-xl bg-ink-50/40 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-600">Look #{tIdx + 1}: {tab.label}</span>
-            <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => updateTabs(tabs.filter((_, i) => i !== tIdx))}>
-              Remove Look
-            </Button>
+      {tabs.map((tab, tIdx) => {
+        const pieces = Array.isArray(tab.pieces) ? tab.pieces : [];
+        return (
+          <div key={tab.key || tIdx} className="p-4 border border-ink-200 rounded-xl bg-ink-50/40 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-600">Look #{tIdx + 1}: {tab.label}</span>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" disabled={tIdx === 0} onClick={() => updateTabs(moveArr(tabs, tIdx, -1))}>↑</Button>
+                <Button size="sm" variant="ghost" disabled={tIdx === tabs.length - 1} onClick={() => updateTabs(moveArr(tabs, tIdx, 1))}>↓</Button>
+                <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => updateTabs(tabs.filter((_, i) => i !== tIdx))}>
+                  Remove Look
+                </Button>
+              </div>
+            </div>
+            <Input
+              label="Tab Label"
+              value={tab.label ?? ''}
+              onChange={(e) => updateTabs(tabs.map((t, i) => (i === tIdx ? { ...t, label: e.target.value } : t)))}
+            />
+            <ImageUrlField
+              label="Backdrop Model Image"
+              value={tab.backdropImage ?? ''}
+              onChange={(url) => updateTabs(tabs.map((t, i) => (i === tIdx ? { ...t, backdropImage: url } : t)))}
+            />
+
+            {/* Shoppable Pieces Inside Look Tab */}
+            <div className="pt-3 border-t border-ink-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-ink-800">Shoppable Product Cards in This Look ({pieces.length})</span>
+                <Button size="sm" variant="outline" onClick={() => addPiece(tIdx)}>
+                  + Add Piece
+                </Button>
+              </div>
+              {pieces.map((piece, pIdx) => (
+                <div key={pIdx} className="p-3 bg-white rounded-lg border border-ink-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono text-ink-500">Piece #{pIdx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removePiece(tIdx, pIdx)}
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <Input label="Garment Title" value={piece.title ?? ''} onChange={(e) => updatePiece(tIdx, pIdx, { title: e.target.value })} />
+                    <Input label="Product Link URL" value={piece.href ?? ''} onChange={(e) => updatePiece(tIdx, pIdx, { href: e.target.value })} placeholder="/products/cady-trousers" />
+                    <Input label="Display Price" value={piece.price ?? ''} onChange={(e) => updatePiece(tIdx, pIdx, { price: e.target.value })} placeholder="₹ 2,700.00" />
+                    <Input label="Subtitle / Fabric" value={piece.subtitle ?? ''} onChange={(e) => updatePiece(tIdx, pIdx, { subtitle: e.target.value })} />
+                    <div className="sm:col-span-2">
+                      <ImageUrlField
+                        label="Piece Thumbnail Image"
+                        value={piece.image ?? ''}
+                        onChange={(url) => updatePiece(tIdx, pIdx, { image: url })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <Input
-            label="Tab Label"
-            value={tab.label ?? ''}
-            onChange={(e) => updateTabs(tabs.map((t, i) => (i === tIdx ? { ...t, label: e.target.value } : t)))}
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── 6. VISUAL PRODUCT CAROUSEL EDITOR (OUR BEST SELLERS & NEW ARRIVAL) ──────
+function ProductCarouselEditor({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>;
+  onChange: (n: Record<string, unknown>) => void;
+}) {
+  const navigate = useNavigate();
+  const set = (k: string, v: unknown) => onChange({ ...config, [k]: v });
+
+  const rawCategories: CarouselCategoryTab[] = useMemo(() => {
+    if (Array.isArray(config.categories) && config.categories.length > 0) {
+      return config.categories as CarouselCategoryTab[];
+    }
+    if (Array.isArray(config.tabs) && config.tabs.length > 0) {
+      const converted = (config.tabs as Array<{ label?: string; value?: string; href?: string }>)
+        .filter((t) => t && t.label)
+        .map((t) => ({
+          label: String(t.label).toUpperCase(),
+          value: String(t.value || (t.href || '').replace(/^\/categories\//, '') || t.label).toLowerCase(),
+        }));
+      return converted.some((c) => c.value === 'all') ? converted : [{ label: 'ALL', value: 'all' }, ...converted];
+    }
+    return DEFAULT_CAROUSEL_CATEGORIES;
+  }, [config.categories, config.tabs]);
+
+  const updateCategories = (next: CarouselCategoryTab[]) => onChange({ ...config, categories: next });
+
+  const sectionGroup =
+    String(config.sectionGroup || config.sectionId || 'mastery') === 'new-collection' ||
+    String(config.sectionGroup || config.sectionId || '') === 'new-arrival'
+      ? 'style_space'
+      : String(config.sectionGroup || 'mastery');
+
+  const selectedProductIds: string[] = Array.isArray(config.productIds) ? (config.productIds as string[]) : [];
+
+  const [catalogProducts, setCatalogProducts] = useState<CarouselProductItem[]>([]);
+  const [availableColors, setAvailableColors] = useState<Array<{ name: string; hex: string }>>([]);
+  const [colorFilter, setColorFilter] = useState<string>('');
+  const [groupFilter, setGroupFilter] = useState<string>('section');
+  const [loadingProds, setLoadingProds] = useState<boolean>(true);
+
+  const loadCatalog = () => {
+    setLoadingProds(true);
+    productsApi
+      .list({ status: 'active' })
+      .then((res) => {
+        if (res.success && res.data) {
+          const items = (res.data.items ?? []) as Record<string, unknown>[];
+          if (Array.isArray(res.data.availableColors)) {
+            setAvailableColors(res.data.availableColors);
+          }
+          setCatalogProducts(
+            items.map((p) => {
+              const base = Number(p.price_paise ?? 0);
+              return {
+                id: String(p.id ?? ''),
+                slug: String(p.slug ?? ''),
+                title: String(p.title ?? ''),
+                section_group: String(p.section_group ?? 'mastery'),
+                price_paise: base,
+                min_price_paise: Number(p.min_price_paise ?? base),
+                max_price_paise: Number(p.max_price_paise ?? base),
+                default_img: String(p.default_img ?? ''),
+                colors: Array.isArray(p.colors) ? (p.colors as Array<{ name: string; hex: string }>) : [],
+              };
+            }),
+          );
+        }
+      })
+      .finally(() => setLoadingProds(false));
+  };
+
+  useEffect(loadCatalog, []);
+
+  const toggleProductInSection = async (prod: CarouselProductItem) => {
+    const isCurrentlyInSection = prod.section_group === sectionGroup;
+    const nextGroup = isCurrentlyInSection ? (sectionGroup === 'mastery' ? 'style_space' : 'mastery') : sectionGroup;
+    await productsApi.update(prod.id, { section_group: nextGroup });
+    loadCatalog();
+  };
+
+  const toggleCustomPin = (prodId: string) => {
+    const exists = selectedProductIds.includes(prodId);
+    const next = exists ? selectedProductIds.filter((x) => x !== prodId) : [...selectedProductIds, prodId];
+    set('productIds', next);
+  };
+
+  const filteredCatalog = useMemo(() => {
+    return catalogProducts.filter((p) => {
+      if (groupFilter === 'section' && p.section_group !== sectionGroup && !selectedProductIds.includes(p.id)) {
+        return false;
+      }
+      if (colorFilter && !p.colors.some((c) => c.name.toLowerCase() === colorFilter.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+  }, [catalogProducts, groupFilter, sectionGroup, colorFilter, selectedProductIds]);
+
+  const fmtInr = (paise: number) => '₹ ' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+  return (
+    <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input
+          label="Section Title"
+          value={String(config.title ?? 'Our Best Sellers')}
+          onChange={(e) => set('title', e.target.value)}
+          placeholder="Our Best Sellers"
+        />
+        <Input
+          label="Eyebrow Label"
+          value={String(config.eyebrow ?? '')}
+          onChange={(e) => set('eyebrow', e.target.value)}
+          placeholder="SIGNATURE SELECTION"
+        />
+        <Input
+          label="View All Link Label"
+          value={String(config.ctaLabel ?? '')}
+          onChange={(e) => set('ctaLabel', e.target.value)}
+          placeholder="Shop Our Best Sellers"
+        />
+        <Input
+          label="View All Destination URL"
+          value={String(config.ctaUrl ?? '/categories')}
+          onChange={(e) => set('ctaUrl', e.target.value)}
+          placeholder="/categories"
+        />
+        <Select
+          label="Primary Product Group"
+          value={sectionGroup}
+          onChange={(e) => onChange({ ...config, sectionGroup: e.target.value, sectionId: e.target.value === 'mastery' ? 'mastery' : 'new-collection' })}
+          options={[
+            { value: 'mastery', label: 'Our Best Sellers (mastery)' },
+            { value: 'style_space', label: 'New Arrivals (style_space)' },
+            { value: 'news', label: 'Editorial / News (news)' },
+          ]}
+        />
+        <Input
+          label="Maximum Products Shown"
+          type="number"
+          value={String(config.limit ?? 12)}
+          onChange={(e) => set('limit', Math.max(1, Number(e.target.value) || 12))}
+        />
+      </div>
+
+      {/* Display Toggles */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <label className="flex items-center justify-between gap-2 p-3 rounded-xl border border-ink-200 bg-ink-50/40 cursor-pointer">
+          <div>
+            <span className="text-xs font-semibold text-ink-900 block">Show &quot;MODEL VIEW&quot; Toggle</span>
+            <span className="text-[11px] text-ink-500">Lets patrons switch between model &amp; product shot</span>
+          </div>
+          <input
+            type="checkbox"
+            checked={config.showModelView !== false}
+            onChange={(e) => set('showModelView', e.target.checked)}
+            className="h-4 w-4 accent-ink-900"
           />
-          <ImageUrlField
-            label="Backdrop Model Image"
-            value={tab.backdropImage ?? ''}
-            onChange={(url) => updateTabs(tabs.map((t, i) => (i === tIdx ? { ...t, backdropImage: url } : t)))}
+        </label>
+        <label className="flex items-center justify-between gap-2 p-3 rounded-xl border border-ink-200 bg-ink-50/40 cursor-pointer">
+          <div>
+            <span className="text-xs font-semibold text-ink-900 block">Default to Model View</span>
+            <span className="text-[11px] text-ink-500">Start cards on model photography</span>
+          </div>
+          <input
+            type="checkbox"
+            checked={config.defaultModelView !== false}
+            onChange={(e) => set('defaultModelView', e.target.checked)}
+            className="h-4 w-4 accent-ink-900"
+          />
+        </label>
+        <label className="flex items-center justify-between gap-2 p-3 rounded-xl border border-ink-200 bg-ink-50/40 cursor-pointer">
+          <div>
+            <span className="text-xs font-semibold text-ink-900 block">Show Colour Filter Bar</span>
+            <span className="text-[11px] text-ink-500">Lets patrons filter carousel by colour swatch</span>
+          </div>
+          <input
+            type="checkbox"
+            checked={config.showColorFilter !== false}
+            onChange={(e) => set('showColorFilter', e.target.checked)}
+            className="h-4 w-4 accent-ink-900"
+          />
+        </label>
+      </div>
+
+      {/* Category Filter Tabs Editor */}
+      <div className="p-4 rounded-xl border border-ink-200 bg-ink-50/30 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-800">
+              Category Filter Tabs ({rawCategories.length})
+            </h4>
+            <p className="text-[11px] text-ink-500">
+              Edit the subhead filter tabs (e.g. ALL, TAILORING, SHIRTS, TROUSERS, KNITWEAR, OUTERWEAR, FOOTWEAR, ACCESSORIES).
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => updateCategories([...rawCategories, { label: 'NEW TAB', value: 'tailoring' }])}
+          >
+            + Add Category Tab
+          </Button>
+        </div>
+        <div className="space-y-2">
+          {rawCategories.map((cat, idx) => (
+            <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-center bg-white p-2 rounded-lg border border-ink-200">
+              <input
+                value={cat.label}
+                onChange={(e) =>
+                  updateCategories(rawCategories.map((c, i) => (i === idx ? { ...c, label: e.target.value.toUpperCase() } : c)))
+                }
+                placeholder="Tab Label (e.g. TAILORING)"
+                className="px-2.5 py-1.5 text-xs font-semibold border border-ink-200 rounded"
+              />
+              <input
+                value={cat.value}
+                onChange={(e) =>
+                  updateCategories(rawCategories.map((c, i) => (i === idx ? { ...c, value: e.target.value.toLowerCase() } : c)))
+                }
+                placeholder="Filter key (e.g. tailoring, shirts, all)"
+                className="px-2.5 py-1.5 text-xs font-mono border border-ink-200 rounded"
+              />
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" disabled={idx === 0} onClick={() => updateCategories(moveArr(rawCategories, idx, -1))}>↑</Button>
+                <Button size="sm" variant="ghost" disabled={idx === rawCategories.length - 1} onClick={() => updateCategories(moveArr(rawCategories, idx, 1))}>↓</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-600"
+                  onClick={() => updateCategories(rawCategories.filter((_, i) => i !== idx))}
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Live Carousel Products & Colour-Wise Manager */}
+      <div className="p-4 rounded-xl border border-ink-200 bg-white space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-900">
+              Products in This Carousel &amp; Colour Filter Manager
+            </h4>
+            <p className="text-[11px] text-ink-500">
+              Filter by colour swatch, add/remove garments from <strong>{String(config.title || 'this section')}</strong>, or open any garment to edit colour-shift photos &amp; colour/size prices.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setGroupFilter('section')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
+                groupFilter === 'section'
+                  ? 'bg-ink-900 text-white border-ink-900'
+                  : 'bg-white text-ink-700 border-ink-200'
+              }`}
+            >
+              In This Section
+            </button>
+            <button
+              type="button"
+              onClick={() => setGroupFilter('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
+                groupFilter === 'all'
+                  ? 'bg-ink-900 text-white border-ink-900'
+                  : 'bg-white text-ink-700 border-ink-200'
+              }`}
+            >
+              All Catalog ({catalogProducts.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Colour Swatch Filter Pills inside Carousel Editor */}
+        {availableColors.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-ink-400 mr-1">Filter by Colour:</span>
+            <button
+              type="button"
+              onClick={() => setColorFilter('')}
+              className={`px-2 py-0.5 rounded-full text-[11px] border ${
+                !colorFilter ? 'bg-ink-900 text-white border-ink-900' : 'bg-ink-50 text-ink-600 border-ink-200'
+              }`}
+            >
+              All
+            </button>
+            {availableColors.map((c) => {
+              const active = colorFilter.toLowerCase() === c.name.toLowerCase();
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() => setColorFilter(active ? '' : c.name)}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border ${
+                    active ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-200'
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full border border-ink-300" style={{ backgroundColor: c.hex }} />
+                  <span>{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {loadingProds ? (
+          <div className="py-6 flex justify-center">
+            <Spinner />
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+            {filteredCatalog.map((prod) => {
+              const inGroup = prod.section_group === sectionGroup;
+              const isPinned = selectedProductIds.includes(prod.id);
+              return (
+                <div
+                  key={prod.id}
+                  className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl border border-ink-200 bg-ink-50/40 hover:bg-ink-50"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {prod.default_img && (
+                      <img src={prod.default_img} alt="" className="w-10 h-12 rounded-lg object-cover border border-ink-200 bg-white flex-shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-ink-900 truncate">{prod.title}</p>
+                      <p className="text-[11px] text-ink-500">
+                        {prod.min_price_paise !== prod.max_price_paise
+                          ? `${fmtInr(prod.min_price_paise)} – ${fmtInr(prod.max_price_paise)}`
+                          : fmtInr(prod.min_price_paise || prod.price_paise)}
+                      </p>
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        {prod.colors.map((c) => (
+                          <span
+                            key={c.name}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white border border-ink-200 text-[10px] text-ink-700"
+                          >
+                            <span className="w-2 h-2 rounded-full border border-ink-300" style={{ backgroundColor: c.hex }} />
+                            {c.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant={inGroup ? 'secondary' : 'outline'}
+                      onClick={() => toggleProductInSection(prod)}
+                    >
+                      {inGroup ? '✓ In Section' : '+ Move Here'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={isPinned ? 'primary' : 'ghost'}
+                      onClick={() => toggleCustomPin(prod.id)}
+                      title="Pin to explicit carousel product list"
+                    >
+                      {isPinned ? '★ Pinned' : 'Pin'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/catalog/products/${prod.id}`)}
+                    >
+                      Colours &amp; Prices →
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── 6. VISUAL PDP GLOBAL DEFAULTS EDITOR ────────────────────────────────────
+function PdpTemplateEditor({ config, onChange }: { config: Record<string, unknown>; onChange: (n: Record<string, unknown>) => void }) {
+  const set = (k: string, v: unknown) => onChange({ ...config, [k]: v });
+  const bool = (k: string, def = true) => (typeof config[k] === 'boolean' ? (config[k] as boolean) : def);
+
+  const toggleCard = (key: string, label: string, description: string, def = true) => {
+    const checked = bool(key, def);
+    return (
+      <label className="flex items-start justify-between gap-3 p-3.5 rounded-xl border border-ink-200 bg-ink-50/40 cursor-pointer hover:border-ink-400 transition-colors">
+        <div>
+          <span className="text-xs font-semibold text-ink-900 block">{label}</span>
+          <span className="text-[11px] text-ink-500">{description}</span>
+        </div>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => set(key, e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-ink-300 text-ink-900 focus:ring-gold-500 accent-ink-900"
+        />
+      </label>
+    );
+  };
+
+  return (
+    <div className="col-span-2 space-y-5">
+      <div className="p-3.5 rounded-xl bg-gold-50/60 border border-gold-200 text-xs text-ink-700">
+        These defaults apply globally across every Product Detail Page (<code className="font-mono">/products/*</code>). Publish changes to update all live product pages immediately.
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {toggleCard('showOriginBadge', 'Show Origin Provenance Badge', 'Displays the boxed provenance badge next to the garment title & in description details')}
+        {toggleCard('showExclusiveBanner', 'Show Exclusive Packaging Banner', 'Displays the blush callout banner beneath the Composition accordion')}
+        {toggleCard('showFitFinder', 'Enable "Find Your Size" Fit Finder', 'Allows patrons to launch the interactive size recommendation assistant')}
+        {toggleCard('showSizeGuide', 'Enable "Size Guide" Matrix Modal', 'Allows patrons to open the category size conversion & measurement chart')}
+        {toggleCard('showReviews', 'Show Client Reviews Section', 'Displays verified patron reviews, star ratings, fit breakdown, and review submission')}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-ink-100">
+        <Input
+          label="Origin Badge Text"
+          value={String(config.originBadgeText ?? 'MADE IN INDIA')}
+          onChange={(e) => set('originBadgeText', e.target.value)}
+          placeholder="MADE IN INDIA"
+          tooltip="Boxed provenance badge text (e.g. MADE IN INDIA)"
+        />
+        <Input
+          label="Concierge Contact Lead-In"
+          value={String(config.conciergeHeading ?? 'For more information, contact us at')}
+          onChange={(e) => set('conciergeHeading', e.target.value)}
+          placeholder="For more information, contact us at"
+          tooltip="Introductory text shown before the concierge email link on every PDP"
+        />
+        <div className="sm:col-span-2">
+          <Input
+            label="Exclusive Packaging / Callout Banner Text"
+            value={String(config.exclusiveBannerText ?? '')}
+            onChange={(e) => set('exclusiveBannerText', e.target.value)}
+            placeholder="Online exclusive — Dispatched in DEYNOLD DANNY archival keepsake packaging."
+            tooltip="Highlight notice displayed in the right-hand product specification column"
           />
         </div>
-      ))}
+        <Input
+          label="Shipping Notice Override (Optional)"
+          value={String(config.shippingNoticeText ?? '')}
+          onChange={(e) => set('shippingNoticeText', e.target.value)}
+          placeholder="Leave blank for automatic free-shipping threshold"
+          tooltip="Optional custom shipping line above the editorial mosaic"
+        />
+        <Input
+          label="Return Policy Line Override (Optional)"
+          value={String(config.returnNoticeText ?? '')}
+          onChange={(e) => set('returnNoticeText', e.target.value)}
+          placeholder="Leave blank for automatic 14-day return window"
+          tooltip="Optional custom return window line above the editorial mosaic"
+        />
+        <Input
+          label="Style It With Section Heading"
+          value={String(config.styleItWithHeading ?? 'Style it with')}
+          onChange={(e) => set('styleItWithHeading', e.target.value)}
+          placeholder="Style it with"
+          tooltip="Heading for the cross-sell styling section"
+        />
+        <Input
+          label="Related Products Section Heading"
+          value={String(config.relatedHeading ?? 'More Suggestions')}
+          onChange={(e) => set('relatedHeading', e.target.value)}
+          placeholder="More Suggestions"
+          tooltip="Heading for the related products suggestions grid"
+        />
+        <div className="sm:col-span-2">
+          <Input
+            label="Client Reviews Section Heading"
+            value={String(config.reviewsHeading ?? 'Reviews')}
+            onChange={(e) => set('reviewsHeading', e.target.value)}
+            placeholder="Reviews"
+            tooltip="Main heading for the client reviews & fit assessment block"
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -505,16 +1124,10 @@ function SectionFields({
   if (type === 'category_grid') return <div className="grid grid-cols-2 gap-4"><CategoryGridEditor config={config} onChange={onChange} /></div>;
   if (type === 'editorial_duo') return <div className="grid grid-cols-2 gap-4"><EditorialDuoEditor config={config} onChange={onChange} /></div>;
   if (type === 'style_layering') return <div className="grid grid-cols-2 gap-4"><StyleLayeringEditor config={config} onChange={onChange} /></div>;
+  if (type === 'product_carousel') return <div className="grid grid-cols-2 gap-4"><ProductCarouselEditor config={config} onChange={onChange} /></div>;
+  if (type === 'pdp_template') return <div className="grid grid-cols-2 gap-4"><PdpTemplateEditor config={config} onChange={onChange} /></div>;
 
   const fields: Record<string, React.ReactNode> = {
-    product_carousel: (
-      <>
-        {inp('eyebrow', 'Eyebrow Label', 'Small label above the carousel heading')}
-        {inp('title', 'Section Title', 'Heading above the product carousel (e.g. Our Best Sellers)')}
-        {inp('ctaLabel', 'View All Label', 'Link/button label')}
-        {inp('ctaUrl', 'View All URL', 'Destination URL (e.g. /categories)')}
-      </>
-    ),
     newsletter_cta: (
       <>
         {inp('headline', 'Headline', 'Main heading for the newsletter block', 'text', true)}
@@ -538,14 +1151,6 @@ function SectionFields({
         <div className="col-span-2">
           <Textarea label="Introduction Copy" value={String(config.subtitle ?? '')} onChange={(e) => set('subtitle', e.target.value)} rows={3} />
         </div>
-      </>
-    ),
-    pdp_template: (
-      <>
-        {inp('originBadgeText', 'Origin Badge Text', 'Boxed provenance badge text (e.g. MADE IN INDIA)', 'text', true)}
-        {inp('exclusiveBannerText', 'Exclusive Notice Text', 'Highlight notice displayed in product specification column', 'text', true)}
-        {inp('styleItWithHeading', 'Style It With Heading', 'Heading for cross-sell styling section')}
-        {inp('relatedHeading', 'Related Products Heading', 'Heading for related suggestions grid')}
       </>
     ),
   };
@@ -780,6 +1385,23 @@ export default function PageEditor() {
     }
     if (t === 'announcement') {
       return { text: 'COMPLIMENTARY EXPRESS DELIVERY ON ORDERS ABOVE ₹10,000', linkUrl: '/categories', bgColor: '#111111', textColor: '#ffffff' };
+    }
+    if (t === 'pdp_template') {
+      return {
+        showOriginBadge: true,
+        originBadgeText: 'MADE IN INDIA',
+        showExclusiveBanner: true,
+        exclusiveBannerText: 'Online exclusive — Dispatched in DEYNOLD DANNY archival keepsake packaging.',
+        styleItWithHeading: 'Style it with',
+        relatedHeading: 'More Suggestions',
+        reviewsHeading: 'Reviews',
+        conciergeHeading: 'For more information, contact us at',
+        showReviews: true,
+        showFitFinder: true,
+        showSizeGuide: true,
+        shippingNoticeText: '',
+        returnNoticeText: '',
+      };
     }
     return {};
   };

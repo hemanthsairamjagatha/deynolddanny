@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../../types/bindings.js';
+import { requirePermission } from '../../middleware/adminAuth.js';
 
 const adminLogs = new Hono<{ Bindings: Env }>();
 
@@ -7,7 +8,7 @@ const adminLogs = new Hono<{ Bindings: Env }>();
  * GET /api/admin/logs — Unified operational audit trail
  * Supports ?type=admin|orders|webhooks|inventory
  */
-adminLogs.get('/', async (c) => {
+adminLogs.get('/', requirePermission('logs.read'), async (c) => {
   const type = c.req.query('type') || 'admin';
   const rawLimit = Number(c.req.query('limit') ?? '50');
   const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(100, Math.floor(rawLimit)) : 50;

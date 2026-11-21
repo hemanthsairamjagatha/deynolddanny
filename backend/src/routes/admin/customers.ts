@@ -2,10 +2,11 @@ import { Hono } from 'hono';
 import type { Env } from '../../types/bindings.js';
 import { generateId } from '../../services/crypto.js';
 import { nowIso, runBatch } from '../../db/client.js';
+import { requirePermission } from '../../middleware/adminAuth.js';
 
 const adminCustomers = new Hono<{ Bindings: Env }>();
 
-adminCustomers.get('/', async (c) => {
+adminCustomers.get('/', requirePermission('customers.read'), async (c) => {
   const rawPage = Number(c.req.query('page') ?? '1');
   const rawLimit = Number(c.req.query('limit') ?? '20');
   const page = Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
@@ -42,7 +43,7 @@ adminCustomers.get('/', async (c) => {
   });
 });
 
-adminCustomers.get('/:id', async (c) => {
+adminCustomers.get('/:id', requirePermission('customers.read'), async (c) => {
   const id = c.req.param('id');
 
   const [user, orders, addresses] = await c.env.DB.batch([
@@ -81,7 +82,7 @@ adminCustomers.get('/:id', async (c) => {
   });
 });
 
-adminCustomers.patch('/:id/status', async (c) => {
+adminCustomers.patch('/:id/status', requirePermission('customers.write'), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;

@@ -147,7 +147,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
         <div className="w-full flex flex-col gap-3 pt-1">
           {/* Sizing Utilities */}
           <ProductSizingActions
-            tag={product.tag}
+            tag={product.tag ?? undefined}
             onOpenFitFinder={onOpenFitFinder}
             onOpenSizeGuide={onOpenSizeGuide}
           />

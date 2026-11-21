@@ -33,16 +33,30 @@ export default function OrdersListPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AdminOrderRow[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPage(1);
+      setDebouncedSearch(search.trim());
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   async function load() {
     setLoading(true);
     try {
-      const res = await ordersApi.list({ status: tab === 'all' ? undefined : tab, page, limit: 20 });
+      const res = await ordersApi.list({
+        status: tab === 'all' ? undefined : tab,
+        search: debouncedSearch || undefined,
+        page,
+        limit: 20,
+      });
       const raw = (res.data ?? {}) as { items?: AdminOrderRow[]; total?: number; totalPages?: number };
       const rows = Array.isArray(raw.items) ? raw.items : [];
       setData(rows);
@@ -54,21 +68,10 @@ export default function OrdersListPage() {
   }
 
   useEffect(() => { setPage(1); }, [tab]);
-  useEffect(() => { load(); }, [tab, page]);
+  useEffect(() => { load(); }, [tab, page, debouncedSearch]);
 
   const fmt = (paise: number) => `₹${(Number(paise || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-
-  const filtered = search.trim()
-    ? data.filter((r) => {
-        const q = search.toLowerCase();
-        return (
-          r.orderNumber.toLowerCase().includes(q) ||
-          (r.shippingName ?? '').toLowerCase().includes(q) ||
-          (r.shippingCity ?? '').toLowerCase().includes(q) ||
-          (r.trackingNumber ?? r.shiprocketAwb ?? '').toLowerCase().includes(q)
-        );
-      })
-    : data;
+  const filtered = data;
 
   const columns: Column<AdminOrderRow>[] = [
     {

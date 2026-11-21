@@ -150,6 +150,49 @@ adminCategories.patch(
   },
 );
 
+adminCategories.get('/:id', requirePermission('catalog.read', 'cms.read'), async (c) => {
+  const id = c.req.param('id');
+  const r = await c.env.DB
+    .prepare(
+      `SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = 1) AS product_count
+       FROM categories c WHERE c.id = ?1 LIMIT 1`,
+    )
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!r) {
+    return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Category not found.', status: 404 } }, 404);
+  }
+  return c.json({
+    success: true,
+    data: {
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      heroTitle: r.hero_title ?? r.title,
+      eyebrow: r.eyebrow ?? '',
+      subtitle: r.subtitle ?? '',
+      tagline: r.tagline ?? '',
+      imageUrl: r.image_url ?? '',
+      mobileImage: r.mobile_image ?? r.image_url ?? '',
+      focalX: Number(r.focal_x ?? 50),
+      focalY: Number(r.focal_y ?? 50),
+      sortOrder: Number(r.sort_order ?? 0),
+      isActive: Number(r.is_active ?? 1) === 1,
+      productCount: Number(r.product_count ?? 0),
+      editorial: safeJsonParse(String(r.editorial_json ?? '{}'), {}),
+      seo: safeJsonParse(String(r.seo_json ?? '{}'), {}),
+    },
+  });
+});
+
+adminCategories.post('/:id/restore', requirePermission('catalog.write'), async (c) => {
+  const id = c.req.param('id');
+  await c.env.DB.prepare(`UPDATE categories SET is_active = 1 WHERE id = ?1`).bind(id).run();
+  await invalidateStorefrontCache(c.env);
+  await auditAdminAction(c, 'RESTORE_CATEGORY', 'category', id);
+  return c.json({ success: true, data: { restored: true } });
+});
+
 adminCategories.delete('/:id', requirePermission('catalog.delete'), async (c) => {
   const id = c.req.param('id');
   await c.env.DB.prepare(`UPDATE categories SET is_active = 0 WHERE id = ?1`).bind(id).run();

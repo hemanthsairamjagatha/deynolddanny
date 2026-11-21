@@ -20,7 +20,7 @@ const adminProducts = new Hono<{ Bindings: Env }>();
 async function bumpCatalogCacheVersion(kv: KVNamespace, slug?: string) {
   try {
     await kv.put('catalog:version', `v_${Date.now()}`);
-  } catch {}
+  } catch { }
   if (slug) {
     await invalidateCatalogCache(kv, `catalog:product:${slug}`, 'catalog:categories:all');
   }
@@ -30,45 +30,174 @@ async function bumpCatalogCacheVersion(kv: KVNamespace, slug?: string) {
 adminProducts.get('/', requirePermission('catalog.read'), async (c) => {
   const q = c.req.query('q')?.trim().toLowerCase() ?? '';
   const categoryId = c.req.query('categoryId')?.trim();
+  const sectionGroup = c.req.query('sectionGroup')?.trim();
+  const color = c.req.query('color')?.trim().toLowerCase();
   const status = c.req.query('status')?.trim(); // 'active', 'archived', 'all'
+  const sort = c.req.query('sort')?.trim() || 'featured';
+  const rawPage = Number(c.req.query('page') ?? '1');
+  const rawLimit = Number(c.req.query('limit') ?? '100');
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
+  const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(200, Math.floor(rawLimit)) : 100;
+  const offset = (page - 1) * limit;
 
-  let sql = `
-    SELECT p.*,
-      (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) AS variant_count,
-      (SELECT COALESCE(SUM(v.stock), 0) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) AS total_stock
-    FROM products p
-    WHERE 1=1
-  `;
+  let whereClause = ` WHERE 1=1`;
   const bindings: any[] = [];
 
   if (status === 'archived') {
-    sql += ` AND p.is_active = 0`;
+    whereClause += ` AND p.is_active = 0`;
   } else if (status !== 'all') {
-    sql += ` AND p.is_active = 1`;
+    whereClause += ` AND p.is_active = 1`;
   }
 
   if (categoryId) {
     bindings.push(categoryId);
-    sql += ` AND p.category_id = ?${bindings.length}`;
+    whereClause += ` AND p.category_id = ?${bindings.length}`;
+  }
+
+  if (sectionGroup) {
+    bindings.push(sectionGroup);
+    whereClause += ` AND p.section_group = ?${bindings.length}`;
+  }
+
+  if (color) {
+    bindings.push(color);
+    whereClause += ` AND EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1 AND LOWER(pv.color_name) = ?${bindings.length})`;
   }
 
   if (q) {
     bindings.push(`%${q}%`);
-    sql += ` AND (LOWER(p.title) LIKE ?${bindings.length} OR LOWER(p.slug) LIKE ?${bindings.length} OR LOWER(p.sku_prefix) LIKE ?${bindings.length})`;
+    whereClause += ` AND (LOWER(p.title) LIKE ?${bindings.length} OR LOWER(p.slug) LIKE ?${bindings.length} OR LOWER(p.sku_prefix) LIKE ?${bindings.length})`;
   }
 
-  sql += ` ORDER BY p.sort_order ASC, p.created_at DESC`;
+  const sortOrderMap: Record<string, string> = {
+    featured: 'p.sort_order ASC, p.created_at DESC',
+    newest: 'p.created_at DESC',
+    price_asc: 'p.price_paise ASC',
+    price_desc: 'p.price_paise DESC',
+    title_asc: 'LOWER(p.title) ASC',
+    stock_asc: 'total_stock ASC, p.title ASC',
+  };
+  const orderBy = sortOrderMap[sort] ?? sortOrderMap.featured;
 
-  const rows = await c.env.DB.prepare(sql).bind(...bindings).all<Record<string, unknown>>();
+  const dataSql = `
+    SELECT p.*,
+      (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) AS variant_count,
+      (SELECT COALESCE(SUM(v.stock), 0) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) AS total_stock,
+      (SELECT MIN(COALESCE(v.price_paise, p.price_paise)) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) AS min_price_paise,
+      (SELECT MAX(COALESCE(v.price_paise, p.price_paise)) FROM product_variants v WHERE v.product_id = p.id AND v.is_active = 1) AS max_price_paise
+    FROM products p
+    ${whereClause}
+    ORDER BY ${orderBy}
+    LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}
+  `;
+
+  const [countRes, rows, variantColorsRes] = await Promise.all([
+    c.env.DB.prepare(`SELECT COUNT(*) AS cnt FROM products p ${whereClause}`).bind(...bindings).first<{ cnt: number }>(),
+    c.env.DB.prepare(dataSql).bind(...bindings, limit, offset).all<Record<string, unknown>>(),
+    c.env.DB
+      .prepare(
+        `SELECT product_id, color_name, color_hex, MIN(COALESCE(price_paise, 0)) AS custom_price_paise
+         FROM product_variants
+         WHERE is_active = 1
+         GROUP BY product_id, color_name, color_hex
+         ORDER BY sort_order ASC`,
+      )
+      .all<{ product_id: string; color_name: string; color_hex: string; custom_price_paise: number }>(),
+  ]);
+
+  const colorsByProduct = new Map<string, Array<{ name: string; hex: string }>>();
+  const globalColorMap = new Map<string, { name: string; hex: string }>();
+  for (const vc of variantColorsRes.results ?? []) {
+    if (!vc.color_name) continue;
+    const list = colorsByProduct.get(vc.product_id) ?? [];
+    if (!list.some((x) => x.name.toLowerCase() === vc.color_name.toLowerCase())) {
+      list.push({ name: vc.color_name, hex: vc.color_hex || '#111111' });
+      colorsByProduct.set(vc.product_id, list);
+    }
+    const key = vc.color_name.toLowerCase();
+    if (!globalColorMap.has(key)) {
+      globalColorMap.set(key, { name: vc.color_name, hex: vc.color_hex || '#111111' });
+    }
+  }
+
+  const enrichedItems = (rows.results ?? []).map((p) => ({
+    ...p,
+    colors: colorsByProduct.get(String(p.id)) ?? [],
+  }));
+  const total = Number(countRes?.cnt ?? enrichedItems.length);
 
   return c.json({
     success: true,
     data: {
-      items: rows.results ?? [],
-      total: rows.results?.length ?? 0,
+      items: enrichedItems,
+      availableColors: Array.from(globalColorMap.values()),
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
     },
   });
 });
+
+// ─── POST /api/admin/products/bulk ───────────────────────────────────────────
+const bulkProductsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(100),
+  action: z.enum(['activate', 'archive', 'set_section_group', 'set_category', 'set_featured']),
+  value: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional(),
+});
+
+adminProducts.post(
+  '/bulk',
+  requirePermission('catalog.write'),
+  zValidator('json', bulkProductsSchema),
+  async (c) => {
+    const { ids, action, value } = c.req.valid('json');
+    const now = nowIso();
+    const placeholders = ids.map((_, i) => `?${i + 2}`).join(', ');
+
+    if (action === 'activate') {
+      await c.env.DB
+        .prepare(`UPDATE products SET is_active = 1, updated_at = ?1 WHERE id IN (${placeholders})`)
+        .bind(now, ...ids)
+        .run();
+    } else if (action === 'archive') {
+      await c.env.DB
+        .prepare(`UPDATE products SET is_active = 0, updated_at = ?1 WHERE id IN (${placeholders})`)
+        .bind(now, ...ids)
+        .run();
+    } else if (action === 'set_section_group') {
+      const group = String(value || '');
+      if (!['mastery', 'style_space', 'news'].includes(group)) {
+        return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Invalid section_group.', status: 400 } }, 400);
+      }
+      const p2 = ids.map((_, i) => `?${i + 3}`).join(', ');
+      await c.env.DB
+        .prepare(`UPDATE products SET section_group = ?1, updated_at = ?2 WHERE id IN (${p2})`)
+        .bind(group, now, ...ids)
+        .run();
+    } else if (action === 'set_category') {
+      const catId = value ? String(value) : null;
+      const p2 = ids.map((_, i) => `?${i + 3}`).join(', ');
+      await c.env.DB
+        .prepare(`UPDATE products SET category_id = ?1, updated_at = ?2 WHERE id IN (${p2})`)
+        .bind(catId, now, ...ids)
+        .run();
+    } else if (action === 'set_featured') {
+      const feat = value ? 1 : 0;
+      const p2 = ids.map((_, i) => `?${i + 3}`).join(', ');
+      await c.env.DB
+        .prepare(`UPDATE products SET is_featured = ?1, updated_at = ?2 WHERE id IN (${p2})`)
+        .bind(feat, now, ...ids)
+        .run();
+    }
+
+    await bumpCatalogCacheVersion(c.env.CATALOG_KV);
+    await invalidateStorefrontCache(c.env);
+    await auditAdminAction(c, 'BULK_UPDATE_PRODUCTS', 'product', 'bulk', { action, value, count: ids.length });
+
+    return c.json({ success: true, data: { updated: ids.length } });
+  },
+);
 
 // ─── GET /api/admin/products/:id ─────────────────────────────────────────────
 adminProducts.get('/:id', requirePermission('catalog.read'), async (c) => {
@@ -155,6 +284,19 @@ adminProducts.post(
   async (c) => {
     const adminId = c.get('userId');
     const body = c.req.valid('json');
+    if (body.compare_paise !== undefined && body.compare_paise !== null && body.compare_paise <= body.price_paise) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'INVALID_DISCOUNT',
+            message: 'Compare / MRP price must be strictly greater than the selling price.',
+            status: 400,
+          },
+        },
+        400,
+      );
+    }
     const id = body.id || `prod_${Date.now().toString(36)}_${generateId('').slice(0, 4)}`;
 
     const existing = await c.env.DB
@@ -237,12 +379,28 @@ adminProducts.patch(
     const existing = await c.env.DB
       .prepare(`SELECT * FROM products WHERE id = ?1 LIMIT 1`)
       .bind(id)
-      .first<{ slug: string }>();
+      .first<{ slug: string; price_paise: number; compare_paise: number | null }>();
 
     if (!existing) {
       return c.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Product not found.', status: 404 } },
         404,
+      );
+    }
+
+    const effectivePrice = body.price_paise !== undefined ? body.price_paise : existing.price_paise;
+    const effectiveCompare = body.compare_paise !== undefined ? body.compare_paise : existing.compare_paise;
+    if (effectiveCompare !== null && effectiveCompare !== undefined && effectiveCompare <= effectivePrice) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'INVALID_DISCOUNT',
+            message: 'Compare / MRP price must be strictly greater than the selling price.',
+            status: 400,
+          },
+        },
+        400,
       );
     }
 
@@ -351,31 +509,48 @@ adminProducts.post('/:id/duplicate', requirePermission('catalog.write'), async (
     )
     .run();
 
-  // Copy variants
-  const srcVars = await c.env.DB
-    .prepare(`SELECT * FROM product_variants WHERE product_id = ?1`)
-    .bind(id)
-    .all<Record<string, any>>();
+  // Copy variants (including custom variant pricing) and gallery images
+  const [srcVars, srcImgs] = await Promise.all([
+    c.env.DB.prepare(`SELECT * FROM product_variants WHERE product_id = ?1`).bind(id).all<Record<string, any>>(),
+    c.env.DB.prepare(`SELECT * FROM product_images WHERE product_id = ?1 ORDER BY sort_order ASC`).bind(id).all<Record<string, any>>(),
+  ]);
 
+  const copyStmts: D1PreparedStatement[] = [];
   for (const v of srcVars.results ?? []) {
     const newVarId = `${newId}-${v.size}-${generateId('').slice(0, 4)}`;
-    await c.env.DB
-      .prepare(
-        `INSERT INTO product_variants (id, product_id, sku, size, color_name, color_hex, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 1, ?8, ?9, ?9)`,
-      )
-      .bind(
-        newVarId,
-        newId,
-        `${v.sku}-C`,
-        v.size,
-        v.color_name,
-        v.color_hex,
-        v.stock,
-        v.sort_order,
-        now,
-      )
-      .run();
+    copyStmts.push(
+      c.env.DB
+        .prepare(
+          `INSERT INTO product_variants (id, product_id, sku, size, color_name, color_hex, price_paise, compare_paise, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, 1, ?10, ?11, ?11)`,
+        )
+        .bind(
+          newVarId,
+          newId,
+          `${v.sku}-C${suffix.toUpperCase()}`,
+          v.size,
+          v.color_name,
+          v.color_hex,
+          v.price_paise ?? null,
+          v.compare_paise ?? null,
+          v.stock,
+          v.sort_order,
+          now,
+        ),
+    );
+  }
+  for (const img of srcImgs.results ?? []) {
+    copyStmts.push(
+      c.env.DB
+        .prepare(
+          `INSERT INTO product_images (id, product_id, image_url, alt_text, color_name, sort_order)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
+        )
+        .bind(generateId('pimg_'), newId, img.image_url, img.alt_text ?? '', img.color_name ?? '', img.sort_order ?? 0),
+    );
+  }
+  if (copyStmts.length > 0) {
+    await c.env.DB.batch(copyStmts);
   }
 
   await auditAdminAction(c, 'DUPLICATE_PRODUCT', 'product', newId, { from: id, slug: newSlug });
@@ -441,9 +616,59 @@ adminProducts.post(
     const body = c.req.valid('json');
     const colorName = (body.color_name || body.color || 'Default').trim();
 
-    const product = await c.env.DB.prepare(`SELECT id, slug FROM products WHERE id = ?1`).bind(productId).first<{ id: string; slug: string }>();
+    const product = await c.env.DB
+      .prepare(`SELECT id, slug, price_paise FROM products WHERE id = ?1`)
+      .bind(productId)
+      .first<{ id: string; slug: string; price_paise: number }>();
     if (!product) {
       return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Product not found.', status: 404 } }, 404);
+    }
+
+    const effectivePrice = body.price_paise ?? product.price_paise;
+    if (body.compare_paise !== undefined && body.compare_paise !== null && body.compare_paise <= effectivePrice) {
+      return c.json(
+        { success: false, error: { code: 'INVALID_DISCOUNT', message: 'Variant Compare/MRP price must exceed selling price.', status: 400 } },
+        400,
+      );
+    }
+
+    const [dupCombo, dupSku] = await Promise.all([
+      c.env.DB
+        .prepare(
+          `SELECT id FROM product_variants WHERE product_id = ?1 AND LOWER(size) = LOWER(?2) AND LOWER(color_name) = LOWER(?3) LIMIT 1`,
+        )
+        .bind(productId, body.size.trim(), colorName)
+        .first<{ id: string }>(),
+      c.env.DB
+        .prepare(`SELECT id FROM product_variants WHERE LOWER(sku) = LOWER(?1) LIMIT 1`)
+        .bind(body.sku.trim())
+        .first<{ id: string }>(),
+    ]);
+    if (dupCombo) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'DUPLICATE_VARIANT',
+            message: `Variant combination "${colorName} / ${body.size.trim()}" already exists on this product.`,
+            status: 409,
+          },
+        },
+        409,
+      );
+    }
+    if (dupSku) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'DUPLICATE_SKU',
+            message: `SKU "${body.sku.trim()}" is already assigned to another variant.`,
+            status: 409,
+          },
+        },
+        409,
+      );
     }
 
     const variantId = body.id || `${productId}-${body.size.replace(/\s+/g, '')}-${generateId('').slice(0, 6)}`;
@@ -490,13 +715,15 @@ adminProducts.post(
 );
 
 // ─── POST /api/admin/products/:id/variants/matrix ────────────────────────────
-// Bulk creates combinations of Sizes × Colors with optional per-size pricing
+// Bulk creates combinations of Sizes × Colors with optional per-size and per-color pricing & color images
 const matrixSchema = z.object({
   sizes: z.array(z.string().min(1)).min(1),
   colors: z.array(z.object({ name: z.string().min(1), hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/) })).min(1),
   initialStock: z.number().int().min(0).default(5),
   sizePrices: z.record(z.string(), z.number().int().positive().nullable()).optional(),
   sizeComparePrices: z.record(z.string(), z.number().int().positive().nullable()).optional(),
+  colorPrices: z.record(z.string(), z.number().int().positive().nullable()).optional(),
+  colorImages: z.record(z.string(), z.string()).optional(),
 });
 
 adminProducts.post(
@@ -505,15 +732,24 @@ adminProducts.post(
   zValidator('json', matrixSchema),
   async (c) => {
     const productId = c.req.param('id');
-    const { sizes, colors, initialStock, sizePrices, sizeComparePrices } = c.req.valid('json');
+    const { sizes, colors, initialStock, sizePrices, sizeComparePrices, colorPrices, colorImages } = c.req.valid('json');
 
     const product = await c.env.DB
-      .prepare(`SELECT id, slug, sku_prefix FROM products WHERE id = ?1`)
+      .prepare(`SELECT id, slug, sku_prefix, title FROM products WHERE id = ?1`)
       .bind(productId)
-      .first<{ id: string; slug: string; sku_prefix: string }>();
+      .first<{ id: string; slug: string; sku_prefix: string; title: string }>();
 
     if (!product) {
       return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Product not found.', status: 404 } }, 404);
+    }
+
+    const existingVarsRes = await c.env.DB
+      .prepare(`SELECT id, size, color_name FROM product_variants WHERE product_id = ?1`)
+      .bind(productId)
+      .all<{ id: string; size: string; color_name: string }>();
+    const existingByCombo = new Map<string, string>();
+    for (const ev of existingVarsRes.results ?? []) {
+      existingByCombo.set(`${ev.color_name.trim().toLowerCase()}::${ev.size.trim().toLowerCase()}`, ev.id);
     }
 
     const now = nowIso();
@@ -522,28 +758,66 @@ adminProducts.post(
     const createdVariants: string[] = [];
 
     for (const color of colors) {
+      const cleanColorName = color.name.trim();
       for (const size of sizes) {
         const cleanSize = size.trim();
-        const sku = `${product.sku_prefix}-${color.name.slice(0, 3).toUpperCase()}-${cleanSize.replace(/\s+/g, '')}`;
-        const varId = `${productId}-${color.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${cleanSize.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-        const pricePaise = sizePrices?.[cleanSize] ?? null;
+        const comboKey = `${cleanColorName.toLowerCase()}::${cleanSize.toLowerCase()}`;
+        const existingId = existingByCombo.get(comboKey);
+        const pricePaise = sizePrices?.[cleanSize] ?? colorPrices?.[cleanColorName] ?? null;
         const comparePaise = sizeComparePrices?.[cleanSize] ?? null;
-        createdVariants.push(varId);
+
+        if (existingId) {
+          createdVariants.push(existingId);
+          stmts.push(
+            c.env.DB
+              .prepare(
+                `UPDATE product_variants
+                 SET price_paise = COALESCE(?1, price_paise),
+                     compare_paise = COALESCE(?2, compare_paise),
+                     color_name = ?3,
+                     color_hex = ?4,
+                     is_active = 1,
+                     updated_at = ?5
+                 WHERE id = ?6 AND product_id = ?7`,
+              )
+              .bind(pricePaise, comparePaise, cleanColorName, color.hex, now, existingId, productId),
+          );
+        } else {
+          const sku = `${product.sku_prefix}-${cleanColorName.slice(0, 3).toUpperCase()}-${cleanSize.replace(/\s+/g, '')}-${generateId('').slice(0, 3).toUpperCase()}`;
+          const varId = `${productId}-${cleanColorName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${cleanSize.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+          createdVariants.push(varId);
+          stmts.push(
+            c.env.DB
+              .prepare(
+                `INSERT INTO product_variants
+                 (id, product_id, sku, size, color_name, color_hex, price_paise, compare_paise, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, 1, ?10, ?11, ?11)
+                 ON CONFLICT(id) DO UPDATE SET
+                   price_paise = COALESCE(excluded.price_paise, product_variants.price_paise),
+                   compare_paise = COALESCE(excluded.compare_paise, product_variants.compare_paise),
+                   color_name = excluded.color_name,
+                   color_hex = excluded.color_hex,
+                   is_active = 1,
+                   updated_at = excluded.updated_at`,
+              )
+              .bind(varId, productId, sku, cleanSize, cleanColorName, color.hex, pricePaise, comparePaise, initialStock, order++, now),
+          );
+        }
+      }
+
+      const colorImgUrl = colorImages?.[cleanColorName]?.trim();
+      if (colorImgUrl) {
+        const imgId = `img_${productId}_${cleanColorName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_0`;
         stmts.push(
           c.env.DB
             .prepare(
-              `INSERT INTO product_variants
-               (id, product_id, sku, size, color_name, color_hex, price_paise, compare_paise, stock, reserved_stock, is_active, sort_order, created_at, updated_at)
-               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 0, 1, ?10, ?11, ?11)
+              `INSERT INTO product_images (id, product_id, color_name, image_url, alt_text, sort_order)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6)
                ON CONFLICT(id) DO UPDATE SET
-                 price_paise = excluded.price_paise,
-                 compare_paise = excluded.compare_paise,
-                 color_name = excluded.color_name,
-                 color_hex = excluded.color_hex,
-                 is_active = 1,
-                 updated_at = excluded.updated_at`,
+                 image_url = excluded.image_url,
+                 color_name = excluded.color_name`,
             )
-            .bind(varId, productId, sku, cleanSize, color.name, color.hex, pricePaise, comparePaise, initialStock, order++, now),
+            .bind(imgId, productId, cleanColorName, colorImgUrl, `${product.title} — ${cleanColorName}`, order),
         );
       }
     }
@@ -551,20 +825,27 @@ adminProducts.post(
     await c.env.DB.batch(stmts);
     await bumpCatalogCacheVersion(c.env.CATALOG_KV, product.slug);
     await invalidateStorefrontCache(c.env);
-    await auditAdminAction(c, 'GENERATE_VARIANT_MATRIX', 'product', productId, { count: createdVariants.length, hasSizePrices: Boolean(sizePrices) });
+    await auditAdminAction(c, 'GENERATE_VARIANT_MATRIX', 'product', productId, {
+      count: createdVariants.length,
+      hasSizePrices: Boolean(sizePrices),
+      hasColorPrices: Boolean(colorPrices),
+    });
 
     return c.json({ success: true, data: { count: createdVariants.length, variantIds: createdVariants } }, 201);
   },
 );
 
 // ─── PATCH /api/admin/products/:id/variants/bulk-price ───────────────────────
-// Updates size-wise prices in bulk either by individual variantId OR by size label across colors
+// Updates size-wise OR color-wise prices, hexes, and stock in bulk
 const bulkVariantPriceSchema = z.object({
   updates: z
     .array(
       z.object({
         variantId: z.string().min(1).optional(),
         size: z.string().min(1).optional(),
+        color_name: z.string().min(1).optional(),
+        new_color_name: z.string().min(1).optional(),
+        color_hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
         price_paise: z.number().int().positive().nullable().optional(),
         compare_paise: z.number().int().positive().nullable().optional(),
         stock: z.number().int().min(0).optional(),
@@ -580,16 +861,37 @@ adminProducts.patch(
   zValidator('json', bulkVariantPriceSchema),
   async (c) => {
     const productId = c.req.param('id');
+    const adminId = c.get('userId');
     const { updates } = c.req.valid('json');
-    const product = await c.env.DB.prepare(`SELECT id, slug FROM products WHERE id = ?1`).bind(productId).first<{ id: string; slug: string }>();
+    const product = await c.env.DB
+      .prepare(`SELECT id, slug, price_paise FROM products WHERE id = ?1`)
+      .bind(productId)
+      .first<{ id: string; slug: string; price_paise: number }>();
     if (!product) {
       return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Product not found.', status: 404 } }, 404);
     }
 
+    // Load current variants for stock delta logging & compare_paise validation
+    const existingVarsRes = await c.env.DB
+      .prepare(`SELECT id, size, color_name, price_paise, stock, reserved_stock FROM product_variants WHERE product_id = ?1`)
+      .bind(productId)
+      .all<{ id: string; size: string; color_name: string; price_paise: number | null; stock: number; reserved_stock: number }>();
+    const varById = new Map((existingVarsRes.results ?? []).map((v) => [v.id, v]));
+
     const now = nowIso();
     const stmts: D1PreparedStatement[] = [];
+    const stockMovements: Array<{ variantId: string; qtyDelta: number; notes: string }> = [];
+
     for (const u of updates) {
       if (u.variantId) {
+        const cur = varById.get(u.variantId);
+        const effPrice = u.price_paise !== undefined ? (u.price_paise ?? product.price_paise) : (cur?.price_paise ?? product.price_paise);
+        if (u.compare_paise !== undefined && u.compare_paise !== null && u.compare_paise <= effPrice) {
+          return c.json(
+            { success: false, error: { code: 'INVALID_DISCOUNT', message: 'Variant Compare/MRP price must exceed selling price.', status: 400 } },
+            400,
+          );
+        }
         const sets: string[] = [];
         const binds: unknown[] = [];
         if (u.price_paise !== undefined) {
@@ -600,7 +902,23 @@ adminProducts.patch(
           binds.push(u.compare_paise);
           sets.push(`compare_paise = ?${binds.length}`);
         }
+        if (u.color_name !== undefined) {
+          binds.push(u.color_name.trim());
+          sets.push(`color_name = ?${binds.length}`);
+        }
+        if (u.color_hex !== undefined) {
+          binds.push(u.color_hex);
+          sets.push(`color_hex = ?${binds.length}`);
+        }
         if (u.stock !== undefined) {
+          const clampedStock = cur ? Math.max(cur.reserved_stock, u.stock) : u.stock;
+          if (cur && clampedStock !== cur.stock) {
+            stockMovements.push({
+              variantId: u.variantId,
+              qtyDelta: clampedStock - cur.stock,
+              notes: `Product Editor variant stock update (${cur.stock} -> ${clampedStock})`,
+            });
+          }
           binds.push(u.stock);
           sets.push(`stock = MAX(reserved_stock, ?${binds.length})`);
         }
@@ -616,7 +934,7 @@ adminProducts.patch(
               .bind(...binds),
           );
         }
-      } else if (u.size) {
+      } else if (u.size && !u.color_name) {
         const sets: string[] = [];
         const binds: unknown[] = [];
         if (u.price_paise !== undefined) {
@@ -635,11 +953,61 @@ adminProducts.patch(
               .bind(...binds),
           );
         }
+      } else if (u.color_name) {
+        const sets: string[] = [];
+        const binds: unknown[] = [];
+        if (u.price_paise !== undefined) {
+          binds.push(u.price_paise);
+          sets.push(`price_paise = ?${binds.length}`);
+        }
+        if (u.compare_paise !== undefined) {
+          binds.push(u.compare_paise);
+          sets.push(`compare_paise = ?${binds.length}`);
+        }
+        if (u.color_hex !== undefined) {
+          binds.push(u.color_hex);
+          sets.push(`color_hex = ?${binds.length}`);
+        }
+        if (u.new_color_name !== undefined && u.new_color_name.trim()) {
+          binds.push(u.new_color_name.trim());
+          sets.push(`color_name = ?${binds.length}`);
+        }
+        if (sets.length > 0) {
+          binds.push(now, u.color_name.trim().toLowerCase(), productId);
+          stmts.push(
+            c.env.DB
+              .prepare(
+                `UPDATE product_variants SET ${sets.join(', ')}, updated_at = ?${binds.length - 2} WHERE LOWER(color_name) = ?${binds.length - 1} AND product_id = ?${binds.length}`,
+              )
+              .bind(...binds),
+          );
+          if (u.new_color_name !== undefined && u.new_color_name.trim()) {
+            stmts.push(
+              c.env.DB
+                .prepare(
+                  `UPDATE product_images SET color_name = ?1 WHERE LOWER(color_name) = ?2 AND product_id = ?3`,
+                )
+                .bind(u.new_color_name.trim(), u.color_name.trim().toLowerCase(), productId),
+            );
+          }
+        }
       }
     }
 
     if (stmts.length > 0) {
       await c.env.DB.batch(stmts);
+    }
+    if (stockMovements.length > 0) {
+      await recordInventoryMovements(
+        c.env.DB,
+        stockMovements.map((m) => ({
+          variantId: m.variantId,
+          movementType: 'admin_adjust',
+          qtyDelta: m.qtyDelta,
+          actorId: adminId,
+          notes: m.notes,
+        })),
+      );
     }
 
     await bumpCatalogCacheVersion(c.env.CATALOG_KV, product.slug);
@@ -649,6 +1017,121 @@ adminProducts.patch(
     return c.json({ success: true, data: { updatedCount: stmts.length } });
   },
 );
+
+// ─── DELETE /api/admin/products/:id/colors/:colorName ────────────────────────
+adminProducts.delete('/:id/colors/:colorName', requirePermission('catalog.delete'), async (c) => {
+  const productId = c.req.param('id');
+  const colorName = decodeURIComponent(c.req.param('colorName')).trim();
+  if (!colorName) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Colour name required.', status: 400 } }, 400);
+  }
+
+  const varsRes = await c.env.DB
+    .prepare(`SELECT id FROM product_variants WHERE product_id = ?1 AND LOWER(color_name) = LOWER(?2)`)
+    .bind(productId, colorName)
+    .all<{ id: string }>();
+  const variantIds = (varsRes.results ?? []).map((v) => v.id);
+  if (variantIds.length === 0) {
+    return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Colour not found on product.', status: 404 } }, 404);
+  }
+
+  const placeholders = variantIds.map((_, i) => `?${i + 1}`).join(', ');
+  const orderedRes = await c.env.DB
+    .prepare(`SELECT DISTINCT variant_id FROM order_items WHERE variant_id IN (${placeholders})`)
+    .bind(...variantIds)
+    .all<{ variant_id: string }>();
+  const orderedSet = new Set((orderedRes.results ?? []).map((r) => r.variant_id));
+
+  const now = nowIso();
+  const stmts: D1PreparedStatement[] = [];
+  for (const vid of variantIds) {
+    if (orderedSet.has(vid)) {
+      stmts.push(
+        c.env.DB.prepare(`UPDATE product_variants SET is_active = 0, updated_at = ?1 WHERE id = ?2`).bind(now, vid),
+      );
+    } else {
+      stmts.push(c.env.DB.prepare(`DELETE FROM product_variants WHERE id = ?1 AND product_id = ?2`).bind(vid, productId));
+    }
+  }
+  stmts.push(
+    c.env.DB.prepare(`DELETE FROM product_images WHERE product_id = ?1 AND LOWER(color_name) = LOWER(?2)`).bind(productId, colorName),
+  );
+
+  await c.env.DB.batch(stmts);
+  const prod = await c.env.DB.prepare(`SELECT slug FROM products WHERE id = ?1`).bind(productId).first<{ slug: string }>();
+  await bumpCatalogCacheVersion(c.env.CATALOG_KV, prod?.slug);
+  await invalidateStorefrontCache(c.env);
+  await auditAdminAction(c, 'REMOVE_PRODUCT_COLOR', 'product', productId, {
+    colorName,
+    removedCount: variantIds.length - orderedSet.size,
+    deactivatedCount: orderedSet.size,
+  });
+
+  return c.json({
+    success: true,
+    data: {
+      colorName,
+      deletedCount: variantIds.length - orderedSet.size,
+      deactivatedCount: orderedSet.size,
+    },
+  });
+});
+
+// ─── DELETE /api/admin/products/:id/sizes/:size ──────────────────────────────
+adminProducts.delete('/:id/sizes/:size', requirePermission('catalog.delete'), async (c) => {
+  const productId = c.req.param('id');
+  const size = decodeURIComponent(c.req.param('size')).trim();
+  if (!size) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Size required.', status: 400 } }, 400);
+  }
+
+  const varsRes = await c.env.DB
+    .prepare(`SELECT id FROM product_variants WHERE product_id = ?1 AND LOWER(size) = LOWER(?2)`)
+    .bind(productId, size)
+    .all<{ id: string }>();
+  const variantIds = (varsRes.results ?? []).map((v) => v.id);
+  if (variantIds.length === 0) {
+    return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Size not found on product.', status: 404 } }, 404);
+  }
+
+  const placeholders = variantIds.map((_, i) => `?${i + 1}`).join(', ');
+  const orderedRes = await c.env.DB
+    .prepare(`SELECT DISTINCT variant_id FROM order_items WHERE variant_id IN (${placeholders})`)
+    .bind(...variantIds)
+    .all<{ variant_id: string }>();
+  const orderedSet = new Set((orderedRes.results ?? []).map((r) => r.variant_id));
+
+  const now = nowIso();
+  const stmts: D1PreparedStatement[] = [];
+  for (const vid of variantIds) {
+    if (orderedSet.has(vid)) {
+      stmts.push(
+        c.env.DB.prepare(`UPDATE product_variants SET is_active = 0, updated_at = ?1 WHERE id = ?2`).bind(now, vid),
+      );
+    } else {
+      stmts.push(c.env.DB.prepare(`DELETE FROM product_variants WHERE id = ?1 AND product_id = ?2`).bind(vid, productId));
+    }
+  }
+
+  await c.env.DB.batch(stmts);
+  const prod = await c.env.DB.prepare(`SELECT slug FROM products WHERE id = ?1`).bind(productId).first<{ slug: string }>();
+  await bumpCatalogCacheVersion(c.env.CATALOG_KV, prod?.slug);
+  await invalidateStorefrontCache(c.env);
+  await auditAdminAction(c, 'REMOVE_PRODUCT_SIZE', 'product', productId, {
+    size,
+    removedCount: variantIds.length - orderedSet.size,
+    deactivatedCount: orderedSet.size,
+  });
+
+  return c.json({
+    success: true,
+    data: {
+      size,
+      deletedCount: variantIds.length - orderedSet.size,
+      deactivatedCount: orderedSet.size,
+    },
+  });
+});
 
 // ─── PATCH /api/admin/products/:id/variants/:variantId ───────────────────────
 const updateVariantSchema = z.object({
@@ -756,6 +1239,9 @@ adminProducts.delete('/:id/variants/:variantId', requirePermission('catalog.dele
   if (Number(orderedRow?.cnt ?? 0) > 0) {
     // Has historical orders: deactivate instead of hard delete to protect FK & ledger integrity
     await c.env.DB.prepare(`UPDATE product_variants SET is_active = 0, updated_at = ?1 WHERE id = ?2`).bind(nowIso(), variantId).run();
+    const prod = await c.env.DB.prepare(`SELECT slug FROM products WHERE id = ?1`).bind(productId).first<{ slug: string }>();
+    await bumpCatalogCacheVersion(c.env.CATALOG_KV, prod?.slug);
+    await invalidateStorefrontCache(c.env);
     await auditAdminAction(c, 'DEACTIVATE_VARIANT_WITH_ORDERS', 'product_variant', variantId);
     return c.json({ success: true, data: { deactivated: true, reason: 'Variant has historical orders.' } });
   }
@@ -807,7 +1293,7 @@ adminProducts.put(
             `INSERT INTO product_images (id, product_id, image_url, alt_text, color_name, sort_order)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
           )
-          .bind(imgId, productId, imgUrl, img.alt_text ?? '', img.color_name ?? null, img.sort_order ?? idx + 1),
+          .bind(imgId, productId, imgUrl, img.alt_text ?? '', img.color_name ?? '', img.sort_order ?? idx + 1),
       );
     });
 

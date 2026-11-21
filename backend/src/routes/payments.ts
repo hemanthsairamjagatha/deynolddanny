@@ -324,8 +324,23 @@ payments.post('/verify', authRequired, zValidator('json', verifyClientPaymentSch
     );
   }
 
-  // 3. Explicit development test-mode opt-in ONLY
-  if (policy.allowTestCheckoutFallback && order.cf_order_id?.startsWith('test_order_')) {
+  // 3. Explicit development test-mode opt-in ONLY (never allowed in staging/production)
+  let devTestAllowed = policy.allowTestCheckoutFallback;
+  if (!policy.isProductionLike) {
+    try {
+      const sRow = await env.DB
+        .prepare(`SELECT settings_json FROM store_settings WHERE id = 'default' LIMIT 1`)
+        .first<{ settings_json: string }>();
+      if (sRow?.settings_json) {
+        const parsed = JSON.parse(sRow.settings_json) as Record<string, unknown>;
+        if (parsed.enableTestCheckout !== undefined) {
+          devTestAllowed = Boolean(parsed.enableTestCheckout);
+        }
+      }
+    } catch {}
+  }
+
+  if (!policy.isProductionLike && devTestAllowed && order.cf_order_id?.startsWith('test_order_')) {
     const finalized = await finalizePaidOrder(
       env,
       order,

@@ -496,9 +496,9 @@ adminCms.post('/pages/:pageId/preview-token', requirePermission('cms.read'), asy
   const adminId = c.get('userId');
   const pageId = c.req.param('pageId');
   const page = await c.env.DB
-    .prepare(`SELECT id, slug, route_path FROM cms_pages WHERE id = ?1 LIMIT 1`)
+    .prepare(`SELECT id, slug, route_path, page_type FROM cms_pages WHERE id = ?1 LIMIT 1`)
     .bind(pageId)
-    .first<{ id: string; slug: string; route_path: string }>();
+    .first<{ id: string; slug: string; route_path: string; page_type: string }>();
 
   if (!page) {
     return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Page not found.', status: 404 } }, 404);
@@ -508,7 +508,20 @@ adminCms.post('/pages/:pageId/preview-token', requirePermission('cms.read'), asy
     { pageId: page.id, slug: page.slug, adminId, includeBrandDraft: true },
     c.env.JWT_SECRET,
   );
-  const previewPath = `${page.route_path.replace(/\/\*$/, '') || '/'}?dd_preview=${encodeURIComponent(token)}`;
+
+  let baseRoute = page.route_path.replace(/\/\*$/, '') || '/';
+  if (page.route_path === '/products/*' || page.page_type === 'pdp_global') {
+    const firstProd = await c.env.DB
+      .prepare(`SELECT slug FROM products WHERE is_active = 1 ORDER BY sort_order ASC LIMIT 1`)
+      .first<{ slug: string }>();
+    baseRoute = `/products/${firstProd?.slug || 'tailored-virgin-wool-suit'}`;
+  } else if (page.route_path === '/categories/*' || page.page_type === 'category_template') {
+    const firstCat = await c.env.DB
+      .prepare(`SELECT slug FROM categories WHERE is_active = 1 ORDER BY sort_order ASC LIMIT 1`)
+      .first<{ slug: string }>();
+    baseRoute = `/categories/${firstCat?.slug || 'suits'}`;
+  }
+  const previewPath = `${baseRoute}?dd_preview=${encodeURIComponent(token)}`;
 
   return c.json({ success: true, data: { token, previewPath, expiresInMinutes: 30 } });
 });

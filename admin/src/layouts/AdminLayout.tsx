@@ -1,8 +1,8 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface NavItem { label: string; path: string; icon: React.ReactNode; }
+interface NavItem { label: string; path: string; permission?: string; icon: React.ReactNode; }
 interface NavGroup { group: string; items: NavItem[]; }
 
 function NavIcon({ children }: { children: React.ReactNode }) {
@@ -20,6 +20,7 @@ const NAV: NavGroup[] = [
     group: 'Storefront',
     items: [
       { label: 'Visual Studio', path: '/studio', icon: <NavIcon><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></NavIcon> },
+      { label: 'Style Layering', path: '/style-layering', icon: <NavIcon><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg></NavIcon> },
       { label: 'Brand Identity', path: '/brand', icon: <NavIcon><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" /></svg></NavIcon> },
       { label: 'Navigation', path: '/navigation', icon: <NavIcon><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg></NavIcon> },
       { label: 'Media Library', path: '/media', icon: <NavIcon><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></NavIcon> },
@@ -73,9 +74,41 @@ const NAV: NavGroup[] = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const visibleNav = useMemo(
+    () =>
+      NAV.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => !item.permission || hasPermission(item.permission)),
+      })).filter((g) => g.items.length > 0),
+    [user],
+  );
+
+  const breadcrumbs = useMemo(() => {
+    const path = location.pathname.replace(/\/+$/, '') || '/dashboard';
+    const crumbs: Array<{ label: string; to?: string }> = [{ label: 'Admin', to: '/dashboard' }];
+    for (const g of NAV) {
+      for (const item of g.items) {
+        if (path === item.path) {
+          crumbs.push({ label: g.group });
+          crumbs.push({ label: item.label });
+          return crumbs;
+        }
+        if (path.startsWith(`${item.path}/`)) {
+          const tail = path.slice(item.path.length + 1);
+          crumbs.push({ label: g.group });
+          crumbs.push({ label: item.label, to: item.path });
+          crumbs.push({ label: tail === 'new' ? 'Create New' : 'Detail / Edit' });
+          return crumbs;
+        }
+      }
+    }
+    return crumbs;
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -86,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-ink-100">
-        <div className="flex items-center gap-3">
+        <Link to="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3">
           <div className="w-8 h-8 bg-ink-900 rounded-lg flex items-center justify-center">
             <span className="text-gold-400 font-display font-bold text-sm">D</span>
           </div>
@@ -94,12 +127,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <p className="text-sm font-display font-semibold text-ink-900 leading-none">Deynold Danny</p>
             <p className="text-xs text-ink-400 mt-0.5">Commerce OS</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
-        {NAV.map(group => (
+      <nav aria-label="Admin sidebar navigation" className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
+        {visibleNav.map(group => (
           <div key={group.group} className="mb-5">
             <p className="px-3 mb-1.5 text-xs font-semibold text-ink-400 uppercase tracking-widest">{group.group}</p>
             <div className="space-y-0.5">
@@ -170,13 +203,56 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="h-14 bg-white border-b border-ink-200 flex items-center px-4 lg:px-6 gap-4 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open navigation menu"
             className="lg:hidden p-2 rounded-lg hover:bg-ink-100 text-ink-500"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
+
+          {/* Breadcrumbs */}
+          <nav aria-label="Breadcrumb" className="hidden sm:flex items-center gap-1.5 text-xs text-ink-500 min-w-0">
+            {breadcrumbs.map((crumb, idx) => (
+              <span key={`${crumb.label}-${idx}`} className="flex items-center gap-1.5 truncate">
+                {idx > 0 && <span className="text-ink-300">/</span>}
+                {crumb.to && idx < breadcrumbs.length - 1 ? (
+                  <Link to={crumb.to} className="hover:text-ink-900 transition-colors">
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span className={idx === breadcrumbs.length - 1 ? 'font-medium text-ink-900' : ''}>
+                    {crumb.label}
+                  </span>
+                )}
+              </span>
+            ))}
+          </nav>
+
           <div className="flex-1" />
+
+          {/* Quick Operational Shortcuts */}
+          <div className="hidden md:flex items-center gap-1.5">
+            <Link
+              to="/catalog/products/new"
+              className="px-2.5 py-1.5 text-xs font-medium bg-ink-900 text-white rounded-lg hover:bg-ink-800 transition-colors"
+            >
+              + Product
+            </Link>
+            <Link
+              to="/orders"
+              className="px-2.5 py-1.5 text-xs font-medium text-ink-600 hover:text-ink-900 hover:bg-ink-100 rounded-lg transition-colors"
+            >
+              Orders
+            </Link>
+            <Link
+              to="/inventory"
+              className="px-2.5 py-1.5 text-xs font-medium text-ink-600 hover:text-ink-900 hover:bg-ink-100 rounded-lg transition-colors"
+            >
+              Inventory
+            </Link>
+          </div>
+
           <a
             href="/"
             target="_blank"

@@ -1,0 +1,15 @@
+---
+// src/pages/collections/live.astro
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+import { LiveCollectionExperience } from '../../features/catalog/components/LiveCollectionExperience';
+
+const title = 'Collection | DEYNOLD DANNY';
+const description = 'Discover curated seasonal capsules and limited-edition collections from the house of DEYNOLD DANNY.';
+---
+
+<StorefrontLayout title={title} description={description}>
+  <main id="main-content" class="min-h-screen bg-white text-black">
+    <LiveCollectionExperience client:load mode="detail" />
+  </main>
+</StorefrontLayout>
+

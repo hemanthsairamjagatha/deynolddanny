@@ -38,7 +38,7 @@ export default function ReviewsPage() {
     try {
       const res = await reviewsApi.list(tab === 'all' ? undefined : tab);
       const raw = res.data as unknown;
-      const arr = Array.isArray(raw) ? raw : (raw as { reviews?: ReviewRow[] })?.reviews ?? [];
+      const arr = Array.isArray(raw) ? raw : ((raw as { items?: ReviewRow[]; reviews?: ReviewRow[] })?.items ?? (raw as { reviews?: ReviewRow[] })?.reviews ?? []);
       setList(arr as ReviewRow[]);
     } finally {
       setLoading(false);

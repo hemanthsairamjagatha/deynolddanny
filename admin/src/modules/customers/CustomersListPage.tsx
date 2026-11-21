@@ -17,8 +17,8 @@ export default function CustomersListPage() {
     setLoading(true);
     try {
       const res = await customersApi.list({ search: search || undefined, page });
-      const raw = res.data as unknown as { customers?: Customer[]; total?: number } | Customer[];
-      setData(Array.isArray(raw) ? raw : (raw?.customers ?? []));
+      const raw = res.data as unknown as { items?: Customer[]; customers?: Customer[]; total?: number } | Customer[];
+      setData(Array.isArray(raw) ? raw : (raw?.items ?? raw?.customers ?? []));
       setTotal(Array.isArray(raw) ? raw.length : Number(raw?.total ?? 0));
     } finally { setLoading(false); }
   }

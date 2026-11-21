@@ -6,6 +6,7 @@ import type { DbOrder } from '../types/models.js';
 import type { ApiOrder, ApiOrderTrackingDetails, TrackingMilestone } from '../types/api.js';
 import { resolveStorePolicy } from '../config/policy.js';
 import { authRequired } from '../middleware/auth.js';
+import { resolveAdminAccessProfile, hasAdminPermission } from '../middleware/adminAuth.js';
 import { checkD1RateLimit, createRateLimitResponse } from '../middleware/rateLimit.js';
 import { getUserOrders, getOrderById, getOrderItems } from '../db/queries/orders.js';
 import { formatPaiseToDisplay } from '../services/money.js';
@@ -25,12 +26,15 @@ import {
 
 const orders = new Hono<{ Bindings: Env }>();
 
-function isAuthorizedAdmin(role: string | undefined, email: string | undefined, env: Env): boolean {
-  if (role !== 'admin' && role !== 'superadmin') return false;
-  if (!email) return false;
-  const allowlist =
-    env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean) ?? [];
-  return allowlist.includes(email.toLowerCase());
+async function isAuthorizedOrderAdmin(
+  userId: string | undefined,
+  role: string | undefined,
+  email: string | undefined,
+  env: Env,
+): Promise<boolean> {
+  if (!userId || !email || !role) return false;
+  const profile = await resolveAdminAccessProfile(env, { id: userId, email, role });
+  return profile.isAdmin && hasAdminPermission(profile.permissions, 'orders.read');
 }
 
 async function buildOrderTrackingResponse(
@@ -58,6 +62,39 @@ async function buildOrderTrackingResponse(
       resolvedCourier = tracking.courierName || resolvedCourier;
       estimatedDeliveryDate = tracking.estimatedDeliveryDate;
       liveActivities = tracking.activityHistory || [];
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  if (liveActivities.length === 0) {
+    try {
+      const auditRows = await db
+        .prepare(
+          `SELECT action, detail, created_at FROM order_audit_logs
+           WHERE order_id = ?1
+           ORDER BY created_at DESC LIMIT 12`,
+        )
+        .bind(order.id)
+        .all<{ action: string; detail: string; created_at: string }>();
+
+      const labelMap: Record<string, { status: string; location: string }> = {
+        checkout_initialized: { status: 'ORDER_PLACED', location: 'Online Flagship' },
+        payment_finalized: { status: 'PAYMENT_VERIFIED', location: 'Atelier Billing' },
+        manual_mark_paid: { status: 'PAYMENT_VERIFIED', location: 'Atelier Billing' },
+        status_change: { status: 'STATUS_UPDATE', location: 'Deynold Danny Atelier' },
+        ship: { status: 'DISPATCHED', location: 'Dispatch Hub' },
+        delivered: { status: 'DELIVERED', location: `${order.shipping_city}, ${order.shipping_state}` },
+      };
+
+      liveActivities = (auditRows.results ?? [])
+        .filter((a) => Boolean(labelMap[a.action]))
+        .map((a) => ({
+          date: a.created_at,
+          status: labelMap[a.action].status,
+          activity: a.detail,
+          location: labelMap[a.action].location,
+        }));
     } catch {
       // Non-fatal
     }
@@ -240,7 +277,7 @@ orders.get('/:orderId/tracking', authRequired, async (c) => {
     );
   }
 
-  if (order.user_id !== userId && !isAuthorizedAdmin(userRole, userEmail, c.env)) {
+  if (order.user_id !== userId && !(await isAuthorizedOrderAdmin(userId, userRole, userEmail, c.env))) {
     return c.json(
       { success: false, error: { code: 'FORBIDDEN', message: 'Access denied.', status: 403 } },
       403,
@@ -318,7 +355,7 @@ orders.get('/:orderId', authRequired, async (c) => {
     );
   }
 
-  if (order.user_id !== userId && !isAuthorizedAdmin(userRole, userEmail, c.env)) {
+  if (order.user_id !== userId && !(await isAuthorizedOrderAdmin(userId, userRole, userEmail, c.env))) {
     return c.json(
       { success: false, error: { code: 'FORBIDDEN', message: 'Access denied.', status: 403 } },
       403,
@@ -552,7 +589,7 @@ orders.get('/:orderId/invoice', authRequired, async (c) => {
       404,
     );
   }
-  if (order.user_id !== userId && !isAuthorizedAdmin(userRole, userEmail, c.env)) {
+  if (order.user_id !== userId && !(await isAuthorizedOrderAdmin(userId, userRole, userEmail, c.env))) {
     return c.json(
       { success: false, error: { code: 'FORBIDDEN', message: 'Access denied.', status: 403 } },
       403,

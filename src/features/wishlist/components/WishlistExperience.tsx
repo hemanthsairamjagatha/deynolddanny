@@ -9,6 +9,7 @@ import {
 } from '../store/wishlist.store';
 import { addToCart, openCart } from '../../cart/store/cart.store';
 import { $fxSnapshot, $selectedCountry, formatInrDisplayString } from '../../../lib/currency/currency.store';
+import { hasSessionHint } from '../../../lib/api/client';
 
 export const WishlistExperience: React.FC = () => {
   const items = useStore($wishlistItems);
@@ -16,11 +17,13 @@ export const WishlistExperience: React.FC = () => {
   const selectedCountry = useStore($selectedCountry);
   const fx = useStore($fxSnapshot);
   const [isMounted, setIsMounted] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
   const [sizePickerOpenId, setSizePickerOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
+    setIsSignedIn(hasSessionHint());
     syncWishlistWithBackend().catch(() => {});
   }, []);
 
@@ -105,6 +108,21 @@ export const WishlistExperience: React.FC = () => {
         ) : (
           /* Populated State with Luxury Product Grid */
           <div className="space-y-8 animate-in fade-in duration-300">
+            {/* Guest Wishlist Soft Sync Prompt (Luxury Standard) */}
+            {isMounted && !isSignedIn && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 bg-[#faf8f5] border border-neutral-200/80 rounded-sm">
+                <p className="text-xs text-neutral-700 tracking-wide">
+                  <span className="font-medium text-neutral-900">Saved on this device.</span> Sign in to sync your curated pieces across devices and receive restock alerts.
+                </p>
+                <a
+                  href="/account/sign-in?redirect=/wishlist"
+                  className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white text-[10px] font-mono uppercase tracking-[0.18em] transition-colors whitespace-nowrap"
+                >
+                  Sign In to Sync
+                </a>
+              </div>
+            )}
+
             {/* Top Bar with Clear Action */}
             <div className="flex items-center justify-between text-xs font-mono text-neutral-500 uppercase tracking-wider pb-2">
               <span>Saved Pieces ({displayCount})</span>

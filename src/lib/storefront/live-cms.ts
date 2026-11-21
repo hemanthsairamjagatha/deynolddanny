@@ -17,7 +17,13 @@ interface CmsSectionPayload {
 
 interface PublishedBundle {
   brand?: Record<string, unknown>;
+  storeConfig?: Record<string, unknown>;
   navigation?: Record<string, unknown>;
+  categories?: Array<Record<string, unknown>>;
+  collections?: Array<Record<string, unknown>>;
+  pdpConfig?: Record<string, unknown>;
+  contactPage?: Record<string, unknown>;
+  sizeGuides?: Array<Record<string, unknown>>;
   homepageSections?: CmsSectionPayload[];
   homepage?: {
     sections?: CmsSectionPayload[];
@@ -49,6 +55,10 @@ function applyBrand(brand: Record<string, unknown> | undefined) {
   if (typeof primary === 'string' && primary.trim()) {
     root.style.setProperty('--color-primary', primary.trim());
   }
+  const secondary = colors.secondary;
+  if (typeof secondary === 'string' && secondary.trim()) {
+    root.style.setProperty('--color-secondary', secondary.trim());
+  }
   const accent = colors.accent ?? brand.accentColor;
   if (typeof accent === 'string' && accent.trim()) {
     root.style.setProperty('--color-accent', accent.trim());
@@ -59,7 +69,86 @@ function applyBrand(brand: Record<string, unknown> | undefined) {
   }
   if (typeof colors.footerBg === 'string' && colors.footerBg.trim()) {
     const footer = document.getElementById('footer');
-    if (footer) footer.style.backgroundColor = colors.footerBg.trim();
+    if (footer) footer.style.setProperty('background-color', colors.footerBg.trim(), 'important');
+  }
+
+  // Live Typography (dynamically loads Google Font when changed from default Montserrat)
+  const typography = (brand.typography && typeof brand.typography === 'object' ? brand.typography : null) as
+    | { displayFont?: string; bodyFont?: string }
+    | null;
+  if (typography) {
+    const fontsToLoad = Array.from(
+      new Set([typography.displayFont, typography.bodyFont].filter((f): f is string => typeof f === 'string' && Boolean(f.trim()))),
+    );
+    for (const fontName of fontsToLoad) {
+      const cleanFont = fontName.trim();
+      if (cleanFont.toLowerCase() !== 'montserrat' && !document.getElementById(`dd-gfont-${cleanFont}`)) {
+        const link = document.createElement('link');
+        link.id = `dd-gfont-${cleanFont}`;
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(cleanFont)}:wght@300;400;500;600;700&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+    if (typography.displayFont?.trim()) {
+      root.style.setProperty('--font-display', `'${typography.displayFont.trim()}', serif`);
+    }
+    if (typography.bodyFont?.trim()) {
+      root.style.setProperty('--font-sans', `'${typography.bodyFont.trim()}', sans-serif`);
+      document.body.style.fontFamily = `'${typography.bodyFont.trim()}', -apple-system, BlinkMacSystemFont, sans-serif`;
+    }
+  }
+
+  // Contact & Atelier Identity hooks (Contact page + global)
+  const setText = (sel: string, val: unknown) => {
+    if (typeof val === 'string' && val.trim()) {
+      document.querySelectorAll<HTMLElement>(sel).forEach((el) => {
+        el.textContent = val.trim();
+      });
+    }
+  };
+  setText('[data-brand-concierge-email]', brand.conciergeEmail);
+  setText('[data-brand-concierge-phone]', brand.conciergePhone);
+  setText('[data-brand-atelier-name]', brand.atelierName);
+  setText('[data-brand-atelier-address]', brand.atelierAddress);
+  setText('[data-brand-atelier-hours]', brand.atelierHours);
+  setText('[data-brand-origin-badge]', brand.originBadgeText);
+
+  // Social Channels in Footer
+  if (Array.isArray(brand.socialLinks)) {
+    const visibleSocials = (brand.socialLinks as Array<{ platform?: string; url?: string; visible?: boolean }>).filter(
+      (s) => s && s.visible !== false && typeof s.platform === 'string' && s.platform.trim() && safeUrl(s.url),
+    );
+    const footerBottom = document.querySelector<HTMLElement>('#footer .footer-copyright-wrap');
+    if (footerBottom) {
+      footerBottom.querySelector('#dd-live-social-links')?.remove();
+      if (visibleSocials.length > 0) {
+        const socialRow = document.createElement('div');
+        socialRow.id = 'dd-live-social-links';
+        socialRow.style.cssText = 'display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px;';
+        for (const s of visibleSocials) {
+          const a = document.createElement('a');
+          a.href = safeUrl(s.url)!;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = s.platform!.trim();
+          a.style.cssText = 'font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #525252; text-decoration: none;';
+          socialRow.appendChild(a);
+        }
+        footerBottom.appendChild(socialRow);
+      }
+    }
+  }
+
+  // Default Homepage SEO Title / Description when published
+  if (window.location.pathname === '/') {
+    if (typeof brand.defaultMetaTitle === 'string' && brand.defaultMetaTitle.trim()) {
+      document.title = brand.defaultMetaTitle.trim();
+    }
+    if (typeof brand.defaultMetaDescription === 'string' && brand.defaultMetaDescription.trim()) {
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+      if (meta) meta.content = brand.defaultMetaDescription.trim();
+    }
   }
 
   const logoUrl = safeUrl(brand.logoPrimaryUrl ?? brand.logoUrl);
@@ -79,32 +168,22 @@ function applyBrand(brand: Record<string, unknown> | undefined) {
   }
 
   const copyrightText = typeof brand.copyrightText === 'string' ? brand.copyrightText.trim() : '';
-  if (copyrightText) {
-    const el = document.querySelector<HTMLElement>('.footer-copyright-text');
-    if (el) {
-      el.textContent = '';
-      const year = String(new Date().getFullYear());
-      const resolvedCopy = copyrightText.replace(/\{\{\s*year\s*\}\}/gi, year);
-      el.appendChild(document.createTextNode(resolvedCopy));
-
-      const showAttr = brand.showAttribution !== false;
-      const attrText = typeof brand.attributionText === 'string' ? brand.attributionText.trim() : '';
-      const attrUrl = safeUrl(brand.attributionUrl);
-      if (showAttr && attrText) {
-        el.appendChild(document.createTextNode(' · '));
-        if (attrUrl) {
-          const a = document.createElement('a');
-          a.href = attrUrl;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          a.className = 'footer-pixenox-link';
-          a.textContent = attrText;
-          el.appendChild(a);
-        } else {
-          el.appendChild(document.createTextNode(attrText));
-        }
-      }
-    }
+  const el = document.querySelector<HTMLElement>('.footer-copyright-text');
+  if (el) {
+    el.textContent = '';
+    const year = String(new Date().getFullYear());
+    const baseCopy = (copyrightText || `© ${year} DEYNOLD DANNY. All rights reserved.`)
+      .replace(/\{\{\s*year\s*\}\}/gi, year)
+      .replace(/[,\s·]*HANDCRAFTED BY PIXENOX SOLUTIONS.*$/i, '')
+      .trim();
+    el.appendChild(document.createTextNode(`${baseCopy}, HANDCRAFTED BY `));
+    const a = document.createElement('a');
+    a.href = 'https://www.pixenox.com';
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'footer-pixenox-link';
+    a.textContent = 'PIXENOX SOLUTIONS';
+    el.appendChild(a);
   }
 }
 
@@ -409,7 +488,13 @@ function applyFooterNavigation(navigation: Record<string, unknown> | undefined) 
   }
 
   if (footerData.newsletter && newsletterCol) {
-    const nl = footerData.newsletter;
+    const nl = footerData.newsletter as {
+      enabled?: boolean;
+      heading?: string;
+      description?: string;
+      placeholder?: string;
+      successMessage?: string;
+    };
     newsletterCol.style.display = nl.enabled === false ? 'none' : '';
     if (typeof nl.heading === 'string' && nl.heading.trim()) {
       const h = newsletterCol.querySelector<HTMLElement>('.footer-heading-newsletter');
@@ -423,6 +508,59 @@ function applyFooterNavigation(navigation: Record<string, unknown> | undefined) 
       const inp = newsletterCol.querySelector<HTMLInputElement>('#newsletter-email');
       if (inp) inp.placeholder = nl.placeholder.trim();
     }
+    if (typeof nl.successMessage === 'string' && nl.successMessage.trim()) {
+      const form = newsletterCol.querySelector<HTMLFormElement>('#newsletter-form');
+      if (form) form.dataset.successMessage = nl.successMessage.trim();
+    }
+  }
+}
+
+function applyCookieBanner(navigation: Record<string, unknown> | undefined) {
+  if (!navigation || typeof navigation !== 'object') return;
+  const cookie = navigation.cookie_banner as Record<string, unknown> | undefined;
+  if (!cookie || typeof cookie !== 'object') return;
+  (window as unknown as { __ddCookieBannerCms?: Record<string, unknown> }).__ddCookieBannerCms = cookie;
+  window.dispatchEvent(new CustomEvent('dd:cookie-cms-update', { detail: cookie }));
+}
+
+function applyContactPage(contactPage: Record<string, unknown> | undefined) {
+  if (!contactPage || typeof contactPage !== 'object') return;
+  if (typeof contactPage.eyebrow === 'string' && contactPage.eyebrow.trim()) {
+    const el = document.querySelector<HTMLElement>('[data-cms-contact-eyebrow]');
+    if (el) el.textContent = contactPage.eyebrow.trim();
+  }
+  if (typeof contactPage.title === 'string' && contactPage.title.trim()) {
+    const el = document.querySelector<HTMLElement>('[data-cms-contact-title]');
+    if (el) el.textContent = contactPage.title.trim();
+  }
+  if (typeof contactPage.subtitle === 'string' && contactPage.subtitle.trim()) {
+    const el = document.querySelector<HTMLElement>('[data-cms-contact-subtitle]');
+    if (el) el.textContent = contactPage.subtitle.trim();
+  }
+}
+
+function applyPdpConfig(pdpConfig: Record<string, unknown> | undefined) {
+  if (!pdpConfig || typeof pdpConfig !== 'object') return;
+  (window as unknown as { __ddPdpCms?: Record<string, unknown> }).__ddPdpCms = pdpConfig;
+  window.dispatchEvent(new CustomEvent('dd:pdp-cms-update', { detail: pdpConfig }));
+
+  if (typeof pdpConfig.styleItWithHeading === 'string' && pdpConfig.styleItWithHeading.trim()) {
+    const el = document.getElementById('style-it-with-title');
+    if (el) el.textContent = pdpConfig.styleItWithHeading.trim();
+  }
+  if (typeof pdpConfig.relatedHeading === 'string' && pdpConfig.relatedHeading.trim()) {
+    const el = document.getElementById('related-products-title');
+    if (el) el.textContent = pdpConfig.relatedHeading.trim();
+  }
+  if (typeof pdpConfig.originBadgeText === 'string' && pdpConfig.originBadgeText.trim()) {
+    document.querySelectorAll<HTMLElement>('[data-brand-origin-badge]').forEach((el) => {
+      el.textContent = String(pdpConfig.originBadgeText).trim();
+    });
+  }
+  if (typeof pdpConfig.showOriginBadge === 'boolean') {
+    document.querySelectorAll<HTMLElement>('[data-brand-origin-badge]').forEach((el) => {
+      el.style.display = pdpConfig.showOriginBadge === false ? 'none' : '';
+    });
   }
 }
 
@@ -458,34 +596,43 @@ function applyHomepageSections(sections: CmsSectionPayload[] | undefined) {
     window.dispatchEvent(new CustomEvent('dd:hero-cms-update', { detail: sanitizedHero }));
   }
 
-  // B. Product Carousels headings & View All links
+  // B. Product Carousels (Our Best Sellers & New Arrival) full live CMS hydration
   const carousels = sections.filter((s) => (s.sectionType ?? s.section_type) === 'product_carousel');
-  carousels.forEach((car, index) => {
-    const props = car.props ?? car.config_json ?? {};
-    const targetId =
-      props.sectionId === 'mastery' || index === 0
-        ? 'thread-of-mastery'
-        : props.sectionId === 'new-collection' || index === 1
-          ? 'new-arrival'
-          : null;
-    if (!targetId) return;
-    const secEl = document.getElementById(targetId);
-    if (!secEl) return;
-    if (typeof props.title === 'string' && props.title.trim()) {
-      const h2 = secEl.querySelector<HTMLElement>('h2');
-      if (h2) h2.textContent = props.title.trim();
-    }
-    const ctaUrl = safeUrl(props.ctaUrl);
-    if (ctaUrl) {
-      const link = secEl.querySelector<HTMLAnchorElement>('a[href*="/categories"], a[href*="/collections"]');
-      if (link) {
-        link.href = ctaUrl;
-        if (typeof props.ctaLabel === 'string' && props.ctaLabel.trim()) {
-          link.textContent = props.ctaLabel.trim();
+  if (carousels.length > 0) {
+    const carouselMap: Record<string, Record<string, unknown>> = {};
+    carousels.forEach((car, index) => {
+      const props = (car.props ?? car.config_json ?? {}) as Record<string, unknown>;
+      const targetId =
+        props.sectionId === 'mastery' || props.sectionGroup === 'mastery' || index === 0
+          ? 'thread-of-mastery'
+          : props.sectionId === 'new-collection' || props.sectionGroup === 'style_space' || props.sectionGroup === 'new-arrival' || index === 1
+            ? 'new-arrival'
+            : String(props.sectionId || `carousel-${index}`);
+      carouselMap[targetId] = {
+        ...props,
+        ctaUrl: safeUrl(props.ctaUrl) ?? undefined,
+      };
+
+      const secEl = document.getElementById(targetId);
+      if (!secEl) return;
+      if (typeof props.title === 'string' && props.title.trim()) {
+        const h2 = secEl.querySelector<HTMLElement>('h2');
+        if (h2) h2.textContent = props.title.trim();
+      }
+      const ctaUrl = safeUrl(props.ctaUrl);
+      if (ctaUrl) {
+        const link = secEl.querySelector<HTMLAnchorElement>('a.mastery-view-all');
+        if (link) {
+          link.href = ctaUrl;
+          if (typeof props.ctaLabel === 'string' && props.ctaLabel.trim()) {
+            link.textContent = props.ctaLabel.trim();
+          }
         }
       }
-    }
-  });
+    });
+    (window as unknown as { __ddCarouselsCms?: Record<string, Record<string, unknown>> }).__ddCarouselsCms = carouselMap;
+    window.dispatchEvent(new CustomEvent('dd:carousel-cms-update', { detail: carouselMap }));
+  }
 
   // C. Category Editorial Grid
   const catGrid = sections.find((s) => (s.sectionType ?? s.section_type) === 'category_grid');
@@ -660,6 +807,45 @@ function applyHomepageSections(sections: CmsSectionPayload[] | undefined) {
       }
       mainContent.appendChild(div);
     }
+
+    // E. Style Layering Lookbook live CMS hydration + Show/Hide control
+    const styleSec = sections.find((s) => (s.sectionType ?? s.section_type) === 'style_layering');
+    const styleWrap = document.getElementById('latest-news');
+    if (styleSec) {
+      if (styleWrap) styleWrap.style.display = '';
+      const props = styleSec.props ?? styleSec.config_json ?? {};
+      (window as unknown as { __ddStyleLayeringCms?: Record<string, unknown> }).__ddStyleLayeringCms = props;
+      window.dispatchEvent(new CustomEvent('dd:style-layering-cms-update', { detail: props }));
+    } else if (styleWrap && sections.length > 0) {
+      styleWrap.style.display = 'none';
+    }
+
+    // F. Newsletter CTA Strip if added in Studio
+    const newsletterStrips = sections.filter((s) => (s.sectionType ?? s.section_type) === 'newsletter_cta');
+    for (const ns of newsletterStrips) {
+      const props = ns.props ?? ns.config_json ?? {};
+      const headline = typeof props.headline === 'string' ? props.headline.trim() : '';
+      if (!headline) continue;
+      const strip = document.createElement('section');
+      strip.className = 'dd-dynamic-cms-section';
+      strip.style.cssText = 'max-width: 1200px; margin: 48px auto; padding: 48px 24px; text-align: center; border-top: 1px solid #ebebeb; border-bottom: 1px solid #ebebeb;';
+      const h3 = document.createElement('h3');
+      h3.textContent = headline;
+      h3.style.cssText = 'font-size: 24px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 10px; color: #111;';
+      strip.appendChild(h3);
+      if (typeof props.subtext === 'string' && props.subtext.trim()) {
+        const p = document.createElement('p');
+        p.textContent = props.subtext.trim();
+        p.style.cssText = 'font-size: 13px; color: #525252; max-width: 520px; margin: 0 auto 18px;';
+        strip.appendChild(p);
+      }
+      const cta = document.createElement('a');
+      cta.href = '#footer';
+      cta.textContent = typeof props.buttonText === 'string' && props.buttonText.trim() ? props.buttonText.trim() : 'Subscribe';
+      cta.style.cssText = 'display: inline-block; padding: 12px 28px; background: #111; color: #fff; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none;';
+      strip.appendChild(cta);
+      mainContent.appendChild(strip);
+    }
   }
 }
 
@@ -777,8 +963,19 @@ export async function hydrateLiveStorefront(): Promise<void> {
         applyHeaderNavigation(json.data.navigation);
         applyDrawerNavigation(json.data.navigation);
         applyFooterNavigation(json.data.navigation);
+        applyCookieBanner(json.data.navigation);
         applyHomepageSections(json.data.sections);
         applyLegalDocument(json.data.sections);
+        if (Array.isArray(json.data.sections)) {
+          const pdpSec = json.data.sections.find((s) => (s.sectionType ?? s.section_type) === 'pdp_template');
+          if (pdpSec) {
+            applyPdpConfig((pdpSec.props ?? pdpSec.config_json ?? {}) as Record<string, unknown>);
+          }
+          const contactSec = json.data.sections.find((s) => (s.sectionType ?? s.section_type) === 'contact_page');
+          if (contactSec) {
+            applyContactPage((contactSec.props ?? contactSec.config_json ?? {}) as Record<string, unknown>);
+          }
+        }
       }
       return;
     }
@@ -787,11 +984,16 @@ export async function hydrateLiveStorefront(): Promise<void> {
     if (res.ok) {
       const json = (await res.json()) as { success?: boolean; data?: PublishedBundle };
       if (json.success && json.data) {
+        (window as unknown as { __ddPublishedBundle?: PublishedBundle }).__ddPublishedBundle = json.data;
+        window.dispatchEvent(new CustomEvent('dd:storefront-bundle-ready', { detail: json.data }));
         applyBrand(json.data.brand);
         applyAnnouncement(json.data.navigation);
         applyHeaderNavigation(json.data.navigation);
         applyDrawerNavigation(json.data.navigation);
         applyFooterNavigation(json.data.navigation);
+        applyCookieBanner(json.data.navigation);
+        applyContactPage(json.data.contactPage);
+        applyPdpConfig(json.data.pdpConfig);
         // Support BOTH top-level homepageSections (canonical) and nested homepage.sections
         const homeSecs = json.data.homepageSections ?? json.data.homepage?.sections;
         applyHomepageSections(homeSecs);

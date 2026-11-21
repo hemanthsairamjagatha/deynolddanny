@@ -46,6 +46,7 @@ export async function adjustStock(
   variantId: string,
   newStock: number,
   actorId?: string,
+  reason?: string,
 ): Promise<{ updated: boolean; reservedStock?: number }> {
   const current = await db
     .prepare(`SELECT stock, reserved_stock FROM product_variants WHERE id = ?1`)
@@ -79,7 +80,9 @@ export async function adjustStock(
       movementType: 'admin_adjust',
       qtyDelta: newStock - current.stock,
       actorId: actorId ?? 'admin',
-      notes: `Adjusted stock from ${current.stock} to ${newStock}`,
+      notes: reason?.trim()
+        ? `${reason.trim()} (${current.stock} -> ${newStock})`
+        : `Adjusted stock from ${current.stock} to ${newStock}`,
     },
   ]);
 

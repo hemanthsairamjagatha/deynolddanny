@@ -7,12 +7,13 @@ import {
 } from '../../services/r2Storage.js';
 import { generateId } from '../../services/crypto.js';
 import { nowIso } from '../../db/client.js';
+import { requirePermission } from '../../middleware/adminAuth.js';
 
 const adminUploads = new Hono<{ Bindings: Env }>();
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-adminUploads.post('/', async (c) => {
+adminUploads.post('/', requirePermission('media.write'), async (c) => {
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
   const contentType = c.req.header('Content-Type') ?? '';

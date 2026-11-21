@@ -129,7 +129,8 @@ reviews.post(
       .prepare(
         `SELECT o.id FROM orders o
          INNER JOIN order_items oi ON oi.order_id = o.id
-         WHERE (o.user_id = ?1 OR o.shipping_email = ?2)
+         LEFT JOIN users u ON u.id = o.user_id
+         WHERE (o.user_id = ?1 OR LOWER(u.email) = LOWER(?2))
            AND oi.product_id = ?3
            AND o.payment_status = 'paid'
          LIMIT 1`,

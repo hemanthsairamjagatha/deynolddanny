@@ -73,6 +73,7 @@ const webSiteJsonLd = JSON.stringify({
       allCatalogProducts={liveProducts}
       categories={BEST_SELLER_CATEGORIES}
       sectionClass="mastery-section"
+      sectionGroup="mastery"
     />
 
     <!-- 2. 6 Editorial Categories (3x2 Grid) -->
@@ -88,11 +89,12 @@ const webSiteJsonLd = JSON.stringify({
       allCatalogProducts={liveProducts}
       categories={BEST_SELLER_CATEGORIES}
       sectionClass="mastery-section"
+      sectionGroup="style_space"
     />
 
     <!-- 4. Style Layering Editorial Lookbook Section (Referenced Design) -->
     <div id="latest-news">
-      <StyleLayering client:visible />
+      <StyleLayering client:load />
     </div>
   </main>
 

@@ -213,9 +213,17 @@ export async function updateOrderStatus(
   orderId: string,
   status: DbOrder['status'],
 ): Promise<void> {
+  const now = nowIso();
   await db
-    .prepare(`UPDATE orders SET status = ?1, updated_at = ?2 WHERE id = ?3`)
-    .bind(status, nowIso(), orderId)
+    .prepare(
+      `UPDATE orders
+       SET status = ?1,
+           shipped_at = CASE WHEN ?1 = 'shipped' THEN COALESCE(shipped_at, ?2) ELSE shipped_at END,
+           delivered_at = CASE WHEN ?1 = 'delivered' THEN COALESCE(delivered_at, ?2) ELSE delivered_at END,
+           updated_at = ?2
+       WHERE id = ?3`,
+    )
+    .bind(status, now, orderId)
     .run();
 }
 
@@ -291,28 +299,37 @@ export async function getAllOrdersAdmin(
   page = 1,
   limit = 20,
   status?: string,
+  search?: string,
 ): Promise<{ orders: DbOrder[]; total: number }> {
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(100, Math.max(1, limit));
   const offset = (safePage - 1) * safeLimit;
 
-  if (status) {
-    const [countRes, dataRes] = await db.batch([
-      db.prepare(`SELECT COUNT(*) as cnt FROM orders WHERE status = ?1`).bind(status),
-      db
-        .prepare(`SELECT * FROM orders WHERE status = ?1 ORDER BY created_at DESC LIMIT ?2 OFFSET ?3`)
-        .bind(status, safeLimit, offset),
-    ]);
+  const conditions: string[] = [];
+  const bindings: unknown[] = [];
 
-    return {
-      orders: (dataRes.results ?? []) as DbOrder[],
-      total: (countRes.results?.[0] as { cnt: number })?.cnt ?? 0,
-    };
+  if (status) {
+    bindings.push(status);
+    conditions.push(`o.status = ?${bindings.length}`);
+  }
+  if (search && search.trim()) {
+    bindings.push(`%${search.trim().toLowerCase()}%`);
+    const p = bindings.length;
+    conditions.push(
+      `(LOWER(o.order_number) LIKE ?${p} OR LOWER(o.shipping_name) LIKE ?${p} OR LOWER(o.shipping_city) LIKE ?${p} OR LOWER(COALESCE(o.shipping_phone, '')) LIKE ?${p} OR LOWER(COALESCE(o.tracking_number, '')) LIKE ?${p} OR LOWER(COALESCE(o.shiprocket_awb, '')) LIKE ?${p} OR LOWER(COALESCE(u.email, '')) LIKE ?${p})`,
+    );
   }
 
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const fromClause = `FROM orders o LEFT JOIN users u ON u.id = o.user_id ${where}`;
+
   const [countRes, dataRes] = await db.batch([
-    db.prepare(`SELECT COUNT(*) as cnt FROM orders`),
-    db.prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT ?1 OFFSET ?2`).bind(safeLimit, offset),
+    db.prepare(`SELECT COUNT(*) as cnt ${fromClause}`).bind(...bindings),
+    db
+      .prepare(
+        `SELECT o.* ${fromClause} ORDER BY o.created_at DESC LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`,
+      )
+      .bind(...bindings, safeLimit, offset),
   ]);
 
   return {

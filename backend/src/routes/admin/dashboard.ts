@@ -2,12 +2,13 @@ import { Hono } from 'hono';
 import type { Env } from '../../types/bindings.js';
 import { getDashboardOverview, getRevenueByDay, getTopProducts, getRecentOrders } from '../../db/queries/analytics.js';
 import { getLowStockVariants } from '../../db/queries/inventory.js';
+import { requirePermission } from '../../middleware/adminAuth.js';
 
 const dashboard = new Hono<{ Bindings: Env }>();
 
 // ─── GET /api/admin/dashboard ────────────────────────────────────────────────
 
-dashboard.get('/', async (c) => {
+dashboard.get('/', requirePermission('dashboard.read'), async (c) => {
   const days = Math.min(365, Math.max(1, Number(c.req.query('days') ?? '30') || 30));
 
   const [overview, revenue, topProducts, recentOrders, lowStock, activeProdRow] = await Promise.all([

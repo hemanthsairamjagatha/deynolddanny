@@ -9,14 +9,17 @@ const adminDisputes = new Hono<{ Bindings: Env }>();
 
 // ─── GET /api/admin/disputes ─────────────────────────────────────────────────
 adminDisputes.get('/', requirePermission('disputes.manage', 'orders.read'), async (c) => {
-  const status = c.req.query('status')?.trim();
+  const rawStatus = c.req.query('status')?.trim();
+  const status = rawStatus === 'resolved' ? 'closed' : rawStatus;
+
   let sql = `
-    SELECT pd.*, o.order_number, o.shipping_name, o.shipping_email, o.total_paise
+    SELECT pd.*, o.order_number, o.shipping_name, o.total_paise, u.email AS customer_email
     FROM payment_disputes pd
     INNER JOIN orders o ON o.id = pd.order_id
+    LEFT JOIN users u ON u.id = o.user_id
     WHERE 1=1
   `;
-  const bindings: any[] = [];
+  const bindings: unknown[] = [];
   if (status) {
     bindings.push(status);
     sql += ` AND pd.status = ?${bindings.length}`;
@@ -28,7 +31,12 @@ adminDisputes.get('/', requirePermission('disputes.manage', 'orders.read'), asyn
   return c.json({
     success: true,
     data: {
-      items: (rows.results ?? []).map((r) => ({ ...r, order_display_id: r.order_number })),
+      items: (rows.results ?? []).map((r) => ({
+        ...r,
+        order_display_id: r.order_number,
+        reason: r.reason_code ?? r.resolved_outcome ?? 'Chargeback / Dispute',
+        type: `${String(r.gateway ?? 'gateway').toUpperCase()} Dispute`,
+      })),
       total: rows.results?.length ?? 0,
     },
   });
@@ -51,31 +59,50 @@ adminDisputes.patch(
     const body = c.req.valid('json');
     const rawStatus = body.status ?? 'closed';
     const status = rawStatus === 'resolved' ? 'closed' : rawStatus;
-    const evidenceNotes = body.evidenceNotes ?? body.resolution;
+    const outcomeNote = body.evidenceNotes ?? body.resolution ?? null;
     const now = nowIso();
 
     const disp = await c.env.DB
       .prepare(`SELECT * FROM payment_disputes WHERE id = ?1 LIMIT 1`)
       .bind(disputeId)
-      .first<Record<string, any>>();
+      .first<{ id: string; order_id: string }>();
 
     if (!disp) {
       return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Dispute record not found.', status: 404 } }, 404);
     }
 
-    await c.env.DB
-      .prepare(
-        `UPDATE payment_disputes
-         SET status = ?1,
-             evidence_notes = COALESCE(?2, evidence_notes),
-             resolved_at = CASE WHEN ?1 IN ('won', 'lost', 'closed') THEN ?3 ELSE resolved_at END,
-             updated_at = ?3
-         WHERE id = ?4`,
-      )
-      .bind(status, evidenceNotes ?? null, now, disputeId)
-      .run();
+    const isClosed = status === 'won' || status === 'lost' || status === 'closed';
+    const stmts: D1PreparedStatement[] = [
+      c.env.DB
+        .prepare(
+          `UPDATE payment_disputes
+           SET status = ?1,
+               resolved_outcome = COALESCE(?2, resolved_outcome),
+               updated_at = ?3
+           WHERE id = ?4`,
+        )
+        .bind(status, outcomeNote, now, disputeId),
+    ];
 
-    await auditAdminAction(c, 'UPDATE_PAYMENT_DISPUTE', 'payment_dispute', disputeId, { status });
+    if (isClosed) {
+      stmts.push(
+        c.env.DB
+          .prepare(
+            `UPDATE orders
+             SET dispute_frozen = 0,
+                 payment_status = CASE WHEN refunded_paise >= total_paise THEN 'refunded' WHEN refunded_paise > 0 THEN 'partially_refunded' ELSE 'paid' END,
+                 updated_at = ?1
+             WHERE id = ?2 AND dispute_frozen = 1`,
+          )
+          .bind(now, disp.order_id),
+      );
+    }
+
+    await c.env.DB.batch(stmts);
+    await auditAdminAction(c, 'UPDATE_PAYMENT_DISPUTE', 'payment_dispute', disputeId, {
+      status,
+      outcomeNote,
+    });
 
     return c.json({ success: true, data: { status, updatedAt: now } });
   },

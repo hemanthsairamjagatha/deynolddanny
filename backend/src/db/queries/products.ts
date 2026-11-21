@@ -5,7 +5,7 @@ import { nowIso } from '../client.js';
 
 export interface ProductListOptions {
   section?: string;
-  categoryId?: string;
+  categoryId?: string | string[];
   sort?: 'newest' | 'price_asc' | 'price_desc' | 'featured';
   page?: number;
   limit?: number;
@@ -61,8 +61,14 @@ export async function getProducts(
     bindings.push(section);
   }
   if (categoryId) {
-    conditions.push(`p.category_id = ?${bindings.length + 1}`);
-    bindings.push(categoryId);
+    if (Array.isArray(categoryId) && categoryId.length > 0) {
+      const placeholders = categoryId.map((_, i) => `?${bindings.length + i + 1}`).join(', ');
+      conditions.push(`p.category_id IN (${placeholders})`);
+      bindings.push(...categoryId);
+    } else if (typeof categoryId === 'string' && categoryId.trim()) {
+      conditions.push(`p.category_id = ?${bindings.length + 1}`);
+      bindings.push(categoryId.trim());
+    }
   }
   if (featured === true) {
     conditions.push(`p.is_featured = 1`);

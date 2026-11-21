@@ -5,6 +5,7 @@ import type { Env } from '../../types/bindings.js';
 import type { DbCoupon } from '../../types/models.js';
 import { generateId } from '../../services/crypto.js';
 import { nowIso } from '../../db/client.js';
+import { requirePermission } from '../../middleware/adminAuth.js';
 
 const adminCoupons = new Hono<{ Bindings: Env }>();
 
@@ -46,7 +47,7 @@ async function logCouponAction(
     .run();
 }
 
-adminCoupons.get('/', async (c) => {
+adminCoupons.get('/', requirePermission('coupons.read'), async (c) => {
   const result = await c.env.DB
     .prepare(`SELECT * FROM coupons ORDER BY created_at DESC`)
     .all<DbCoupon>();
@@ -54,7 +55,16 @@ adminCoupons.get('/', async (c) => {
   return c.json({ success: true, data: { items, coupons: items } });
 });
 
-adminCoupons.post('/', zValidator('json', createCouponSchema), async (c) => {
+adminCoupons.get('/:id', requirePermission('coupons.read'), async (c) => {
+  const id = c.req.param('id');
+  const coupon = await c.env.DB.prepare(`SELECT * FROM coupons WHERE id = ?1 LIMIT 1`).bind(id).first<DbCoupon>();
+  if (!coupon) {
+    return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Coupon not found.', status: 404 } }, 404);
+  }
+  return c.json({ success: true, data: coupon });
+});
+
+adminCoupons.post('/', requirePermission('coupons.write'), zValidator('json', createCouponSchema), async (c) => {
   const body = c.req.valid('json');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
@@ -100,7 +110,7 @@ adminCoupons.post('/', zValidator('json', createCouponSchema), async (c) => {
   return c.json({ success: true, data: coupon }, 201);
 });
 
-adminCoupons.patch('/:id', zValidator('json', couponBaseSchema.partial()), async (c) => {
+adminCoupons.patch('/:id', requirePermission('coupons.write'), zValidator('json', couponBaseSchema.partial()), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
@@ -170,10 +180,21 @@ adminCoupons.patch('/:id', zValidator('json', couponBaseSchema.partial()), async
   return c.json({ success: true, data: updated });
 });
 
-adminCoupons.delete('/:id', async (c) => {
+adminCoupons.delete('/:id', requirePermission('coupons.write'), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
+
+  const redemptionRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM coupon_redemptions WHERE coupon_id = ?1`)
+    .bind(id)
+    .first<{ cnt: number }>();
+
+  if (Number(redemptionRow?.cnt ?? 0) > 0) {
+    await c.env.DB.prepare(`UPDATE coupons SET is_active = 0 WHERE id = ?1`).bind(id).run();
+    await logCouponAction(c.env.DB, adminId, 'DEACTIVATE_COUPON_WITH_REDEMPTIONS', id, {}, ip);
+    return c.json({ success: true, data: { deactivated: true, reason: 'Coupon has historical redemptions and was deactivated instead of hard-deleted.' } });
+  }
 
   await c.env.DB.prepare(`DELETE FROM coupons WHERE id = ?1`).bind(id).run();
   await logCouponAction(c.env.DB, adminId, 'DELETE_COUPON', id, {}, ip);

@@ -101,7 +101,7 @@ import CurrencySelector from './CurrencySelector';
         });
         const data = await res.json();
         if (data.success) {
-          statusMsg.textContent = 'Thank you for subscribing to DEYNOLD DANNY.';
+          statusMsg.textContent = form.dataset.successMessage || 'Thank you for subscribing to DEYNOLD DANNY.';
           statusMsg.style.color = '#171717';
           emailInput.value = '';
         } else {

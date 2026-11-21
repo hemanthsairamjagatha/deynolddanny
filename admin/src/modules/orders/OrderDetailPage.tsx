@@ -148,6 +148,27 @@ export default function OrderDetailPage() {
     } finally { setSaving(false); }
   }
 
+  async function handleQuickStep(nextStatus: 'processing' | 'delivered') {
+    if (!id) return;
+    setSaving(true);
+    setError('');
+    try {
+      const res = await ordersApi.updateStatus(
+        id,
+        nextStatus,
+        nextStatus === 'processing' ? 'Moved to atelier inspection & tailoring' : 'Delivered to customer destination',
+      );
+      if (!res.success) {
+        setError(res.error?.message ?? 'Status update failed.');
+        return;
+      }
+      setNotice(`Order status updated to "${nextStatus}". Customer tracking timeline updated immediately.`);
+      await load();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) return <div className="flex justify-center py-24"><Spinner size="lg" /></div>;
   if (!order) return <div className="text-center py-24 text-ink-500">Order not found.</div>;
 
@@ -155,6 +176,8 @@ export default function OrderDetailPage() {
   const refundablePaise = Math.max(0, Number(order.totalPaise ?? 0) - Number(order.refundedPaise ?? 0));
   const canCancel = !['cancelled', 'delivered', 'refunded'].includes(order.status);
   const canShip = isPaid && ['confirmed', 'processing'].includes(order.status);
+  const customerContact = order.customer?.email || order.shippingAddress?.phone || '';
+  const trackingPreviewUrl = `/orders/track?order=${encodeURIComponent(order.orderNumber)}${customerContact ? `&contact=${encodeURIComponent(customerContact)}` : ''}`;
 
   return (
     <div className="space-y-6">
@@ -192,6 +215,69 @@ export default function OrderDetailPage() {
 
       {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3 rounded-xl">{notice}</div>}
       {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>}
+
+      {/* Quick Fulfilment & Live Tracking Controls Bar */}
+      <Card>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-gold-700 font-semibold">
+              Order Fulfilment &amp; Live Tracking Controls
+            </p>
+            <p className="text-xs text-ink-600 mt-0.5">
+              Advance this order through verified fulfilment stages or record a real courier AWB — updates reflect immediately on the customer tracking page.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {!isPaid && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setMarkPaidForm({
+                    paymentMethod: 'upi_manual',
+                    referenceNumber: '',
+                    reason: '',
+                  });
+                  setModal('mark_paid');
+                }}
+              >
+                1. Verify &amp; Record Payment
+              </Button>
+            )}
+            {isPaid && order.status === 'confirmed' && (
+              <Button size="sm" variant="secondary" loading={saving} onClick={() => handleQuickStep('processing')}>
+                2. Start Atelier Processing
+              </Button>
+            )}
+            {canShip && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setTrackingForm({
+                    courierPartner: order.courierPartner ?? '',
+                    trackingNumber: order.trackingNumber ?? order.shiprocketAwb ?? '',
+                  });
+                  setModal('tracking');
+                }}
+              >
+                3. Enter Courier &amp; AWB
+              </Button>
+            )}
+            {order.status === 'shipped' && (
+              <Button size="sm" loading={saving} onClick={() => handleQuickStep('delivered')}>
+                4. Mark Delivered
+              </Button>
+            )}
+            <a
+              href={trackingPreviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 text-xs font-medium text-ink-900 bg-ink-100 hover:bg-ink-900 hover:text-white rounded-lg transition-colors"
+            >
+              Open Customer Tracking Page ↗
+            </a>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Customer & Payment Metadata */}

@@ -10,6 +10,15 @@ interface SizeGuideDialogProps {
   sizes?: string[];
 }
 
+interface LiveSizeGuide {
+  id: string;
+  slug: string;
+  title: string;
+  categorySlug?: string | null;
+  tables?: Array<{ name?: string; headers?: string[]; rows?: string[][] }>;
+  notes?: string[];
+}
+
 export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
   isOpen,
   onClose,
@@ -19,6 +28,26 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
   sizes = [],
 }) => {
   const [unit, setUnit] = useState<MeasurementUnit>('cm');
+  const [liveGuide, setLiveGuide] = useState<LiveSizeGuide | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/storefront/size-guides', { credentials: 'omit' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { success?: boolean; data?: { items?: LiveSizeGuide[] } } | null) => {
+        const items = json?.data?.items ?? [];
+        if (items.length === 0) return;
+        const catLower = category.toLowerCase();
+        const matched =
+          items.find((g) => g.categorySlug && catLower && g.categorySlug.toLowerCase() === catLower) ||
+          items.find((g) => !g.categorySlug) ||
+          items[0];
+        if (matched && Array.isArray(matched.tables) && matched.tables.length > 0) {
+          setLiveGuide(matched);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen, category]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -137,7 +166,50 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
           </div>
         </div>
 
-        {/* Conversion & Measurement Table */}
+        {/* Conversion & Measurement Table (Live Admin Size Guide when configured, else Atelier Default) */}
+        {liveGuide && liveGuide.tables && liveGuide.tables.length > 0 ? (
+          <div className="mt-6 space-y-6">
+            {liveGuide.tables.map((tbl, tIdx) => (
+              <div key={tIdx} className="overflow-x-auto">
+                {tbl.name && (
+                  <p className="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-2">
+                    {tbl.name}
+                  </p>
+                )}
+                <table className="w-full text-left text-xs border-collapse">
+                  {Array.isArray(tbl.headers) && tbl.headers.length > 0 && (
+                    <thead>
+                      <tr className="border-b border-neutral-200 text-neutral-500 uppercase tracking-wider text-[11px] font-mono">
+                        {tbl.headers.map((h, hi) => (
+                          <th key={hi} className="py-3 px-2 font-medium">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                  )}
+                  <tbody className="divide-y divide-neutral-100 font-mono text-neutral-800">
+                    {(tbl.rows ?? []).map((row, rIdx) => (
+                      <tr key={rIdx} className="hover:bg-neutral-50/70 transition-colors">
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} className={`py-3 px-2 ${cIdx === 0 ? 'font-semibold text-neutral-950' : 'text-neutral-600'}`}>
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            {Array.isArray(liveGuide.notes) && liveGuide.notes.length > 0 && (
+              <div className="pt-4 border-t border-neutral-100 space-y-1.5 text-xs text-neutral-600">
+                {liveGuide.notes.map((n, ni) => (
+                  <p key={ni}>&bull; {n}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+        <>
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -184,6 +256,8 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
             Measure from the highest point of the inner leg along the seam down to the hemline.
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

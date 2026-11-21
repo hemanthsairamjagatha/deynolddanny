@@ -62,6 +62,12 @@ const brandDraftSchema = z.object({
   socialLinks: z.array(socialLinkSchema).optional(),
 });
 
+const LOCKED_ATTRIBUTION = {
+  attributionText: 'HANDCRAFTED BY PIXENOX SOLUTIONS',
+  attributionUrl: 'https://www.pixenox.com',
+  showAttribution: true,
+} as const;
+
 // ─── GET /api/admin/brand ────────────────────────────────────────────────────
 adminBrand.get('/', requirePermission('brand.write', 'cms.read'), async (c) => {
   const row = await c.env.DB
@@ -87,8 +93,8 @@ adminBrand.get('/', requirePermission('brand.write', 'cms.read'), async (c) => {
   return c.json({
     success: true,
     data: {
-      draft: safeJsonParse(row.draft_json, {}),
-      published: safeJsonParse(row.published_json, {}),
+      draft: { ...safeJsonParse(row.draft_json, {}), ...LOCKED_ATTRIBUTION },
+      published: { ...safeJsonParse(row.published_json, {}), ...LOCKED_ATTRIBUTION },
       draftVersion: row.draft_version,
       publishedVersion: row.published_version,
       hasUnpublishedChanges: row.draft_json !== row.published_json,
@@ -115,6 +121,7 @@ adminBrand.patch(
     const merged = {
       ...safeJsonParse<Record<string, unknown>>(current?.draft_json, {}),
       ...body,
+      ...LOCKED_ATTRIBUTION,
     };
     const now = nowIso();
     const nextVer = (current?.draft_version ?? 1) + 1;

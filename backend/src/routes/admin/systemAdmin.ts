@@ -9,7 +9,7 @@ import { nowIso } from '../../db/client.js';
 const systemAdmin = new Hono<{ Bindings: Env }>();
 
 // ─── GET /api/admin/system/health ────────────────────────────────────────────
-systemAdmin.get('/health', requirePermission('settings.read', 'logs.read'), async (c) => {
+systemAdmin.get('/health', requirePermission('health.read', 'settings.write', 'logs.read'), async (c) => {
   const env = c.env;
   const issues = assertSafeRuntimeSecrets(env);
   let dbOk = false;
@@ -99,7 +99,7 @@ systemAdmin.get('/health', requirePermission('settings.read', 'logs.read'), asyn
 });
 
 // ─── POST /api/admin/system/reap-holds — Manually release expired stock holds
-systemAdmin.post('/reap-holds', requirePermission('settings.write', 'inventory.write'), async (c) => {
+systemAdmin.post('/reap-holds', requirePermission('settings.write', 'inventory.adjust'), async (c) => {
   const result = await releaseExpiredReservations(null, c.env, c.executionCtx as any);
   await auditAdminAction(c, 'MANUAL_REAP_EXPIRED_HOLDS', 'system', 'cron', result);
   return c.json({ success: true, data: result });

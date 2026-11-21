@@ -22,14 +22,14 @@ import { ContactForm } from '../features/contact/components/ContactForm';
         </ol>
       </nav>
 
-      <div class="text-center max-w-xl mx-auto mb-16">
-        <span class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
+      <div class="text-center max-w-xl mx-auto mb-16" data-cms-contact-header>
+        <span data-cms-contact-eyebrow class="text-[11px] uppercase tracking-[0.25em] font-mono text-neutral-400 block mb-2">
           Concierge & Bespoke Salon
         </span>
-        <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif mb-4">
+        <h1 data-cms-contact-title class="text-3xl sm:text-4xl font-light tracking-tight text-neutral-900 font-serif mb-4">
           Contact Atelier
         </h1>
-        <p class="text-xs text-neutral-500 leading-relaxed">
+        <p data-cms-contact-subtitle class="text-xs text-neutral-500 leading-relaxed">
           Our client advisors are available for private consultations, sizing inquiries, and order assistance.
         </p>
       </div>
@@ -39,21 +39,21 @@ import { ContactForm } from '../features/contact/components/ContactForm';
         <div class="space-y-8 font-light text-neutral-800 text-sm">
           <div>
             <h2 class="text-xs uppercase tracking-widest font-mono text-neutral-400 mb-2">Private Client Inquiries</h2>
-            <p class="font-serif text-lg text-neutral-900">concierge@deynolddanny.com</p>
+            <p data-brand-concierge-email class="font-serif text-lg text-neutral-900">concierge@deynolddanny.com</p>
             <p class="text-xs text-neutral-500 mt-1">Response within 24 business hours</p>
           </div>
 
           <div>
             <h2 class="text-xs uppercase tracking-widest font-mono text-neutral-400 mb-2">Atelier & Showroom</h2>
-            <p class="font-serif text-lg text-neutral-900">DEYNOLD DANNY Flagship Atelier</p>
-            <p class="text-xs text-neutral-600 mt-1">Sartorial House, New Delhi, India</p>
+            <p data-brand-atelier-name class="font-serif text-lg text-neutral-900">DEYNOLD DANNY Flagship Atelier</p>
+            <p data-brand-atelier-address class="text-xs text-neutral-600 mt-1">Sartorial House, New Delhi, India</p>
             <p class="text-xs text-neutral-500 mt-0.5">By private appointment only</p>
           </div>
 
           <div>
             <h2 class="text-xs uppercase tracking-widest font-mono text-neutral-400 mb-2">Telephone Assistance</h2>
-            <p class="font-mono text-base text-neutral-900">+91 11 4820 9000</p>
-            <p class="text-xs text-neutral-500 mt-1">Monday – Saturday: 10:00 – 19:00 IST</p>
+            <p data-brand-concierge-phone class="font-mono text-base text-neutral-900">+91 11 4820 9000</p>
+            <p data-brand-atelier-hours class="text-xs text-neutral-500 mt-1">Monday – Saturday: 10:00 – 19:00 IST</p>
           </div>
         </div>
 

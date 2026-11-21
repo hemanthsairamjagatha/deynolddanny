@@ -1,0 +1,16 @@
+---
+// src/pages/categories/live.astro
+// Dynamic client-hydrated shell served by Cloudflare Worker for newly created Admin categories.
+import StorefrontLayout from '../../layouts/StorefrontLayout.astro';
+import { LiveCategoryListing } from '../../features/catalog/components/LiveCategoryListing';
+
+const pageTitle = 'Category | DEYNOLD DANNY';
+const pageDescription = 'Explore handcrafted luxury apparel and accessories from the house of DEYNOLD DANNY.';
+---
+
+<StorefrontLayout title={pageTitle} description={pageDescription}>
+  <main id="main-content" class="min-h-screen bg-white text-black">
+    <LiveCategoryListing client:load />
+  </main>
+</StorefrontLayout>
+

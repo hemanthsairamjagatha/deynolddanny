@@ -23,8 +23,8 @@ export default function DisputesPage() {
     setLoading(true);
     try {
       const res = await disputesApi.list(tab === 'all' ? undefined : tab);
-      const raw = res.data as unknown as { disputes?: any[] } | any[];
-      setData(Array.isArray(raw) ? raw : (raw?.disputes ?? []));
+      const raw = res.data as unknown as { items?: any[]; disputes?: any[] } | any[];
+      setData(Array.isArray(raw) ? raw : (raw?.items ?? raw?.disputes ?? []));
     } finally {
       setLoading(false);
     }
@@ -97,10 +97,10 @@ export default function DisputesPage() {
       header: '',
       render: r => (
         <div className="flex justify-end">
-          {r.status !== 'resolved' ? (
+          {!['resolved', 'closed', 'won', 'lost'].includes(String(r.status).toLowerCase()) ? (
             <Button size="sm" variant="primary" onClick={() => openResolve(r)}>Resolve</Button>
           ) : (
-            <span className="text-xs text-ink-400 italic">Resolved</span>
+            <span className="text-xs text-ink-400 italic capitalize">{r.status}</span>
           )}
         </div>
       ),

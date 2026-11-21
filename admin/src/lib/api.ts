@@ -19,15 +19,37 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiResp
   if (res.status === 401 && path !== '/api/auth/refresh') {
     const rr = await fetch(`${BASE}/api/auth/refresh`, { method: 'POST', credentials: 'include' });
     if (rr.ok) {
-      const rd = await rr.json() as ApiResponse<{ accessToken: string }>;
+      const rd = (await rr.json().catch(() => ({}))) as ApiResponse<{ accessToken: string }>;
       if (rd.success && rd.data?.accessToken) {
         _accessToken = rd.data.accessToken;
         headers['Authorization'] = `Bearer ${_accessToken}`;
         res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: 'include' });
       }
-    } else { _accessToken = null; }
+    } else {
+      _accessToken = null;
+    }
   }
-  return res.json() as Promise<ApiResponse<T>>;
+
+  const text = await res.text();
+  if (!text) {
+    return (
+      res.ok
+        ? { success: true }
+        : { success: false, error: { code: `HTTP_${res.status}`, message: res.statusText || 'Request failed.', status: res.status } }
+    ) as ApiResponse<T>;
+  }
+  try {
+    return JSON.parse(text) as ApiResponse<T>;
+  } catch {
+    return {
+      success: false,
+      error: {
+        code: `HTTP_${res.status}`,
+        message: res.status === 413 ? 'File is too large for upload.' : `Server error (${res.status}): ${res.statusText || 'Unexpected response'}`,
+        status: res.status,
+      },
+    };
+  }
 }
 
 const get = <T>(p: string) => request<T>(p);
@@ -129,27 +151,62 @@ export const media = {
     ),
   createFolder: (name: string, parentId?: string) =>
     post<MediaFolder>('/api/admin/media/library/folders', { name, parentId: parentId ?? null }),
+  deleteFolder: (folderId: string) => del<void>(`/api/admin/media/library/folders/${folderId}`),
   upload: (formData: FormData) => request<Record<string, unknown>>('/api/admin/media/library/upload', { method: 'POST', body: formData }),
   update: (id: string, d: { altText?: string; defaultFocalX?: number; defaultFocalY?: number; folderId?: string | null; tags?: string[] }) =>
     patch<Record<string, unknown>>(`/api/admin/media/library/assets/${id}`, d),
-  delete: (id: string, force = false) =>
+  delete: (id: string, force = true) =>
     del<void>(`/api/admin/media/library/assets/${id}${force ? '?force=true' : ''}`),
 };
 
 // ─── Products ─────────────────────────────────────────────────────────────────
 export const products = {
-  list: (p?: { search?: string; q?: string; status?: string; category?: string; categoryId?: string; page?: number }) =>
-    get<{ items: Record<string, unknown>[]; total: number }>(
-      `/api/admin/products${qs({ q: p?.q ?? p?.search, status: p?.status, categoryId: p?.categoryId ?? p?.category, page: p?.page })}`,
+  list: (p?: {
+    search?: string;
+    q?: string;
+    status?: string;
+    category?: string;
+    categoryId?: string;
+    sectionGroup?: string;
+    color?: string;
+    sort?: string;
+    page?: number;
+    limit?: number;
+  }) =>
+    get<{
+      items: Record<string, unknown>[];
+      availableColors?: Array<{ name: string; hex: string }>;
+      total: number;
+      page?: number;
+      limit?: number;
+      totalPages?: number;
+    }>(
+      `/api/admin/products${qs({
+        q: p?.q ?? p?.search,
+        status: p?.status,
+        categoryId: p?.categoryId ?? p?.category,
+        sectionGroup: p?.sectionGroup,
+        color: p?.color,
+        sort: p?.sort,
+        page: p?.page,
+        limit: p?.limit,
+      })}`,
     ),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/products/${id}`),
   create: (d: Record<string, unknown>) => post<Record<string, unknown>>('/api/admin/products', d),
   update: (id: string, d: Record<string, unknown>) => patch<Record<string, unknown>>(`/api/admin/products/${id}`, d),
+  bulk: (ids: string[], action: 'activate' | 'archive' | 'set_section_group' | 'set_category' | 'set_featured', value?: string | number | boolean | null) =>
+    post<{ updated: number }>('/api/admin/products/bulk', { ids, action, value }),
   archive: (id: string) => del<void>(`/api/admin/products/${id}`),
   restore: (id: string) => post<void>(`/api/admin/products/${id}/restore`),
   duplicate: (id: string) => post<Record<string, unknown>>(`/api/admin/products/${id}/duplicate`),
   updateImages: (id: string, images: unknown[]) => put<void>(`/api/admin/products/${id}/images`, { images }),
-  updateCrossSells: (id: string, ids: string[]) => put<void>(`/api/admin/products/${id}/cross-sells`, { ids }),
+  updateCrossSells: (id: string, items: Array<{ target_product_id: string; relation_type: 'style_it_with' | 'related'; sort_order: number }>) =>
+    put<{ count: number }>(`/api/admin/products/${id}/cross-sells`, { items }),
+  removeColor: (pid: string, colorName: string) =>
+    del<{ colorName: string; deletedCount: number; deactivatedCount: number }>(`/api/admin/products/${pid}/colors/${encodeURIComponent(colorName)}`),
+  removeSize: (pid: string, size: string) =>
+    del<{ size: string; deletedCount: number; deactivatedCount: number }>(`/api/admin/products/${pid}/sizes/${encodeURIComponent(size)}`),
   variants: {
     create: (pid: string, d: unknown) => post<unknown>(`/api/admin/products/${pid}/variants`, d),
     update: (pid: string, vid: string, d: unknown) => patch<unknown>(`/api/admin/products/${pid}/variants/${vid}`, d),
@@ -159,10 +216,15 @@ export const products = {
       initialStock: number;
       sizePrices?: Record<string, number | null>;
       sizeComparePrices?: Record<string, number | null>;
+      colorPrices?: Record<string, number | null>;
+      colorImages?: Record<string, string>;
     }) => post<{ count: number; variantIds: string[] }>(`/api/admin/products/${pid}/variants/matrix`, d),
     bulkPrice: (pid: string, updates: Array<{
       variantId?: string;
       size?: string;
+      color_name?: string;
+      new_color_name?: string;
+      color_hex?: string;
       price_paise?: number | null;
       compare_paise?: number | null;
       stock?: number;
@@ -178,6 +240,7 @@ export const categories = {
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/categories/${id}`),
   create: (d: unknown) => post<Record<string, unknown>>('/api/admin/categories', d),
   update: (id: string, d: unknown) => patch<Record<string, unknown>>(`/api/admin/categories/${id}`, d),
+  restore: (id: string) => post<void>(`/api/admin/categories/${id}/restore`),
   delete: (id: string) => del<void>(`/api/admin/categories/${id}`),
 };
 
@@ -194,9 +257,16 @@ export const collections = {
 // ─── Inventory ────────────────────────────────────────────────────────────────
 export const inventory = {
   matrix: () => get<Record<string, unknown>>('/api/admin/inventory'),
-  lowStock: () => get<Record<string, unknown>>('/api/admin/inventory/low-stock'),
-  movements: (variantId?: string) => get<Record<string, unknown>>(`/api/admin/inventory/movements${qs({ variant_id: variantId })}`),
-  adjust: (variantId: string, delta: number, reason: string) => patch<void>(`/api/admin/inventory/${variantId}`, { delta, reason }),
+  lowStock: (threshold = 5) => get<Record<string, unknown>>(`/api/admin/inventory/low-stock${qs({ threshold })}`),
+  movements: (variantId?: string, limit = 80) =>
+    get<Record<string, unknown>>(`/api/admin/inventory/movements${qs({ variantId, limit })}`),
+  adjust: (variantId: string, delta: number, reason: string) =>
+    patch<void>(`/api/admin/inventory/${variantId}`, { delta, reason }),
+  setStock: (variantId: string, stock: number, reason: string) =>
+    patch<void>(`/api/admin/inventory/${variantId}`, { stock, reason }),
+  restockSubscriptions: () => get<{ items: Record<string, unknown>[] }>('/api/admin/inventory/restock-subscriptions'),
+  notifyRestock: (variantId: string) =>
+    post<{ notifiedCount: number; message?: string }>('/api/admin/inventory/restock-subscriptions/notify', { variantId }),
 };
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -218,20 +288,25 @@ export const orders = {
 export const customers = {
   list: (p?: { search?: string; page?: number }) => get<Record<string, unknown>>(`/api/admin/customers${qs(p)}`),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/customers/${id}`),
+  updateStatus: (id: string, isActive: boolean) =>
+    patch<{ id: string; isActive: boolean }>(`/api/admin/customers/${id}/status`, { isActive }),
 };
 
 // ─── Returns ──────────────────────────────────────────────────────────────────
 export const returns = {
   list: (status?: string) => get<Record<string, unknown>>(`/api/admin/returns${qs({ status })}`),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/returns/${id}`),
-  review: (id: string, action: 'approve' | 'reject' | 'complete', note?: string, restock?: boolean) =>
-    patch<void>(`/api/admin/returns/${id}`, { action, note, restock }),
+  review: (id: string, action: 'approve' | 'reject' | 'complete', note?: string, restock?: boolean) => {
+    const statusMap = { approve: 'approved', reject: 'rejected', complete: 'completed' } as const;
+    return patch<void>(`/api/admin/returns/${id}/review`, { status: statusMap[action], adminNotes: note, restock });
+  },
 };
 
 // ─── Disputes ─────────────────────────────────────────────────────────────────
 export const disputes = {
   list: (status?: string) => get<Record<string, unknown>>(`/api/admin/disputes${qs({ status })}`),
-  resolve: (id: string, resolution: string, refundPaise?: number) => patch<void>(`/api/admin/disputes/${id}`, { resolution, refundPaise }),
+  resolve: (id: string, resolution: string, refundPaise?: number, status: 'under_review' | 'won' | 'lost' | 'closed' = 'closed') =>
+    patch<void>(`/api/admin/disputes/${id}`, { status, evidenceNotes: resolution, refundPaise }),
 };
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
@@ -274,8 +349,8 @@ export const system = {
 export const reviews = {
   list: (status?: string) => get<Record<string, unknown>>(`/api/admin/reviews${qs({ status })}`),
   moderate: (id: string, status: 'approved' | 'rejected') => patch<void>(`/api/admin/reviews/${id}`, { status }),
-  feature: (id: string, featured: boolean) => patch<void>(`/api/admin/reviews/${id}`, { is_featured: featured }),
-  reply: (id: string, reply: string) => patch<void>(`/api/admin/reviews/${id}`, { admin_reply: reply }),
+  feature: (id: string, featured: boolean) => patch<void>(`/api/admin/reviews/${id}`, { isFeatured: featured }),
+  reply: (id: string, reply: string) => patch<void>(`/api/admin/reviews/${id}`, { adminReply: reply }),
   delete: (id: string) => del<void>(`/api/admin/reviews/${id}`),
 };
 
@@ -283,8 +358,8 @@ export const reviews = {
 export const coupons = {
   list: () => get<Record<string, unknown>>('/api/admin/coupons'),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/coupons/${id}`),
-  create: (d: Partial<Coupon>) => post<Coupon>('/api/admin/coupons', d),
-  update: (id: string, d: Partial<Coupon>) => patch<Coupon>(`/api/admin/coupons/${id}`, d),
+  create: (d: Record<string, unknown>) => post<Coupon>('/api/admin/coupons', d),
+  update: (id: string, d: Record<string, unknown>) => patch<Coupon>(`/api/admin/coupons/${id}`, d),
   delete: (id: string) => del<void>(`/api/admin/coupons/${id}`),
 };
 
@@ -292,8 +367,10 @@ export const coupons = {
 export const inquiries = {
   list: (status?: string) => get<Record<string, unknown>>(`/api/admin/inquiries${qs({ status })}`),
   get: (id: string) => get<Record<string, unknown>>(`/api/admin/inquiries/${id}`),
-  update: (id: string, d: { status?: string; internal_note?: string }) => patch<void>(`/api/admin/inquiries/${id}`, d),
-  reply: (id: string, body: string) => post<void>(`/api/admin/inquiries/${id}/reply`, { body }),
+  update: (id: string, d: { status?: string; internalNotes?: string; internal_note?: string }) =>
+    patch<void>(`/api/admin/inquiries/${id}`, { status: d.status, internalNotes: d.internalNotes ?? d.internal_note }),
+  reply: (id: string, body: string, subject?: string) =>
+    post<void>(`/api/admin/inquiries/${id}/reply`, { replyMessage: body, replySubject: subject }),
 };
 
 // ─── Size Guides ──────────────────────────────────────────────────────────────

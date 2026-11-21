@@ -29,29 +29,147 @@ import {
 
 const products = new Hono<{ Bindings: Env }>();
 
+const CANONICAL_CATEGORY_SLUG_MAP: Record<string, string> = {
+  'cat-abiti': 'tailoring',
+  'cat-suits': 'suits',
+  'cat-tailoring': 'tailoring',
+  'cat-camicie': 'shirts',
+  'cat-shirts': 'shirts',
+  'cat-maglieria': 'knitwear',
+  'cat-knitwear': 'knitwear',
+  'cat-sweaters': 'sweaters',
+  'cat-pantaloni': 'trousers',
+  'cat-trousers': 'trousers',
+  'cat-capispalla': 'coats',
+  'cat-coats': 'coats',
+  'cat-jackets': 'jackets',
+  'cat-scarpe': 'footwear',
+  'cat-footwear': 'footwear',
+  'cat-accessori': 'accessories',
+  'cat-accessories': 'accessories',
+  'cat-borse': 'accessories',
+  'cat-clothing': 'clothing',
+};
+
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  shirts: ['cat-shirts', 'cat-camicie', 'cat-denim-shirts'],
+  camicie: ['cat-camicie', 'cat-shirts'],
+  'denim-shirts': ['cat-denim-shirts', 'cat-shirts', 'cat-camicie'],
+  trousers: ['cat-trousers', 'cat-pantaloni'],
+  pantaloni: ['cat-pantaloni', 'cat-trousers'],
+  knitwear: ['cat-knitwear', 'cat-maglieria', 'cat-sweaters', 'cat-felpe'],
+  maglieria: ['cat-maglieria', 'cat-knitwear', 'cat-sweaters'],
+  sweaters: ['cat-sweaters', 'cat-knitwear', 'cat-maglieria', 'cat-felpe'],
+  felpe: ['cat-felpe', 'cat-knitwear', 'cat-maglieria', 'cat-sweaters'],
+  suits: ['cat-suits', 'cat-tailoring', 'cat-abiti'],
+  tailoring: ['cat-tailoring', 'cat-suits', 'cat-abiti'],
+  abiti: ['cat-abiti', 'cat-suits', 'cat-tailoring'],
+  clothing: ['cat-clothing', 'cat-abiti', 'cat-suits', 'cat-tailoring'],
+  coats: ['cat-coats', 'cat-capispalla', 'cat-jackets', 'cat-leather-jackets'],
+  overcoats: ['cat-coats', 'cat-capispalla', 'cat-jackets'],
+  capispalla: ['cat-capispalla', 'cat-coats', 'cat-jackets'],
+  outerwear: ['cat-coats', 'cat-capispalla', 'cat-jackets', 'cat-leather-jackets'],
+  jackets: ['cat-jackets', 'cat-capispalla', 'cat-coats', 'cat-leather-jackets', 'cat-denim-jackets'],
+  'leather-jackets': ['cat-leather-jackets', 'cat-jackets', 'cat-coats', 'cat-capispalla'],
+  'denim-jackets': ['cat-denim-jackets', 'cat-jackets', 'cat-coats', 'cat-denim-sweatshirts', 'cat-shirts'],
+  'denim-sweatshirts': ['cat-denim-jackets', 'cat-jackets', 'cat-knitwear', 'cat-shirts'],
+  'polo-t-shirts': ['cat-polo-t-shirts', 'cat-shirts', 'cat-knitwear'],
+  hoodies: ['cat-hoodies', 'cat-sweaters', 'cat-knitwear'],
+  't-shirts': ['cat-t-shirts', 'cat-polo-t-shirts', 'cat-shirts', 'cat-knitwear'],
+  footwear: ['cat-footwear', 'cat-scarpe'],
+  scarpe: ['cat-scarpe', 'cat-footwear'],
+  accessories: ['cat-accessories', 'cat-accessori', 'cat-borse'],
+  accessori: ['cat-accessori', 'cat-accessories', 'cat-borse'],
+  borse: ['cat-borse', 'cat-accessories', 'cat-accessori'],
+};
+
 function mapProductCard(
   p: DbProduct,
   variants: DbProductVariant[],
   categorySlug?: string,
   galleryUrls?: string[],
+  productImages?: Array<{ color_name?: string | null; image_url: string }>,
 ): ApiProductCard {
   const uniqueSizes = [...new Set(variants.map((v) => v.size))];
   const colorMap = new Map<string, string>();
   const variantPrices: number[] = [];
-  for (const v of variants) {
+
+  const apiVariants: ApiVariant[] = variants.map((v) => {
+    const available = Math.max(0, v.stock - v.reserved_stock);
+    const effectivePaise = v.price_paise ?? p.price_paise;
+    const effectiveComparePaise = v.compare_paise ?? p.compare_paise ?? null;
     colorMap.set(v.color_name, v.color_hex);
-    variantPrices.push(v.price_paise ?? p.price_paise);
-  }
+    variantPrices.push(effectivePaise);
+    return {
+      id: v.id,
+      sku: v.sku,
+      size: v.size,
+      colorName: v.color_name,
+      colorHex: v.color_hex,
+      inStock: available > 0,
+      availableStock: available,
+      pricePaise: effectivePaise,
+      price: formatPaiseToDisplay(effectivePaise),
+      priceNum: paiseToRupees(effectivePaise),
+      comparePaise: effectiveComparePaise,
+      comparePrice: effectiveComparePaise ? formatPaiseToDisplay(effectiveComparePaise) : null,
+      hasCustomPrice: v.price_paise !== null && v.price_paise !== undefined,
+    };
+  });
 
   const minPricePaise = variantPrices.length > 0 ? Math.min(...variantPrices) : p.price_paise;
   const maxPricePaise = variantPrices.length > 0 ? Math.max(...variantPrices) : p.price_paise;
   const hasVariantPricing = variantPrices.length > 0 && minPricePaise !== maxPricePaise;
   const displayPricePaise = hasVariantPricing ? minPricePaise : (variantPrices[0] ?? p.price_paise);
 
-  const flatImages =
-    galleryUrls && galleryUrls.length > 0
-      ? galleryUrls
-      : [p.default_img, p.hover_img].filter((u): u is string => Boolean(u && u.trim()));
+  const imgUrlsFromRows = (productImages ?? []).map((x) => x.image_url).filter(Boolean);
+  const flatImages = Array.from(
+    new Set(
+      [
+        ...(galleryUrls && galleryUrls.length > 0 ? galleryUrls : []),
+        ...imgUrlsFromRows,
+        p.default_img,
+        p.hover_img,
+      ].filter((u): u is string => Boolean(u && u.trim())),
+    ),
+  );
+
+  const colors = Array.from(colorMap.entries()).map(([name, hex], idx) => {
+    const colorVars = apiVariants.filter((v) => v.colorName.toLowerCase() === name.toLowerCase());
+    const cPrices = colorVars.map((v) => v.pricePaise);
+    const cMinPaise = cPrices.length > 0 ? Math.min(...cPrices) : displayPricePaise;
+    const cComparePaise =
+      colorVars.find((v) => v.comparePaise != null)?.comparePaise ?? p.compare_paise ?? null;
+    const cHasCustomPrice = colorVars.some((v) => v.hasCustomPrice) || cMinPaise !== p.price_paise;
+
+    const colorSpecificImgs = (productImages ?? [])
+      .filter((img) => (img.color_name ?? '').trim().toLowerCase() === name.toLowerCase())
+      .map((img) => img.image_url)
+      .filter(Boolean);
+
+    const fallbackPrimary =
+      idx === 0 ? p.default_img : flatImages[idx % Math.max(1, flatImages.length)] || p.hover_img || p.default_img;
+    const fallbackHover =
+      idx === 0 ? p.hover_img || p.default_img : flatImages[(idx + 1) % Math.max(1, flatImages.length)] || p.default_img;
+
+    const primaryImg = colorSpecificImgs[0] || fallbackPrimary;
+    const hoverImg = colorSpecificImgs[1] || (colorSpecificImgs[0] ? p.hover_img || colorSpecificImgs[0] : fallbackHover);
+
+    return {
+      name,
+      hex,
+      img: primaryImg,
+      hoverImg,
+      swatchImg: primaryImg,
+      images: colorSpecificImgs.length > 0 ? colorSpecificImgs : [primaryImg, hoverImg].filter(Boolean),
+      pricePaise: cMinPaise,
+      price: formatPaiseToDisplay(cMinPaise),
+      priceNum: paiseToRupees(cMinPaise),
+      comparePaise: cComparePaise,
+      comparePrice: cComparePaise ? formatPaiseToDisplay(cComparePaise) : null,
+      hasCustomPrice: cHasCustomPrice,
+    };
+  });
 
   return {
     id: p.id,
@@ -68,7 +186,8 @@ function mapProductCard(
     hoverImg: p.hover_img,
     images: flatImages,
     sizes: uniqueSizes,
-    colors: Array.from(colorMap.entries()).map(([name, hex]) => ({ name, hex })),
+    colors,
+    variants: apiVariants,
     link: `/products/${p.slug}`,
     price: formatPaiseToDisplay(displayPricePaise),
     priceNum: paiseToRupees(displayPricePaise),
@@ -134,37 +253,60 @@ products.get('/', zValidator('query', listQuerySchema), async (c) => {
     catIdBySlug.set(r.slug.toLowerCase(), r.id);
   }
 
-  let resolvedCategoryId = query.categoryId;
-  if (!resolvedCategoryId && query.category) {
-    resolvedCategoryId = catIdBySlug.get(query.category.toLowerCase()) ?? query.category;
+  let resolvedCategoryIds: string[] | undefined;
+  if (query.categoryId) {
+    resolvedCategoryIds = [query.categoryId];
+  } else if (query.category) {
+    const qCat = query.category.toLowerCase().trim();
+    const aliasGroup = CATEGORY_ALIASES[qCat];
+    if (aliasGroup && aliasGroup.length > 0) {
+      resolvedCategoryIds = aliasGroup;
+    } else {
+      const singleId = catIdBySlug.get(qCat) ?? query.category;
+      resolvedCategoryIds = [singleId];
+    }
   }
 
   const result = await getProducts(c.env.DB, {
     section: query.section,
-    categoryId: resolvedCategoryId,
+    categoryId: resolvedCategoryIds,
     sort: query.sort,
     page: query.page,
     limit: query.limit,
     featured: query.featured,
   });
 
-  const variantBatch =
+  const [variantBatch, imageBatch] =
     result.products.length > 0
-      ? await c.env.DB.batch(
-          result.products.map((p) =>
-            c.env.DB
-              .prepare(
-                `SELECT * FROM product_variants WHERE product_id = ?1 AND is_active = 1 ORDER BY sort_order ASC, size ASC`,
-              )
-              .bind(p.id),
+      ? await Promise.all([
+          c.env.DB.batch(
+            result.products.map((p) =>
+              c.env.DB
+                .prepare(
+                  `SELECT * FROM product_variants WHERE product_id = ?1 AND is_active = 1 ORDER BY sort_order ASC, size ASC`,
+                )
+                .bind(p.id),
+            ),
           ),
-        )
-      : [];
+          c.env.DB.batch(
+            result.products.map((p) =>
+              c.env.DB
+                .prepare(
+                  `SELECT color_name, image_url FROM product_images WHERE product_id = ?1 ORDER BY sort_order ASC`,
+                )
+                .bind(p.id),
+            ),
+          ),
+        ])
+      : [[], []];
 
   const productCards: ApiProductCard[] = result.products.map((p, i) => {
     const variants = (variantBatch[i]?.results ?? []) as DbProductVariant[];
-    const catSlug = p.category_id ? catSlugById.get(p.category_id) : undefined;
-    return mapProductCard(p, variants, catSlug);
+    const prodImages = (imageBatch[i]?.results ?? []) as Array<{ color_name?: string | null; image_url: string }>;
+    const catSlug = p.category_id
+      ? (CANONICAL_CATEGORY_SLUG_MAP[p.category_id] ?? catSlugById.get(p.category_id))
+      : undefined;
+    return mapProductCard(p, variants, catSlug, undefined, prodImages);
   });
 
   const responseData = {
@@ -386,7 +528,7 @@ products.get('/:slug', authOptional, async (c) => {
       ...flatGalleryUrls,
     ]),
   );
-  const card = mapProductCard(product, variants, catRow?.slug, combinedImages);
+  const card = mapProductCard(product, variants, catRow?.slug, combinedImages, images);
 
   const detail: ApiProductDetail = {
     ...card,

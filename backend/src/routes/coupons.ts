@@ -3,6 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import type { Env } from '../types/bindings.js';
 import { formatPaiseToDisplay } from '../services/money.js';
+import { checkD1RateLimit, createRateLimitResponse } from '../middleware/rateLimit.js';
 
 import { nowIso } from '../db/client.js';
 
@@ -14,6 +15,12 @@ const validateCouponSchema = z.object({
 });
 
 coupons.post('/validate', zValidator('json', validateCouponSchema), async (c) => {
+  const ip = c.req.header('CF-Connecting-IP') || c.req.header('x-forwarded-for') || 'unknown';
+  const rl = await checkD1RateLimit(c.env.DB, `coupon_validate:${ip}`, 20, 60);
+  if (!rl.allowed) {
+    return c.json(createRateLimitResponse('Too many promotional code checks. Please wait a minute.'), 429);
+  }
+
   const { code, cartSubtotalPaise } = c.req.valid('json');
 
   const coupon = await c.env.DB

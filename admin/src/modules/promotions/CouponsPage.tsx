@@ -9,6 +9,7 @@ interface CouponForm {
   discount_type: 'flat' | 'percent';
   discount_value: string;
   min_order_rupees: string;
+  max_discount_rupees: string;
   max_uses: string;
   expires_at: string;
   is_active: boolean;
@@ -19,6 +20,7 @@ const emptyForm: CouponForm = {
   discount_type: 'percent',
   discount_value: '10',
   min_order_rupees: '',
+  max_discount_rupees: '',
   max_uses: '',
   expires_at: '',
   is_active: true,
@@ -38,8 +40,25 @@ export default function CouponsPage() {
     try {
       const res = await couponsApi.list();
       const raw = res.data as unknown;
-      const arr = Array.isArray(raw) ? raw : (raw as { coupons?: Coupon[] })?.coupons ?? [];
-      setList(arr as Coupon[]);
+      const arr = (Array.isArray(raw) ? raw : ((raw as { items?: Record<string, unknown>[]; coupons?: Record<string, unknown>[] })?.items ?? (raw as { coupons?: Record<string, unknown>[] })?.coupons ?? [])) as Record<string, unknown>[];
+      setList(
+        arr.map((c) => {
+          const rawType = String(c.discount_type ?? c.discountType ?? 'percentage');
+          const normType: 'flat' | 'percent' = rawType === 'fixed_amount' || rawType === 'flat' ? 'flat' : 'percent';
+          return {
+            id: String(c.id ?? ''),
+            code: String(c.code ?? ''),
+            discount_type: normType,
+            discount_value: Number(c.discount_value ?? c.discountValue ?? 0),
+            min_order_paise: c.min_order_paise != null ? Number(c.min_order_paise) : null,
+            max_discount_paise: c.max_discount_paise != null ? Number(c.max_discount_paise) : null,
+            max_uses: c.usage_limit != null ? Number(c.usage_limit) : (c.max_uses != null ? Number(c.max_uses) : null),
+            used_count: Number(c.used_count ?? 0),
+            expires_at: c.expires_at ? String(c.expires_at) : null,
+            is_active: Number(c.is_active ?? 1),
+          };
+        }),
+      );
     } finally {
       setLoading(false);
     }
@@ -61,6 +80,7 @@ export default function CouponsPage() {
       discount_type: c.discount_type,
       discount_value: c.discount_type === 'flat' ? String((c.discount_value ?? 0) / 100) : String(c.discount_value ?? 0),
       min_order_rupees: c.min_order_paise ? String(c.min_order_paise / 100) : '',
+      max_discount_rupees: c.max_discount_paise ? String(c.max_discount_paise / 100) : '',
       max_uses: c.max_uses ? String(c.max_uses) : '',
       expires_at: c.expires_at ? c.expires_at.slice(0, 16) : '',
       is_active: Boolean(c.is_active),
@@ -72,24 +92,28 @@ export default function CouponsPage() {
   async function handleSave() {
     setError('');
     const code = form.code.trim().toUpperCase();
-    if (!code) { setError('Coupon code is required.'); return; }
+    if (code.length < 3) { setError('Coupon code must be at least 3 characters.'); return; }
     const valNum = Number(form.discount_value);
     if (isNaN(valNum) || valNum <= 0) { setError('Discount value must be greater than 0.'); return; }
     if (form.discount_type === 'percent' && valNum > 100) { setError('Percentage cannot exceed 100%.'); return; }
 
     setSaving(true);
     try {
-      const payload: Partial<Coupon> = {
+      const payload = {
         code,
-        discount_type: form.discount_type,
-        discount_value: form.discount_type === 'flat' ? Math.round(valNum * 100) : Math.round(valNum),
-        min_order_paise: form.min_order_rupees ? Math.round(Number(form.min_order_rupees) * 100) : null,
-        max_uses: form.max_uses ? Number(form.max_uses) : null,
-        expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
-        is_active: form.is_active ? 1 : 0,
+        discountType: form.discount_type === 'flat' ? 'fixed_amount' : 'percentage',
+        discountValue: form.discount_type === 'flat' ? Math.round(valNum * 100) : Math.round(valNum),
+        minOrderPaise: form.min_order_rupees ? Math.round(Number(form.min_order_rupees) * 100) : 0,
+        maxDiscountPaise: form.discount_type === 'percent' && form.max_discount_rupees ? Math.round(Number(form.max_discount_rupees) * 100) : null,
+        usageLimit: form.max_uses ? Number(form.max_uses) : null,
+        expiresAt: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+        isActive: Boolean(form.is_active),
       };
-      if (editing) await couponsApi.update(editing.id, payload);
-      else await couponsApi.create(payload);
+      const res = editing ? await couponsApi.update(editing.id, payload) : await couponsApi.create(payload);
+      if (!res.success) {
+        setError(res.error?.message ?? 'Failed to save coupon.');
+        return;
+      }
       setModalOpen(false);
       load();
     } catch (e: unknown) {
@@ -100,7 +124,7 @@ export default function CouponsPage() {
   }
 
   async function handleToggle(c: Coupon) {
-    await couponsApi.update(c.id, { is_active: c.is_active ? 0 : 1 });
+    await couponsApi.update(c.id, { isActive: !c.is_active });
     load();
   }
 
@@ -118,7 +142,9 @@ export default function CouponsPage() {
     {
       key: 'discount', header: 'Benefit', render: r => (
         <span className="font-medium text-ink-900">
-          {r.discount_type === 'percent' ? `${r.discount_value}% off` : `${fmtInr(r.discount_value)} off`}
+          {r.discount_type === 'percent'
+            ? `${r.discount_value}% off${r.max_discount_paise ? ` (up to ${fmtInr(r.max_discount_paise)})` : ''}`
+            : `${fmtInr(r.discount_value)} off`}
         </span>
       ),
     },
@@ -201,6 +227,16 @@ export default function CouponsPage() {
               onChange={e => setForm(f => ({ ...f, discount_value: e.target.value }))}
             />
           </div>
+          {form.discount_type === 'percent' && (
+            <Input
+              label="Maximum Discount Cap (₹, optional)"
+              tooltip="Caps the maximum Rupee discount granted by this percentage code."
+              type="number"
+              value={form.max_discount_rupees}
+              onChange={e => setForm(f => ({ ...f, max_discount_rupees: e.target.value }))}
+              placeholder="e.g. 2500 (leave blank for no cap)"
+            />
+          )}
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Minimum Order (₹)"

@@ -34,6 +34,7 @@ interface StoreConfigForm {
   enableReviewsOnPdp: boolean;
   requireVerifiedPurchase: boolean;
   autoApproveReviews: boolean;
+  enableTestCheckout: boolean;
   fxMode: 'auto' | 'manual';
   fxSpreadPercent: string;
   enabledMarkets: string[];
@@ -55,6 +56,7 @@ const defaults: StoreConfigForm = {
   enableReviewsOnPdp: true,
   requireVerifiedPurchase: true,
   autoApproveReviews: false,
+  enableTestCheckout: true,
   fxMode: 'auto',
   fxSpreadPercent: '0',
   enabledMarkets: ALL_MARKET_CODES,
@@ -91,6 +93,7 @@ export default function SettingsPage() {
         enableReviewsOnPdp: d.enableReviewsOnPdp !== undefined ? Boolean(d.enableReviewsOnPdp) : defaults.enableReviewsOnPdp,
         requireVerifiedPurchase: d.requireVerifiedPurchase !== undefined ? Boolean(d.requireVerifiedPurchase) : defaults.requireVerifiedPurchase,
         autoApproveReviews: d.autoApproveReviews !== undefined ? Boolean(d.autoApproveReviews) : defaults.autoApproveReviews,
+        enableTestCheckout: d.enableTestCheckout !== undefined ? Boolean(d.enableTestCheckout) : defaults.enableTestCheckout,
         fxMode: d.fxMode === 'manual' ? 'manual' : 'auto',
         fxSpreadPercent: d.fxSpreadPercent !== undefined ? String(d.fxSpreadPercent) : '0',
         enabledMarkets: Array.isArray(d.enabledMarkets)
@@ -136,6 +139,7 @@ export default function SettingsPage() {
         enableReviewsOnPdp: form.enableReviewsOnPdp,
         requireVerifiedPurchase: form.requireVerifiedPurchase,
         autoApproveReviews: form.autoApproveReviews,
+        enableTestCheckout: form.enableTestCheckout,
         fxMode: form.fxMode,
         fxSpreadPercent: Math.max(0, Math.min(15, Number(form.fxSpreadPercent || 0))),
         enabledMarkets: Array.from(new Set(['IN', ...form.enabledMarkets])),
@@ -375,6 +379,12 @@ export default function SettingsPage() {
                 onChange={e => setForm(f => ({ ...f, maxCartItems: e.target.value }))}
               />
             </div>
+            <Toggle
+              label="Sandbox Test Checkout Mode (Testing Only)"
+              tooltip="Allows end-to-end order placement & tracking tests without live Razorpay/Cashfree keys in the development/testing environment. Automatically blocked in staging & production."
+              checked={form.enableTestCheckout}
+              onChange={v => setForm(f => ({ ...f, enableTestCheckout: v }))}
+            />
           </div>
         </Card>
 

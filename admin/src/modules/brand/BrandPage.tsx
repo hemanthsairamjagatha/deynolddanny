@@ -362,17 +362,9 @@ export default function BrandPage() {
             </div>
           </div>
 
-          <FieldGroup title="Footer Attribution & Default SEO">
+          <FieldGroup title="Footer Copyright & Default SEO">
             <div className="md:col-span-2">
               <Input label="Footer Copyright Line" value={draft.copyrightText} onChange={(e) => setField('copyrightText', e.target.value)} />
-            </div>
-            <Input label="Attribution Label" value={draft.attributionText} onChange={(e) => setField('attributionText', e.target.value)} />
-            <Input label="Attribution URL" value={draft.attributionUrl} onChange={(e) => setField('attributionUrl', e.target.value)} />
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-ink-700 cursor-pointer">
-                <input type="checkbox" checked={draft.showAttribution !== false} onChange={(e) => setField('showAttribution', e.target.checked)} className="accent-gold-500" />
-                Display Attribution Link Next to Copyright in Footer
-              </label>
             </div>
             <div className="md:col-span-2">
               <Input label="Default Meta Title" value={draft.defaultMetaTitle} onChange={(e) => setField('defaultMetaTitle', e.target.value)} />

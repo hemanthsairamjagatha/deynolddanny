@@ -34,6 +34,7 @@ import { restockCommittedStock, recordInventoryMovements } from '../../services/
 import { formatPaiseToDisplay, paiseToRupeesFloat } from '../../services/money.js';
 import { generateId } from '../../services/crypto.js';
 import { nowIso } from '../../db/client.js';
+import { requirePermission } from '../../middleware/adminAuth.js';
 
 const adminOrders = new Hono<{ Bindings: Env }>();
 
@@ -56,14 +57,15 @@ async function logAdminOrderAction(
 
 // ─── GET /api/admin/orders ───────────────────────────────────────────────────
 
-adminOrders.get('/', async (c) => {
+adminOrders.get('/', requirePermission('orders.read'), async (c) => {
   const rawPage = Number(c.req.query('page') ?? '1');
   const rawLimit = Number(c.req.query('limit') ?? '20');
   const page = Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
   const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(50, Math.floor(rawLimit)) : 20;
   const status = c.req.query('status');
+  const search = c.req.query('search') || c.req.query('q');
 
-  const { orders, total } = await getAllOrdersAdmin(c.env.DB, page, limit, status);
+  const { orders, total } = await getAllOrdersAdmin(c.env.DB, page, limit, status, search);
   const items = orders.map((o) => ({
     id: o.id,
     orderNumber: o.order_number,
@@ -90,7 +92,7 @@ adminOrders.get('/', async (c) => {
 
 // ─── GET /api/admin/orders/:id ───────────────────────────────────────────────
 
-adminOrders.get('/:id', async (c) => {
+adminOrders.get('/:id', requirePermission('orders.read'), async (c) => {
   const id = c.req.param('id');
   const order = await getOrderById(c.env.DB, id);
   if (!order) {
@@ -170,7 +172,7 @@ const shipSchema = z.object({
   weightKg: z.number().positive().optional().default(0.5),
 });
 
-adminOrders.post('/:id/ship', zValidator('json', shipSchema), async (c) => {
+adminOrders.post('/:id/ship', requirePermission('orders.fulfill'), zValidator('json', shipSchema), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
@@ -426,7 +428,7 @@ adminOrders.post('/:id/ship', zValidator('json', shipSchema), async (c) => {
 
 // ─── GET /api/admin/orders/:id/tracking ──────────────────────────────────────
 
-adminOrders.get('/:id/tracking', async (c) => {
+adminOrders.get('/:id/tracking', requirePermission('orders.read'), async (c) => {
   const id = c.req.param('id');
   const env = c.env;
 
@@ -510,7 +512,7 @@ const pincodeSchema = z.object({
   deliveryPincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits'),
 });
 
-adminOrders.post('/pincode-check', zValidator('json', pincodeSchema), async (c) => {
+adminOrders.post('/pincode-check', requirePermission('orders.read', 'orders.fulfill'), zValidator('json', pincodeSchema), async (c) => {
   const { deliveryPincode } = c.req.valid('json');
   const env = c.env;
   const policy = resolveStorePolicy(env);
@@ -591,7 +593,7 @@ const statusSchema = z.object({
   reason: z.string().max(300).optional(),
 });
 
-adminOrders.patch('/:id/status', zValidator('json', statusSchema), async (c) => {
+adminOrders.patch('/:id/status', requirePermission('orders.fulfill'), zValidator('json', statusSchema), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
@@ -644,7 +646,7 @@ const trackingSchema = z.object({
   trackingNumber: z.string().min(1).max(100),
 });
 
-adminOrders.patch('/:id/tracking', zValidator('json', trackingSchema), async (c) => {
+adminOrders.patch('/:id/tracking', requirePermission('orders.fulfill'), zValidator('json', trackingSchema), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
@@ -660,6 +662,13 @@ adminOrders.patch('/:id/tracking', zValidator('json', trackingSchema), async (c)
 
   const shippedAt = nowIso();
   await updateOrderTracking(c.env.DB, id, { courierPartner, trackingNumber, shippedAt });
+  await appendOrderAuditLog(
+    c.env.DB,
+    id,
+    'ship',
+    `Dispatched via ${courierPartner} (AWB: ${trackingNumber})`,
+    adminId,
+  );
 
   const user = await c.env.DB
     .prepare(`SELECT email FROM users WHERE id = ?1`)
@@ -707,7 +716,7 @@ const refundSchema = z.object({
   restockItems: z.boolean().optional().default(false),
 });
 
-adminOrders.post('/:id/refund', zValidator('json', refundSchema), async (c) => {
+adminOrders.post('/:id/refund', requirePermission('orders.refund'), zValidator('json', refundSchema), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
@@ -754,7 +763,7 @@ adminOrders.post('/:id/refund', zValidator('json', refundSchema), async (c) => {
 
 // ─── POST /api/admin/orders/:id/reconcile — Manual gateway reconciliation ────
 
-adminOrders.post('/:id/reconcile', async (c) => {
+adminOrders.post('/:id/reconcile', requirePermission('orders.fulfill', 'orders.refund'), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
@@ -827,7 +836,7 @@ const returnReviewSchema = z.object({
   restockItems: z.boolean().optional().default(false),
 });
 
-adminOrders.patch('/:id/returns/:returnId', zValidator('json', returnReviewSchema), async (c) => {
+adminOrders.patch('/:id/returns/:returnId', requirePermission('returns.manage'), zValidator('json', returnReviewSchema), async (c) => {
   const orderId = c.req.param('id');
   const returnId = c.req.param('returnId');
   const adminId = c.get('userId');
@@ -876,7 +885,7 @@ adminOrders.patch('/:id/returns/:returnId', zValidator('json', returnReviewSchem
 
 // ─── POST /api/admin/orders/:id/cancel ───────────────────────────────────────
 
-adminOrders.post('/:id/cancel', zValidator('json', z.object({ reason: z.string().min(3).max(300) })), async (c) => {
+adminOrders.post('/:id/cancel', requirePermission('orders.cancel'), zValidator('json', z.object({ reason: z.string().min(3).max(300) })), async (c) => {
   const id = c.req.param('id');
   const adminId = c.get('userId');
   const ip = c.req.header('CF-Connecting-IP') ?? null;
