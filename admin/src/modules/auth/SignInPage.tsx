@@ -21,7 +21,11 @@ export default function SignInPage() {
     setError('');
     setLoading(true);
     try {
-      await authApi.requestOtp(email);
+      const res = await authApi.requestOtp(email);
+      if (!res.success) {
+        setError(res.error?.message || 'Failed to send code. Check your email address and try again.');
+        return;
+      }
       setStep('otp');
     } catch {
       setError('Failed to send code. Check your email address and try again.');

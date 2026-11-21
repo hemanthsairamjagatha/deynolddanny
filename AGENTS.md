@@ -3063,3 +3063,13 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers / Exclusions:** Live Cashfree & Shiprocket provider calls remain intentionally fail-closed until production credentials are configured.
+
+- **2026-11-21 — Admin Sign-In Error Handling Fix (`SignInPage.tsx`)**:
+  - **Status:** COMPLETE
+  - **Summary:** Fixed `requestOtp` in `admin/src/modules/auth/SignInPage.tsx` to inspect `res.success` from `authApi.requestOtp(email)` and surface the actual API error message instead of silently advancing to the OTP verification step when `/api/auth/send-otp` fails (such as a `404` on an unproxied Vercel host). Rebuilt Admin SPA and deployed to Cloudflare Workers production (Version `17a1584f-db39-41cc-98af-2d44fee13e35`).
+  - **Files Modified:** `admin/src/modules/auth/SignInPage.tsx`, `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task
+  - **Validation:** `npm run build:admin`: PASS (`tsc && vite build`, 0 errors); `npx --prefix backend wrangler deploy --env production --cwd backend`: PASS (Version `17a1584f-db39-41cc-98af-2d44fee13e35`).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** Domain `deynolddanny.co.in` DNS currently points to Vercel (`bom1::...`, which returns 404 on `/api/*` because `vercel.json` was removed in commit `39acdec`) instead of Cloudflare Workers (`deynold-danny-backend.deynolddanny.workers.dev`).
