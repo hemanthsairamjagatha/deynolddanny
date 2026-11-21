@@ -2300,7 +2300,7 @@ a.product-item-meta__title:hover {
   }
 }
 /* ==========================================================================
-   9. EDITORIAL CATEGORIES SECTION (1520.8 x 622.4 Full-Width Single Banners)
+   9. EDITORIAL CATEGORIES SECTION (1520.8 x 947.4 Flex Banners)
    ========================================================================== */
 .editorial-categories-section {
   width: 100%;
@@ -2316,9 +2316,8 @@ a.product-item-meta__title:hover {
 }
 
 .editorial-categories-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  justify-content: center;
+  display: flex;
+  flex-direction: column;
   gap: 3px;
   width: 100%;
   max-width: 1520.8px;
@@ -2327,13 +2326,13 @@ a.product-item-meta__title:hover {
 
 .editorial-category-card {
   position: relative;
+  display: flex;
   width: 100%;
   max-width: 1520.8px;
-  height: 622.4px;
-  aspect-ratio: 1520.8 / 622.4;
+  height: 947.4px;
+  aspect-ratio: 1520.8 / 947.4;
   overflow: hidden;
   background-color: var(--color-studio-warm);
-  display: block;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
@@ -2440,16 +2439,18 @@ a.product-item-meta__title:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive Scaling: Preserves exact 1520.8 x 622.4 aspect ratio */
+/* Responsive Scaling: Preserves exact 1520.8 x 947.4 aspect ratio */
 @media (max-width: 1540px) {
   .editorial-categories-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 
   .editorial-category-card {
+    display: flex;
     width: 100%;
     height: auto;
-    aspect-ratio: 1520.8 / 622.4;
+    aspect-ratio: 1520.8 / 947.4;
     max-width: 100%;
     max-height: none;
   }
@@ -2457,13 +2458,15 @@ a.product-item-meta__title:hover {
 
 @media (max-width: 768px) {
   .editorial-categories-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 
   .editorial-category-card {
+    display: flex;
     width: 100%;
-    min-height: 200px;
-    aspect-ratio: 16 / 9;
+    min-height: 280px;
+    aspect-ratio: 16 / 10;
   }
 
   .category-content-overlay,
