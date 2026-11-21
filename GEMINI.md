@@ -2689,3 +2689,17 @@ task.
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers / Exclusions:** Live Cashfree and Shiprocket credentials intentionally not provided (kept fail-closed); distributed 5,000–10,000 VU load testing requires remote staging/edge load-generator infrastructure; SonarQube server token/CLI not installed locally.
+
+- **2026-11-21 — Exhaustive 31-Route Interactive Admin UI Verification & Cloudflare Workers Production Deployment**:
+  - **Status:** COMPLETE
+  - **Summary:** Executed an exhaustive Playwright Chromium audit across all 31 routes of the Commerce OS Admin Panel (`admin/src/App.tsx`) plus 7 live interactive modal/form CRUD flows (Products bulk select & inline base-price quick edit + revert, ProductEditor all 4 tabs + Add Size/Add Colour modals + unsaved-changes guard + Save, Categories create/archive/restore, Coupons create with Max Discount Cap ₹ + delete, Inventory all 4 tabs + stock adjust `+1/-1`, CustomerDetail suspend/reactivate, OrderDetail real courier/AWB modal without fake test dispatch). Verified remote Cloudflare D1 migrations (`0001..0014` up to date), deployed the verified production build (`dist/` + `backend/src/index.ts`) to Danny's Cloudflare account (`42e3cd7a534675e7e264475e84c325d4`, `deynold-danny-backend`, Version `b9bad35c-9376-4ae6-9ba0-8d1cd7fab486`), and ran live Cloudflare production edge smoke checks.
+  - **Files Modified:** `AGENTS.md`, `GEMINI.md`
+  - **Structural change summary:** No architecture or directory-structure change in this task
+  - **Validation:**
+    - Exhaustive Playwright Chromium Admin UI Suite (`31/31` routes + `7/7` interactive flows): PASS (`0` console errors, `0` page errors, `0` failed API calls across all 31 routes; all 7 interactive flows verified).
+    - `npx --prefix backend wrangler d1 migrations list deynold-danny-db --remote --cwd backend`: PASS (`No migrations to apply`, `0001..0014` active).
+    - `npx --prefix backend wrangler deploy --env production --cwd backend`: PASS (`83` updated assets uploaded, Version `b9bad35c-9376-4ae6-9ba0-8d1cd7fab486`, startup `26 ms`, `ENVIRONMENT=production`, `ENABLE_TEST_CHECKOUT_FALLBACK=false`, `COURIER_FAIL_OPEN=false`).
+    - Live Production Edge Smoke Checks (`https://deynold-danny-backend.deynolddanny.workers.dev`): PASS (`200` on `/`, `/favicon.svg`, `/robots.txt`, `/sitemap.xml`, `/admin/sign-in`, `/health`, `/api/storefront/published`, `/api/products`, `/api/products/cady-trousers`, `/api/config/storefront`; `413 PAYLOAD_TOO_LARGE` on `>256KB` JSON POST).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers / Exclusions:** Live Cashfree & Shiprocket provider calls remain intentionally fail-closed until production credentials are configured.
