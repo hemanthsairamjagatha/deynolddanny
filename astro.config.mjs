@@ -15,11 +15,11 @@ export default defineConfig({
     server: {
       proxy: {
         '/api': {
-          target: process.env.PUBLIC_BACKEND_URL || 'http://127.0.0.1:8787',
+          target: process.env.PUBLIC_BACKEND_URL || 'https://deynold-danny-backend.deynolddanny.workers.dev',
           changeOrigin: true,
         },
         '/health': {
-          target: process.env.PUBLIC_BACKEND_URL || 'http://127.0.0.1:8787',
+          target: process.env.PUBLIC_BACKEND_URL || 'https://deynold-danny-backend.deynolddanny.workers.dev',
           changeOrigin: true,
         },
       },

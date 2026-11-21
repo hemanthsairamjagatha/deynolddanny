@@ -3073,3 +3073,13 @@ deynold-danny-ecommerce/
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** Domain `deynolddanny.co.in` DNS currently points to Vercel (`bom1::...`, which returns 404 on `/api/*` because `vercel.json` was removed in commit `39acdec`) instead of Cloudflare Workers (`deynold-danny-backend.deynolddanny.workers.dev`).
+
+- **2026-11-21 — Studio Page Mapping Clarification, Local Dev Proxy Configuration & GitHub Push**:
+  - **Status:** COMPLETE
+  - **Summary:** Set default proxy target in `astro.config.mjs` and created root `.env` / `.env.example` pointing to live backend `https://deynold-danny-backend.deynolddanny.workers.dev` so `npm run dev` proxies `/api/*` to the live Cloudflare Workers backend and hydrates live CMS edits locally. Clarified route ownership: `page_legal_shipping` edits the Shipping & Returns Policy document at `/legal/shipping-returns`, while the main homepage is edited via `/admin/studio/page_home`, requiring "Publish Live" to take effect. Pushed code to GitHub per user request.
+  - **Files Modified:** `astro.config.mjs`, `AGENTS.md`, `GEMINI.md`
+  - **Files Added:** `.env`, `.env.example`
+  - **Structural change summary:** No architecture or directory-structure change in this task
+  - **Validation:** `npx astro check`: PASS (115 files, 0 errors, 0 warnings, 0 hints).
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
