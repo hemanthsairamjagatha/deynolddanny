@@ -1,21 +1,26 @@
 ---
 // src/features/home/components/CategoryGrid.astro
-import { mainCategories } from '../data/home-content';
+import { fetchCategories } from '../../catalog/api/catalog.api';
+import { mainCategories as fallbackCategories } from '../data/home-content';
+
+const fetched = await fetchCategories();
+const categories = fetched && fetched.length > 0 ? fetched.slice(0, 6) : fallbackCategories;
 ---
 
 <section class="editorial-categories-section" id="categories" aria-label="Explore Menswear Categories">
   <div class="editorial-categories-container">
     <div class="editorial-categories-grid">
-      {mainCategories.map(cat => (
-        <a href={cat.link} class="editorial-category-card" aria-label={`Scopri la collezione ${cat.title}`}>
+      {categories.map(cat => (
+        <a href={cat.link || `/categories/${cat.id}`} class="editorial-category-card" aria-label={`Scopri la collezione ${cat.title}`}>
           <div class="category-image-wrap">
             <img
               src={cat.image.startsWith('/') ? cat.image : `/${cat.image}`}
-              alt={cat.subtitle}
+              alt={cat.subtitle || cat.title}
               class="category-bg-img"
               width="762"
               height="762"
               loading="lazy"
+              style={cat.focalX !== undefined && cat.focalY !== undefined ? `object-position: ${cat.focalX}% ${cat.focalY}%` : undefined}
             />
             <div class="category-gradient-overlay" aria-hidden="true" />
           </div>

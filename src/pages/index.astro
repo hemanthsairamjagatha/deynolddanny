@@ -4,29 +4,48 @@ import Header from '../components/layout/Header.astro';
 import HeroBanner from '../features/home/components/HeroBanner.astro';
 import CategoryGrid from '../features/home/components/CategoryGrid.astro';
 import ProductCarousel from '../features/catalog/components/ProductCarousel';
+import EditorialDuo from '../features/home/components/EditorialDuo.astro';
 import StyleLayering from '../features/home/components/StyleLayering';
 import CartDrawer from '../features/cart/components/CartDrawer';
 import Footer from '../components/layout/Footer.astro';
 
-import { fetchProducts } from '../features/catalog/api/catalog.api';
+import { fetchProducts, fetchCategories } from '../features/catalog/api/catalog.api';
 import {
   masteryProducts as defaultMastery,
   styleSpaceProducts as defaultStyleSpace
 } from '../features/catalog/data/products';
 
-const liveProducts = await fetchProducts();
-const masteryProducts = liveProducts.length >= 4 ? liveProducts.slice(0, 4) : defaultMastery;
-const styleSpaceProducts = liveProducts.length >= 8 ? liveProducts.slice(4, 8) : defaultStyleSpace;
+const [liveProducts, liveCategories] = await Promise.all([
+  fetchProducts(),
+  fetchCategories()
+]);
+const liveMastery = liveProducts.filter((p) => (p.sectionGroup || (p as any).section_group) === 'mastery');
+const liveStyleSpace = liveProducts.filter((p) => (p.sectionGroup || (p as any).section_group) === 'style_space');
+
+const masteryProducts = liveMastery.length > 0
+  ? liveMastery
+  : (liveProducts.length >= 4 ? liveProducts.slice(0, 4) : defaultMastery);
+
+const styleSpaceProducts = liveStyleSpace.length > 0
+  ? liveStyleSpace
+  : (liveProducts.length >= 8 ? liveProducts.slice(4, 8) : defaultStyleSpace);
 
 const BEST_SELLER_CATEGORIES = [
   { label: 'ALL', value: 'all' },
-  { label: 'TAILORING', value: 'tailoring' },
-  { label: 'SHIRTS', value: 'shirts' },
-  { label: 'TROUSERS', value: 'trousers' },
-  { label: 'KNITWEAR', value: 'knitwear' },
-  { label: 'OUTERWEAR', value: 'outerwear' },
-  { label: 'FOOTWEAR', value: 'footwear' },
-  { label: 'ACCESSORIES', value: 'accessories' }
+  ...(liveCategories && liveCategories.length > 0
+    ? liveCategories.slice(0, 8).map((c) => ({
+        label: (c.title || c.id).toUpperCase(),
+        value: (c.link?.replace(/^\/categories\//, '') || c.id || c.title).toLowerCase(),
+      }))
+    : [
+        { label: 'TAILORING', value: 'tailoring' },
+        { label: 'SHIRTS', value: 'shirts' },
+        { label: 'TROUSERS', value: 'trousers' },
+        { label: 'KNITWEAR', value: 'knitwear' },
+        { label: 'OUTERWEAR', value: 'outerwear' },
+        { label: 'FOOTWEAR', value: 'footwear' },
+        { label: 'ACCESSORIES', value: 'accessories' }
+      ])
 ];
 const siteOrigin = Astro.site?.href.replace(/\/$/, '') || 'https://deynolddanny.com';
 const organizationJsonLd = JSON.stringify({
@@ -92,7 +111,10 @@ const webSiteJsonLd = JSON.stringify({
       sectionGroup="style_space"
     />
 
-    <!-- 4. Style Layering Editorial Lookbook Section (Referenced Design) -->
+    <!-- 4. Curated Seasonal Collections / Editorial Capsules -->
+    <EditorialDuo />
+
+    <!-- 5. Style Layering Editorial Lookbook Section (Referenced Design) -->
     <div id="latest-news">
       <StyleLayering client:load />
     </div>

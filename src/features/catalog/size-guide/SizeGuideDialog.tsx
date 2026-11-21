@@ -28,6 +28,7 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
   sizes = [],
 }) => {
   const [unit, setUnit] = useState<MeasurementUnit>('cm');
+  const [allGuides, setAllGuides] = useState<LiveSizeGuide[]>([]);
   const [liveGuide, setLiveGuide] = useState<LiveSizeGuide | null>(null);
 
   useEffect(() => {
@@ -37,9 +38,19 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
       .then((json: { success?: boolean; data?: { items?: LiveSizeGuide[] } } | null) => {
         const items = json?.data?.items ?? [];
         if (items.length === 0) return;
-        const catLower = category.toLowerCase();
+        setAllGuides(items);
+        const catLower = (category || '').toLowerCase().trim();
+        const titleLower = (productTitle || '').toLowerCase().trim();
         const matched =
-          items.find((g) => g.categorySlug && catLower && g.categorySlug.toLowerCase() === catLower) ||
+          items.find((g) => {
+            if (!g.categorySlug) return false;
+            const gCat = g.categorySlug.toLowerCase().trim();
+            return gCat === catLower || catLower.includes(gCat) || gCat.includes(catLower) || titleLower.includes(gCat);
+          }) ||
+          items.find((g) => {
+            const gSlug = (g.slug || '').toLowerCase().trim();
+            return catLower.includes(gSlug) || titleLower.includes(gSlug);
+          }) ||
           items.find((g) => !g.categorySlug) ||
           items[0];
         if (matched && Array.isArray(matched.tables) && matched.tables.length > 0) {
@@ -47,7 +58,7 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
         }
       })
       .catch(() => {});
-  }, [isOpen, category]);
+  }, [isOpen, category, productTitle]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -165,6 +176,29 @@ export const SizeGuideDialog: React.FC<SizeGuideDialogProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Live Admin Guide Switcher (Trousers, Tailoring, Custom Capsules) */}
+        {allGuides.length > 1 && (
+          <div className="flex flex-wrap gap-2 pt-4 pb-1 border-b border-neutral-100">
+            {allGuides.map((g) => {
+              const isActive = (liveGuide?.id && liveGuide.id === g.id) || (liveGuide?.slug && liveGuide.slug === g.slug);
+              return (
+                <button
+                  key={g.id || g.slug}
+                  type="button"
+                  onClick={() => setLiveGuide(g)}
+                  className={`text-[11px] px-3.5 py-1.5 rounded-full transition-all tracking-wider uppercase font-mono ${
+                    isActive
+                      ? 'bg-neutral-900 text-white font-medium shadow-sm'
+                      : 'bg-neutral-100 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200'
+                  }`}
+                >
+                  {g.title}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Conversion & Measurement Table (Live Admin Size Guide when configured, else Atelier Default) */}
         {liveGuide && liveGuide.tables && liveGuide.tables.length > 0 ? (

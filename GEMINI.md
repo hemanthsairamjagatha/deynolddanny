@@ -2807,3 +2807,29 @@ task.
   - `AGENTS.md` updated: **YES**
   - `GEMINI.md` updated: **YES**
   - **Blockers:** None.
+
+- **2026-11-21 — Homepage Catalog & Curated Collections Dynamic Synchronization**:
+  - **Status:** COMPLETE
+  - **Summary:** Resolved homepage dynamic synchronization across Commerce OS Admin modules: Products (`/admin/catalog/products`), Categories (`/admin/catalog/categories`), Collections (`/admin/catalog/collections`), Style Layering (`/admin/style-layering`), Brand Identity (`/admin/brand`), Navigation (`/admin/navigation`), and Visual Studio (`/admin/studio/*`). In `src/pages/index.astro`, dynamic section filters replaced static slicing, binding "Our Best Sellers" (`mastery`) and "NEW ARRIVAL" (`style_space`). Added dynamic D1 category subhead tabs for both carousels and normalized `sectionGroup`/`section_group` handling in `catalog.api.ts` and `ProductCarousel.tsx`. In `src/features/home/components/CategoryGrid.astro` and `EditorialDuo.astro`, integrated `fetchCategories()` and `fetchCollections()` with fallback to static seeds, rendering curated capsules (`/collections/[slug]`) and live categories directly on the homepage. In `src/lib/storefront/live-cms.ts`, added runtime hydration for `#curated-collections-grid`, `#categories .editorial-categories-grid`, and protected `#latest-news` (Style Layering) against accidental suppression during bundle hydration. Per explicit user constraint, zero code was pushed to GitHub.
+  - **Files Modified:** `src/features/catalog/api/catalog.api.ts`, `src/features/catalog/components/ProductCarousel.tsx`, `src/features/home/components/CategoryGrid.astro`, `src/features/home/components/EditorialDuo.astro`, `src/lib/storefront/live-cms.ts`, `src/pages/index.astro`, `tests/frontend-unit.test.mjs`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** No architecture or directory-structure change in this task.
+  - **Validation:**
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`64` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `git push`: NOT RUN (Per explicit user instruction: "dont push any code to the github").
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.
+
+- **2026-11-21 — Live Size Guides Integration & Dynamic Storefront Multi-Guide Experience**:
+  - **Status:** COMPLETE
+  - **Summary:** Linked Size Guides (`/admin/catalog/size-guides`) dynamically to the storefront, enabling patrons and administrators to view, modify, and verify all garment measurement matrices and fit notes created in Commerce OS Admin. Created `src/pages/size-guide.astro` and `src/features/catalog/size-guide/LiveSizeGuideExperience.tsx` powered by `/api/storefront/size-guides`, supporting live category guide tabs, CM/INCH unit conversion, measurement tables, tailoring notes, and concierge assistance. Enhanced `SizeGuideDialog.tsx` with multi-guide tab switching and robust category/slug matching for product detail modals. Added "SIZE & MEASUREMENTS GUIDE" link to `src/components/layout/Footer.astro` under Customer Care. Rebuilt storefront cleanly (65 static pages + Commerce OS Admin SPA).
+  - **Files Added / Modified:** Added `src/pages/size-guide.astro`, `src/features/catalog/size-guide/LiveSizeGuideExperience.tsx`. Modified `src/features/catalog/size-guide/SizeGuideDialog.tsx`, `src/components/layout/Footer.astro`, `AGENTS.md`, `GEMINI.md`.
+  - **Structural change summary:** Added `/size-guide` route and `LiveSizeGuideExperience` component within the approved `catalog/size-guide` feature domain.
+  - **Validation:**
+    - `node --test tests/frontend-unit.test.mjs`: PASS (`5 / 5` tests).
+    - `npm run build`: PASS (`65` Astro pages + Commerce OS Admin SPA built cleanly into `dist/admin`).
+    - `git push origin main`: PASS
+  - `AGENTS.md` updated: **YES**
+  - `GEMINI.md` updated: **YES**
+  - **Blockers:** None.

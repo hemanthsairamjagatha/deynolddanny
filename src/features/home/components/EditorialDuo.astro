@@ -1,26 +1,49 @@
 ---
 // src/features/home/components/EditorialDuo.astro
+import { fetchCollections } from '../../catalog/api/catalog.api';
 import { bottomCategories } from '../data/home-content';
+
+const collections = await fetchCollections();
+const hasCollections = collections && collections.length > 0;
+const items = hasCollections
+  ? collections.slice(0, 2).map((col) => ({
+      title: col.title,
+      subtitle: col.eyebrow || col.description || 'Curated Capsule',
+      image: col.heroImage || '/images/category-scarpe.jpg',
+      link: `/collections/${col.slug}`,
+      focalX: col.focalX,
+      focalY: col.focalY,
+    }))
+  : bottomCategories.map((cat) => ({
+      title: cat.title,
+      subtitle: cat.subtitle,
+      image: cat.image,
+      link: cat.link,
+      focalX: 50,
+      focalY: 50,
+    }));
 ---
 
-<section class="editorial-categories-section editorial-bottom-duo" id="bottom-categories" aria-label="Explore Shoes and Accessories">
+<section class="editorial-categories-section editorial-bottom-duo" id="bottom-categories" aria-label="Curated Seasonal Collections">
   <div class="editorial-categories-container">
-    <div class="editorial-categories-grid">
-      {bottomCategories.map(cat => (
-        <a href={cat.link} class="editorial-category-card" aria-label={`Scopri la collezione ${cat.title}`}>
+    <div class="editorial-categories-grid" id="curated-collections-grid">
+      {items.map(item => (
+        <a href={item.link} class="editorial-category-card" aria-label={`Scopri la collezione ${item.title}`}>
           <div class="category-image-wrap">
             <img
-              src={cat.image.startsWith('/') ? cat.image : `/${cat.image}`}
-              alt={cat.subtitle}
+              src={item.image.startsWith('/') ? item.image : `/${item.image}`}
+              alt={item.subtitle || item.title}
               class="category-bg-img"
               width="762"
               height="762"
               loading="lazy"
+              style={item.focalX !== undefined && item.focalY !== undefined ? `object-position: ${item.focalX}% ${item.focalY}%` : undefined}
             />
             <div class="category-gradient-overlay" aria-hidden="true" />
           </div>
           <div class="category-content-overlay image-text image-text-left">
-            <h2 class="category-headline image-text-title">{cat.title}</h2>
+            {item.subtitle && <span class="category-tagline text-[11px] uppercase tracking-[0.2em] text-white/80 mb-1 block">{item.subtitle}</span>}
+            <h2 class="category-headline image-text-title">{item.title}</h2>
           </div>
         </a>
       ))}

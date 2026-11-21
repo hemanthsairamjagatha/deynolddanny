@@ -20,6 +20,7 @@ export interface CatalogListResponse {
  */
 export function normalizeProduct(
   p: ProductCardData & {
+    section_group?: string;
     gallery?: Array<{ colorName: string; images: string[] }>;
     compositionCare?: string[];
     shippingReturns?: string[];
@@ -76,6 +77,7 @@ export function normalizeProduct(
 
   return {
     ...p,
+    sectionGroup: p.sectionGroup || p.section_group,
     images: topImages,
     compositionAndCare: p.compositionAndCare?.length ? p.compositionAndCare : p.compositionCare,
     shippingAndReturns: p.shippingAndReturns?.length ? p.shippingAndReturns : p.shippingReturns,
@@ -160,12 +162,44 @@ export async function searchCatalog(query: string): Promise<ProductCardData[]> {
  * Fetch categories from Cloudflare backend
  */
 export async function fetchCategories(): Promise<CategoryCardData[]> {
-  const res = await apiFetch<{ items: CategoryCardData[] }>('/api/categories');
+  const res = await apiFetch<{ items: Array<Record<string, unknown>> }>('/api/categories');
 
-  if (res.success && res.data?.items && res.data.items.length > 0) {
-    return res.data.items;
+  if (res.success && Array.isArray(res.data?.items) && res.data.items.length > 0) {
+    return res.data.items.map((c) => ({
+      id: String(c.id || c.slug || ''),
+      title: String(c.title || c.name || ''),
+      subtitle: String(c.subtitle || c.description || ''),
+      tagline: String(c.tagline || c.eyebrow || 'SCOPRI ORA'),
+      image: String(c.imageUrl || c.image_url || c.image || '/images/category-abiti.jpg'),
+      link: String(c.link || `/categories/${c.slug || c.id}`),
+      focalX: typeof c.focalX === 'number' ? c.focalX : typeof c.focal_x === 'number' ? c.focal_x : undefined,
+      focalY: typeof c.focalY === 'number' ? c.focalY : typeof c.focal_y === 'number' ? c.focal_y : undefined,
+    }));
   }
 
   return localCategories;
+}
+
+export interface CollectionSummary {
+  id: string;
+  slug: string;
+  title: string;
+  eyebrow?: string;
+  description?: string;
+  heroImage?: string;
+  mobileImage?: string;
+  focalX?: number;
+  focalY?: number;
+}
+
+/**
+ * Fetch curated seasonal collections from Cloudflare backend
+ */
+export async function fetchCollections(): Promise<CollectionSummary[]> {
+  const res = await apiFetch<{ items?: CollectionSummary[] }>('/api/storefront/collections', { skipAuthRefresh: true });
+  if (res.success && Array.isArray(res.data?.items)) {
+    return res.data.items;
+  }
+  return [];
 }
 

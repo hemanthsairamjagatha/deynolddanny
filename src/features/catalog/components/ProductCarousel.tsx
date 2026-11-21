@@ -150,7 +150,9 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
       if (picked.length > 0) return picked.slice(0, effectiveLimit);
     }
     if (effectiveSectionGroup) {
-      const grouped = liveCatalog.filter((p) => p.sectionGroup === effectiveSectionGroup);
+      const grouped = liveCatalog.filter(
+        (p) => (p.sectionGroup || (p as unknown as { section_group?: string }).section_group) === effectiveSectionGroup,
+      );
       if (grouped.length > 0) return grouped.slice(0, effectiveLimit);
     }
     const bySlug = new Map(liveCatalog.map((p) => [p.slug || p.id, p]));
@@ -166,12 +168,20 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({
       return liveInitialProducts;
     }
 
+    const scopedGroup = effectiveSectionGroup
+      ? (liveCatalog && liveCatalog.length > 0
+          ? liveCatalog.filter((p) => (p.sectionGroup || (p as unknown as { section_group?: string }).section_group) === effectiveSectionGroup)
+          : liveInitialProducts)
+      : null;
+
     const source =
-      liveCatalog && liveCatalog.length > 0
-        ? liveCatalog
-        : allCatalogProducts && allCatalogProducts.length > 0
-          ? allCatalogProducts
-          : liveInitialProducts;
+      scopedGroup && scopedGroup.length > 0
+        ? scopedGroup
+        : liveCatalog && liveCatalog.length > 0
+          ? liveCatalog
+          : allCatalogProducts && allCatalogProducts.length > 0
+            ? allCatalogProducts
+            : liveInitialProducts;
 
     const catLower = activeCategory.toLowerCase();
 

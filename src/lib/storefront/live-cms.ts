@@ -565,11 +565,15 @@ function applyPdpConfig(pdpConfig: Record<string, unknown> | undefined) {
 }
 
 // ─── 6. HOMEPAGE HERO, CAROUSELS, CATEGORY GRID & EDITORIAL DUO ──────────────
-function applyHomepageSections(sections: CmsSectionPayload[] | undefined) {
-  if (!Array.isArray(sections) || window.location.pathname !== '/') return;
+function applyHomepageSections(
+  sections: CmsSectionPayload[] | undefined,
+  liveCategories?: Array<Record<string, unknown>>,
+  liveCollections?: Array<Record<string, unknown>>,
+) {
+  if (window.location.pathname !== '/' && window.location.pathname !== '') return;
 
   // A. Primary Hero Banner (3D Runway Showcase + Native Looping Video Support)
-  const hero = sections.find((s) => (s.sectionType ?? s.section_type) === 'hero_banner');
+  const hero = Array.isArray(sections) ? sections.find((s) => (s.sectionType ?? s.section_type) === 'hero_banner') : null;
   if (hero) {
     const props = hero.props ?? hero.config_json ?? {};
     const sanitizedHero: Record<string, unknown> = {
@@ -635,60 +639,72 @@ function applyHomepageSections(sections: CmsSectionPayload[] | undefined) {
   }
 
   // C. Category Editorial Grid
-  const catGrid = sections.find((s) => (s.sectionType ?? s.section_type) === 'category_grid');
-  if (catGrid) {
-    const props = catGrid.props ?? catGrid.config_json ?? {};
-    const items = Array.isArray(props.items)
-      ? (props.items as Array<{
-          title?: string;
-          subtitle?: string;
-          href?: string;
-          desktopImage?: string;
-          mobileImage?: string;
-          focalX?: number;
-          focalY?: number;
-        }>)
+  const catGrid = Array.isArray(sections) ? sections.find((s) => (s.sectionType ?? s.section_type) === 'category_grid') : null;
+  const customItems = catGrid ? ((catGrid.props ?? catGrid.config_json ?? {}).items as any[]) : null;
+
+  const items: Array<{
+    title?: string;
+    subtitle?: string;
+    href?: string;
+    desktopImage?: string;
+    mobileImage?: string;
+    focalX?: number;
+    focalY?: number;
+  }> = Array.isArray(customItems) && customItems.length > 0
+    ? customItems
+    : Array.isArray(liveCategories) && liveCategories.length > 0
+      ? liveCategories.slice(0, 6).map((cat) => ({
+          title: String(cat.title || cat.heroTitle || cat.name || ''),
+          subtitle: String(cat.subtitle || cat.tagline || ''),
+          href: safeUrl(cat.route) ?? `/categories/${cat.slug || cat.id}`,
+          desktopImage: safeUrl(cat.imageUrl || cat.image) ?? '/images/category-abiti.jpg',
+          mobileImage: safeUrl(cat.mobileImage || cat.imageUrl || cat.image) ?? '/images/category-abiti.jpg',
+          focalX: typeof cat.focalX === 'number' ? cat.focalX : typeof cat.focal_x === 'number' ? cat.focal_x : undefined,
+          focalY: typeof cat.focalY === 'number' ? cat.focalY : typeof cat.focal_y === 'number' ? cat.focal_y : undefined,
+        }))
       : [];
-    const gridEl = document.querySelector<HTMLElement>('#categories .editorial-categories-grid');
-    if (gridEl && items.length > 0) {
-      const isMobile = window.matchMedia('(max-width: 640px)').matches;
-      gridEl.textContent = '';
-      for (const item of items) {
-        if (!item?.title?.trim()) continue;
-        const a = document.createElement('a');
-        a.href = safeUrl(item.href) ?? '/categories';
-        a.className = 'editorial-category-card';
-        a.setAttribute('aria-label', item.title.trim());
 
-        const wrap = document.createElement('div');
-        wrap.className = 'category-image-wrap';
+  const gridEl = document.querySelector<HTMLElement>('#categories .editorial-categories-grid');
+  if (gridEl && items.length > 0) {
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    gridEl.textContent = '';
+    for (const item of items) {
+      if (!item?.title?.trim()) continue;
+      const a = document.createElement('a');
+      a.href = safeUrl(item.href) ?? '/categories';
+      a.className = 'editorial-category-card';
+      a.setAttribute('aria-label', item.title.trim());
 
-        const img = document.createElement('img');
-        img.src = safeUrl(isMobile ? item.mobileImage || item.desktopImage : item.desktopImage) ?? '/images/category-abiti.jpg';
-        img.alt = item.subtitle?.trim() || item.title.trim();
-        img.className = 'category-bg-img';
-        img.loading = 'lazy';
-        if (item.focalX !== undefined && item.focalY !== undefined) {
-          img.style.objectPosition = `${item.focalX}% ${item.focalY}%`;
-        }
-        wrap.appendChild(img);
+      const wrap = document.createElement('div');
+      wrap.className = 'category-image-wrap';
 
-        const grad = document.createElement('div');
-        grad.className = 'category-gradient-overlay';
-        grad.setAttribute('aria-hidden', 'true');
-        wrap.appendChild(grad);
-        a.appendChild(wrap);
-
-        const overlay = document.createElement('div');
-        overlay.className = 'category-content-overlay image-text image-text-left';
-        const h2 = document.createElement('h2');
-        h2.className = 'category-headline image-text-title';
-        h2.textContent = item.title.trim();
-        overlay.appendChild(h2);
-        a.appendChild(overlay);
-
-        gridEl.appendChild(a);
+      const img = document.createElement('img');
+      img.src = safeUrl(isMobile ? item.mobileImage || item.desktopImage : item.desktopImage) ?? '/images/category-abiti.jpg';
+      img.alt = item.subtitle?.trim() || item.title.trim();
+      img.className = 'category-bg-img';
+      img.loading = 'lazy';
+      img.width = 762;
+      img.height = 762;
+      if (item.focalX !== undefined && item.focalY !== undefined) {
+        img.style.objectPosition = `${item.focalX}% ${item.focalY}%`;
       }
+      wrap.appendChild(img);
+
+      const grad = document.createElement('div');
+      grad.className = 'category-gradient-overlay';
+      grad.setAttribute('aria-hidden', 'true');
+      wrap.appendChild(grad);
+      a.appendChild(wrap);
+
+      const overlay = document.createElement('div');
+      overlay.className = 'category-content-overlay image-text image-text-left';
+      const h2 = document.createElement('h2');
+      h2.className = 'category-headline image-text-title';
+      h2.textContent = item.title.trim();
+      overlay.appendChild(h2);
+      a.appendChild(overlay);
+
+      gridEl.appendChild(a);
     }
   }
 
@@ -964,7 +980,7 @@ export async function hydrateLiveStorefront(): Promise<void> {
         applyDrawerNavigation(json.data.navigation);
         applyFooterNavigation(json.data.navigation);
         applyCookieBanner(json.data.navigation);
-        applyHomepageSections(json.data.sections);
+        applyHomepageSections(json.data.sections, (json.data as Record<string, unknown>).categories as Array<Record<string, unknown>> | undefined);
         applyLegalDocument(json.data.sections);
         if (Array.isArray(json.data.sections)) {
           const pdpSec = json.data.sections.find((s) => (s.sectionType ?? s.section_type) === 'pdp_template');
@@ -996,7 +1012,7 @@ export async function hydrateLiveStorefront(): Promise<void> {
         applyPdpConfig(json.data.pdpConfig);
         // Support BOTH top-level homepageSections (canonical) and nested homepage.sections
         const homeSecs = json.data.homepageSections ?? json.data.homepage?.sections;
-        applyHomepageSections(homeSecs);
+        applyHomepageSections(homeSecs, json.data.categories);
       }
     }
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import { pathToFileURL } from 'node:url';
-import esbuild from '../backend/node_modules/esbuild/lib/main.js';
+import esbuild from 'esbuild';
 
 const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 
